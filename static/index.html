@@ -169,77 +169,225 @@
             return "high";
         }
 
-        // ============ Map Layout (from Dotlan screenshot) ============
+        // ============ Map Layout - Entire Kalevala Expanse Region ============
+        // All 10 constellations with LAWN space (6-CBBM + 2Q-8WA) emphasized in center
+
         const MAP_LAYOUT = {
-            "UDVW-O":  { x: 100, y: 130, constellation: "6-CBBM" },
-            "UJXC-B":  { x: 220, y: 100, constellation: "6-CBBM" },
-            "F48K-D":  { x: 340, y: 90,  constellation: "6-CBBM" },
-            "1-KCSA":  { x: 300, y: 180, constellation: "6-CBBM" },
-            "XTJ-5Q":  { x: 290, y: 270, constellation: "6-CBBM" },
-            "JT2I-7":  { x: 170, y: 270, constellation: "6-CBBM" },
-            "N-JK02":  { x: 360, y: 340, constellation: "6-CBBM" },
+            // ===== LAWN 6-CBBM (Center-West) - EMPHASIZED =====
+            "UDVW-O":  { x: 300, y: 100, constellation: "6-CBBM", lawn: true },
+            "UJXC-B":  { x: 400, y: 150, constellation: "6-CBBM", lawn: true },
+            "F48K-D":  { x: 500, y: 200, constellation: "6-CBBM", lawn: true },
+            "1-KCSA":  { x: 450, y: 300, constellation: "6-CBBM", lawn: true },
+            "XTJ-5Q":  { x: 350, y: 400, constellation: "6-CBBM", lawn: true },
+            "JT2I-7":  { x: 250, y: 450, constellation: "6-CBBM", lawn: true },
+            "N-JK02":  { x: 450, y: 500, constellation: "6-CBBM", lawn: true },
 
-            "FB5U-I":  { x: 500, y: 90,  constellation: "2Q-8WA" },
-            "BZ-BCK":  { x: 620, y: 120, constellation: "2Q-8WA" },
-            "J-OAH2":  { x: 590, y: 42,  constellation: "2Q-8WA" },
-            "O5-YNW":  { x: 730, y: 140, constellation: "2Q-8WA" },
-            "86L-9F":  { x: 790, y: 60,  constellation: "2Q-8WA" },
-            "5-VFC6":  { x: 660, y: 210, constellation: "2Q-8WA" },
-            "IUU3-L":  { x: 870, y: 130, constellation: "2Q-8WA" },
-            "S-LHPJ":  { x: 950, y: 70,  constellation: "2Q-8WA" },
+            // ===== LAWN 2Q-8WA (Center-East) - EMPHASIZED =====
+            "FB5U-I":  { x: 650, y: 200, constellation: "2Q-8WA", lawn: true },
+            "BZ-BCK":  { x: 750, y: 250, constellation: "2Q-8WA", lawn: true },
+            "J-OAH2":  { x: 850, y: 200, constellation: "2Q-8WA", lawn: true },
+            "O5-YNW":  { x: 750, y: 350, constellation: "2Q-8WA", lawn: true },
+            "86L-9F":  { x: 850, y: 400, constellation: "2Q-8WA", lawn: true },
+            "5-VFC6":  { x: 650, y: 350, constellation: "2Q-8WA", lawn: true },
+            "IUU3-L":  { x: 750, y: 450, constellation: "2Q-8WA", lawn: true },
+            "S-LHPJ":  { x: 850, y: 500, constellation: "2Q-8WA", lawn: true },
 
-            // Northern neighbors (Vale of the Silent - regional gates)
-            "LS-JEP":  { x: 120, y: 50,  constellation: "neighbor", holder: null, note: "Vale of the Silent" },
-            "A3-RQ3":  { x: 230, y: 40,  constellation: "neighbor", holder: null, note: "Vale of the Silent" },
-            // Southern neighbors (SL0W remnants + T.RD)
-            "LE-67X":  { x: 240, y: 370, constellation: "neighbor", holder: "SLOW" },
-            "L-TLFU":  { x: 120, y: 410, constellation: "neighbor", holder: "SLOW" },
-            "EPCD-D":  { x: 120, y: 340, constellation: "neighbor", holder: "T.RD" },
-            "BM-VYZ":  { x: 200, y: 440, constellation: "neighbor", holder: "T.RD" },
-            "L-GY1B":  { x: 380, y: 420, constellation: "neighbor", holder: "SLOW" },
-            "MN9P-A":  { x: 340, y: 480, constellation: "neighbor", holder: "SLOW" },
-            "AID-9T":  { x: 460, y: 380, constellation: "neighbor", holder: null, note: "Etherium Reach" },
-            // Eastern neighbors (SL0W remnants)
-            "6V-D0E":  { x: 960, y: 170, constellation: "neighbor", holder: "SLOW" },
-            "LS3-HP":  { x: 940, y: 260, constellation: "neighbor", holder: "SLOW" },
-            "QX-4HO":  { x: 920, y: 340, constellation: "neighbor", holder: "SLOW" },
+            // ===== S4S-SD (South of LAWN) =====
+            "L-GY1B":  { x: 450, y: 650, constellation: "S4S-SD" },
+            "LE-67X":  { x: 350, y: 700, constellation: "S4S-SD" },
+            "74-DRC":  { x: 550, y: 650, constellation: "S4S-SD" },
+            "0S1-GI":  { x: 550, y: 750, constellation: "S4S-SD" },
+            "M3-H2Y":  { x: 650, y: 750, constellation: "S4S-SD" },
+            "O31W-6":  { x: 650, y: 650, constellation: "S4S-SD" },
+            "B1UE-J":  { x: 750, y: 650, constellation: "S4S-SD" },
+
+            // ===== 3NA-Z1 (Southwest) =====
+            "MN9P-A":  { x: 200, y: 650, constellation: "3NA-Z1" },
+            "L-TLFU":  { x: 150, y: 700, constellation: "3NA-Z1" },
+            "BM-VYZ":  { x: 100, y: 650, constellation: "3NA-Z1" },
+            "EPCD-D":  { x: 100, y: 750, constellation: "3NA-Z1" },
+            "RAI-0E":  { x: 200, y: 550, constellation: "3NA-Z1" },
+            "TA9T-P":  { x: 150, y: 500, constellation: "3NA-Z1" },
+            "Q-GICU":  { x: 100, y: 550, constellation: "3NA-Z1" },
+
+            // ===== 78-6RI (East) =====
+            "6V-D0E":  { x: 1000, y: 600, constellation: "78-6RI" },
+            "LS3-HP":  { x: 1050, y: 650, constellation: "78-6RI" },
+            "QX-4HO":  { x: 1100, y: 600, constellation: "78-6RI" },
+            "BVRQ-O":  { x: 1100, y: 500, constellation: "78-6RI" },
+            "FBH-JN":  { x: 1000, y: 500, constellation: "78-6RI" },
+            "SH6X-F":  { x: 950, y: 550, constellation: "78-6RI" },
+
+            // ===== U-HSM3 (Southeast) =====
+            "G-KCFT":  { x: 900, y: 700, constellation: "U-HSM3" },
+            "WNM-V0":  { x: 1000, y: 750, constellation: "U-HSM3" },
+            "C3J0-O":  { x: 800, y: 750, constellation: "U-HSM3" },
+            "B3ZU-H":  { x: 950, y: 800, constellation: "U-HSM3" },
+            "GSO-SR":  { x: 1050, y: 800, constellation: "U-HSM3" },
+            "6FS-CZ":  { x: 1100, y: 750, constellation: "U-HSM3" },
+            "H7S-5I":  { x: 1150, y: 800, constellation: "U-HSM3" },
+            "HPV-RJ":  { x: 1000, y: 850, constellation: "U-HSM3" },
+
+            // ===== 2O-VY7 (Far Southeast) =====
+            "SG-3HY":  { x: 1050, y: 900, constellation: "2O-VY7" },
+            "QZX-L9":  { x: 1150, y: 900, constellation: "2O-VY7" },
+            "SY-0AM":  { x: 1200, y: 950, constellation: "2O-VY7" },
+            "AU2V-J":  { x: 1100, y: 950, constellation: "2O-VY7" },
+            "D-6PKO":  { x: 1150, y: 1000, constellation: "2O-VY7" },
+            "A-YB15":  { x: 1000, y: 950, constellation: "2O-VY7" },
+
+            // ===== 8UD2-J (West) =====
+            "G4-QU6":  { x: 50, y: 450, constellation: "8UD2-J" },
+            "V2-GZS":  { x: 50, y: 350, constellation: "8UD2-J" },
+            "HD-HOZ":  { x: 100, y: 300, constellation: "8UD2-J" },
+            "42G-OB":  { x: 50, y: 250, constellation: "8UD2-J" },
+            "LEM-I1":  { x: 150, y: 250, constellation: "8UD2-J" },
+            "ND-GL4":  { x: 150, y: 350, constellation: "8UD2-J" },
+            "1S-SU1":  { x: 200, y: 300, constellation: "8UD2-J" },
+
+            // ===== XPG-HE (Northwest) =====
+            "9-0QB7":  { x: 200, y: 150, constellation: "XPG-HE" },
+            "M-75WN":  { x: 150, y: 100, constellation: "XPG-HE" },
+            "HVGR-R":  { x: 100, y: 150, constellation: "XPG-HE" },
+            "PNFW-O":  { x: 50, y: 100, constellation: "XPG-HE" },
+            "K76A-3":  { x: 50, y: 50, constellation: "XPG-HE" },
+            "K95-9I":  { x: 150, y: 200, constellation: "XPG-HE" },
+
+            // ===== P-B2NE (Far West) =====
+            "R1O-GN":  { x: 50, y: 600, constellation: "P-B2NE" },
+            "RQOO-U":  { x: 50, y: 700, constellation: "P-B2NE" },
+            "I2D3-5":  { x: 100, y: 850, constellation: "P-B2NE" },
+            "FZX-PU":  { x: 50, y: 800, constellation: "P-B2NE" },
+            "O9K-FT":  { x: 150, y: 800, constellation: "P-B2NE" },
+            "GQ-7SP":  { x: 100, y: 750, constellation: "P-B2NE" },
+            "BGMZ-0":  { x: 50, y: 650, constellation: "P-B2NE" },
+
+            // ===== External Neighbor Systems (Regional Gates) =====
+            "LS-JEP":  { x: 300, y: 20, constellation: "neighbor", note: "Vale of the Silent" },
+            "AID-9T":  { x: 500, y: 850, constellation: "neighbor", note: "Etherium Reach" },
         };
 
+        // Accurate gate connections from ESI
         const MAP_CONNECTIONS = [
-            // 6-CBBM internal gates
-            ["UDVW-O", "UJXC-B", "internal"],
+            // ===== LAWN 6-CBBM Internal Gates =====
+            ["N-JK02", "XTJ-5Q", "internal"],
+            ["JT2I-7", "XTJ-5Q", "internal"],
+            ["XTJ-5Q", "1-KCSA", "internal"],
+            ["1-KCSA", "UJXC-B", "internal"],
+            ["1-KCSA", "F48K-D", "internal"],
+            ["UJXC-B", "UDVW-O", "internal"],
             ["UJXC-B", "F48K-D", "internal"],
-            ["F48K-D", "1-KCSA", "internal"],
-            ["1-KCSA", "XTJ-5Q", "internal"],
-            ["XTJ-5Q", "JT2I-7", "internal"],
-            ["XTJ-5Q", "N-JK02", "internal"],
-            // 2Q-8WA internal gates
+
+            // ===== LAWN 2Q-8WA Internal Gates =====
             ["FB5U-I", "BZ-BCK", "internal"],
-            ["BZ-BCK", "J-OAH2", "internal"],
+            ["BZ-BCK", "5-VFC6", "internal"],
             ["BZ-BCK", "O5-YNW", "internal"],
+            ["BZ-BCK", "J-OAH2", "internal"],
             ["O5-YNW", "86L-9F", "internal"],
-            ["O5-YNW", "5-VFC6", "internal"],
-            ["86L-9F", "IUU3-L", "internal"],
+            ["O5-YNW", "IUU3-L", "internal"],
             ["IUU3-L", "S-LHPJ", "internal"],
-            // Cross-constellation gate
-            ["F48K-D", "FB5U-I", "cross"],
-            // Regional gates (Vale of the Silent)
-            ["UDVW-O", "LS-JEP", "regional"],
-            ["UJXC-B", "A3-RQ3", "regional"],
-            // Southern borders (SL0W + T.RD)
-            ["XTJ-5Q", "LE-67X", "border"],
-            ["LE-67X", "L-TLFU", "border"],
-            ["LE-67X", "BM-VYZ", "border"],
-            ["L-TLFU", "EPCD-D", "border"],
-            ["N-JK02", "L-GY1B", "border"],
-            ["L-GY1B", "MN9P-A", "border"],
-            // Etherium Reach gate
-            ["N-JK02", "AID-9T", "regional"],
-            // Eastern borders (SL0W)
-            ["S-LHPJ", "6V-D0E", "border"],
-            ["6V-D0E", "LS3-HP", "border"],
-            ["LS3-HP", "QX-4HO", "border"],
+
+            // ===== Cross-Constellation (within TKE) =====
+            ["F48K-D", "FB5U-I", "cross"],  // 6-CBBM <-> 2Q-8WA
+            ["N-JK02", "L-GY1B", "cross"],  // 6-CBBM <-> S4S-SD
+
+            // ===== Regional Gates (External to TKE) =====
+            ["UDVW-O", "LS-JEP", "regional"],  // -> Vale of the Silent
+            ["L-GY1B", "AID-9T", "regional"],  // -> Etherium Reach
+
+            // ===== S4S-SD Internal =====
+            ["L-GY1B", "74-DRC", "internal"],
+            ["L-GY1B", "LE-67X", "internal"],
+            ["0S1-GI", "74-DRC", "internal"],
+            ["0S1-GI", "O31W-6", "internal"],
+            ["0S1-GI", "M3-H2Y", "internal"],
+            ["B1UE-J", "O31W-6", "internal"],
+
+            // ===== 3NA-Z1 Internal =====
+            ["RAI-0E", "MN9P-A", "internal"],
+            ["RAI-0E", "TA9T-P", "internal"],
+            ["MN9P-A", "L-TLFU", "internal"],
+            ["MN9P-A", "BM-VYZ", "internal"],
+            ["TA9T-P", "Q-GICU", "internal"],
+            ["L-TLFU", "BM-VYZ", "internal"],
+            ["L-TLFU", "EPCD-D", "internal"],
+
+            // ===== 78-6RI Internal =====
+            ["FBH-JN", "BVRQ-O", "internal"],
+            ["FBH-JN", "SH6X-F", "internal"],
+            ["BVRQ-O", "QX-4HO", "internal"],
+            ["QX-4HO", "LS3-HP", "internal"],
+            ["LS3-HP", "6V-D0E", "internal"],
+
+            // ===== U-HSM3 Internal =====
+            ["G-KCFT", "WNM-V0", "internal"],
+            ["G-KCFT", "C3J0-O", "internal"],
+            ["G-KCFT", "B3ZU-H", "internal"],
+            ["WNM-V0", "6FS-CZ", "internal"],
+            ["WNM-V0", "HPV-RJ", "internal"],
+            ["WNM-V0", "C3J0-O", "internal"],
+            ["WNM-V0", "GSO-SR", "internal"],
+            ["WNM-V0", "B3ZU-H", "internal"],
+            ["6FS-CZ", "H7S-5I", "internal"],
+            ["GSO-SR", "B3ZU-H", "internal"],
+
+            // ===== 2O-VY7 Internal =====
+            ["SG-3HY", "QZX-L9", "internal"],
+            ["AU2V-J", "SY-0AM", "internal"],
+            ["AU2V-J", "QZX-L9", "internal"],
+            ["AU2V-J", "D-6PKO", "internal"],
+            ["SY-0AM", "QZX-L9", "internal"],
+            ["SY-0AM", "D-6PKO", "internal"],
+            ["QZX-L9", "D-6PKO", "internal"],
+
+            // ===== 8UD2-J Internal =====
+            ["G4-QU6", "V2-GZS", "internal"],
+            ["V2-GZS", "HD-HOZ", "internal"],
+            ["V2-GZS", "42G-OB", "internal"],
+            ["HD-HOZ", "42G-OB", "internal"],
+            ["HD-HOZ", "LEM-I1", "internal"],
+            ["HD-HOZ", "ND-GL4", "internal"],
+            ["42G-OB", "LEM-I1", "internal"],
+            ["LEM-I1", "1S-SU1", "internal"],
+            ["LEM-I1", "ND-GL4", "internal"],
+
+            // ===== XPG-HE Internal =====
+            ["9-0QB7", "M-75WN", "internal"],
+            ["9-0QB7", "HVGR-R", "internal"],
+            ["M-75WN", "PNFW-O", "internal"],
+            ["M-75WN", "HVGR-R", "internal"],
+            ["M-75WN", "K95-9I", "internal"],
+            ["PNFW-O", "HVGR-R", "internal"],
+            ["PNFW-O", "K76A-3", "internal"],
+            ["HVGR-R", "K95-9I", "internal"],
+
+            // ===== P-B2NE Internal =====
+            ["R1O-GN", "GQ-7SP", "internal"],
+            ["R1O-GN", "BGMZ-0", "internal"],
+            ["R1O-GN", "I2D3-5", "internal"],
+            ["R1O-GN", "RQOO-U", "internal"],
+            ["GQ-7SP", "BGMZ-0", "internal"],
+            ["GQ-7SP", "I2D3-5", "internal"],
+            ["GQ-7SP", "FZX-PU", "internal"],
+            ["GQ-7SP", "O9K-FT", "internal"],
+            ["BGMZ-0", "I2D3-5", "internal"],
+            ["I2D3-5", "FZX-PU", "internal"],
+            ["I2D3-5", "RQOO-U", "internal"],
+            ["FZX-PU", "O9K-FT", "internal"],
+
+            // ===== Cross-Constellation (other TKE) =====
+            ["FBH-JN", "B1UE-J", "cross"],  // 78-6RI <-> S4S-SD
+            ["SG-3HY", "G-KCFT", "cross"],  // 2O-VY7 <-> U-HSM3
+            ["MN9P-A", "74-DRC", "cross"],  // 3NA-Z1 <-> S4S-SD
+            ["Q-GICU", "G4-QU6", "cross"],  // 3NA-Z1 <-> 8UD2-J
+            ["Q-GICU", "R1O-GN", "cross"],  // 3NA-Z1 <-> P-B2NE
+            ["O31W-6", "C3J0-O", "cross"],  // S4S-SD <-> U-HSM3
+            ["H7S-5I", "9-0QB7", "cross"],  // U-HSM3 <-> XPG-HE
+            ["ND-GL4", "K95-9I", "cross"],  // 8UD2-J <-> XPG-HE
         ];
+
+        const LAWN_SYSTEMS = ["UDVW-O", "UJXC-B", "F48K-D", "1-KCSA", "XTJ-5Q", "JT2I-7", "N-JK02", "FB5U-I", "BZ-BCK", "J-OAH2", "O5-YNW", "86L-9F", "5-VFC6", "IUU3-L", "S-LHPJ"];
+        const BORDER_SYSTEMS = ["UDVW-O", "L-GY1B"];  // Systems with regional gates
 
         // ============ Map Component ============
 
@@ -259,13 +407,28 @@
             function getColor(name) {
                 const layout = MAP_LAYOUT[name];
                 if (!layout) return "#3a5060";
+
+                // External neighbor systems (regional gates) - dimmed
                 if (layout.constellation === "neighbor") {
-                    if (layout.holder === "SLOW") return "#664400";
-                    if (layout.holder === "T.RD") return "#886622";
-                    if (layout.note) return "#555577"; // regional gates
-                    return "#444444";
+                    return "#444455";
                 }
-                return "#00ff88";
+
+                // LAWN systems - bright green (EMPHASIZED)
+                if (layout.lawn || layout.constellation === "6-CBBM" || layout.constellation === "2Q-8WA") {
+                    return "#00ff88";
+                }
+
+                // Other TKE constellations - muted colors by location
+                if (layout.constellation === "S4S-SD") return "#668844";  // South (adjacent to LAWN)
+                if (layout.constellation === "3NA-Z1") return "#667744";  // Southwest
+                if (layout.constellation === "78-6RI") return "#446688";  // East
+                if (layout.constellation === "U-HSM3") return "#445577";  // Southeast
+                if (layout.constellation === "2O-VY7") return "#444466";  // Far southeast
+                if (layout.constellation === "8UD2-J") return "#554466";  // West
+                if (layout.constellation === "XPG-HE") return "#664455";  // Northwest
+                if (layout.constellation === "P-B2NE") return "#553355";  // Far west
+
+                return "#555555";  // Default
             }
 
             function getPvpGlow(name) {
