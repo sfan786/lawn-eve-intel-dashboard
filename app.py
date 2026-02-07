@@ -12,7 +12,7 @@ Usage:
 from flask import Flask, jsonify, send_from_directory
 from config import (
     FLASK_HOST, FLASK_PORT, FLASK_DEBUG,
-    MONITORED_CONSTELLATION_NAMES, FRIENDLY_ALLIANCES,
+    MONITORED_CONSTELLATION_IDS, FRIENDLY_ALLIANCES,
     FRIENDLY_CORPORATIONS
 )
 import esi_client
@@ -24,13 +24,12 @@ CONSTELLATION_DATA = {}
 
 
 def resolve_constellations():
-    """Resolve constellation names to IDs and fetch system lists on startup."""
+    """Load constellation data from ESI using constellation IDs."""
     global CONSTELLATION_DATA
-    print("[*] Resolving monitored constellations...")
-    
-    for name in MONITORED_CONSTELLATION_NAMES:
-        cid = esi_client.resolve_constellation_name(name)
-        if cid:
+    print("[*] Loading monitored constellations...")
+
+    for cid in MONITORED_CONSTELLATION_IDS:
+        try:
             info = esi_client.get_constellation_info(cid)
             systems = {}
             for sys_id in info.get("systems", []):
@@ -40,17 +39,17 @@ def resolve_constellations():
                     "security_status": round(sys_info.get("security_status", 0), 2),
                     "system_id": sys_id,
                 }
-            
+
             CONSTELLATION_DATA[cid] = {
                 "constellation_id": cid,
-                "name": info.get("name", name),
+                "name": info.get("name", str(cid)),
                 "region_id": info.get("region_id"),
                 "systems": systems,
             }
-            print(f"  [+] {name} (ID: {cid}) -> {len(systems)} systems")
-        else:
-            print(f"  [!] Could not resolve constellation: {name}")
-    
+            print(f"  [+] {info.get('name')} (ID: {cid}) -> {len(systems)} systems")
+        except Exception as e:
+            print(f"  [!] Error loading constellation {cid}: {e}")
+
     print(f"[*] Monitoring {len(CONSTELLATION_DATA)} constellations, "
           f"{sum(len(c['systems']) for c in CONSTELLATION_DATA.values())} systems total")
 

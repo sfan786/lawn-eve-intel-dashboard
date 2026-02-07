@@ -1,20 +1,20 @@
-# Eve Intel Dashboard
+# LAWN Eve Intel Dashboard
 
-Real-time sovereignty and intel monitoring for EVE Online nullsec space. Built for LAWN (Get Off My Lawn) in The Kalevala Expanse.
+Real-time sovereignty and intel monitoring for EVE Online nullsec space. Built for **Astrum Mechanica** / **Get Off My Lawn (LAWN)** alliance in The Kalevala Expanse.
 
 ## Features
 
 - **Sovereignty map** — Interactive SVG constellation map with gate connections, neighbor systems, and visual indicators for PVP danger zones and ratting activity
 - **System status table** — All monitored systems with kill stats, jump traffic, sovereignty holder, and activity bars
 - **Campaign alerts** — Flashing warnings for active sovereignty contests (TCU/IHUB timers)
-- **Auto-refresh** — 5-minute polling cycle with manual refresh button
+- **Auto-refresh** — Live ESI data updates with in-memory caching
 - **Demo mode** — Full UI testing with mock data, no ESI access required
 
 ## Quick Start
 
 ```bash
-git clone <repo-url>
-cd eve-intel-dashboard
+git clone git@github.com:sfan786/lawn-eve-intel-dashboard.git
+cd lawn-eve-intel-dashboard
 python -m venv .venv
 source .venv/bin/activate      # or activate.fish for fish shell
 pip install -r requirements.txt
@@ -33,7 +33,11 @@ Open http://localhost:5000
 Edit `config.py` to set your monitored constellations and friendly alliances:
 
 ```python
-CONSTELLATION_NAMES = ["6-CBBM", "2Q-8WA"]
+# Use constellation IDs directly (ESI search doesn't work well with names)
+MONITORED_CONSTELLATION_IDS = [
+    20000414,  # 6-CBBM
+    20000423,  # 2Q-8WA
+]
 FRIENDLY_ALLIANCES = ["Get Off My Lawn"]
 FRIENDLY_CORPORATIONS = ["Astrum Mechanica"]
 ```

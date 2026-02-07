@@ -20,21 +20,17 @@ CACHE_TTL = {
 }
 
 # ===== CONFIGURE YOUR CONSTELLATIONS HERE =====
-# Format: { "name": "CONSTELLATION-ID", "id": ESI_constellation_id }
-# You can find constellation IDs via ESI:
-#   GET /universe/constellations/ -> list of all IDs
-#   GET /universe/constellations/{id}/ -> name + systems
-#
-# LAWN holds both constellations in Kalevala Expanse:
-#   6-CBBM and 2Q-8WA
+# LAWN holds both constellations in Kalevala Expanse (region 10000034):
+#   6-CBBM (constellation ID: 20000414)
+#   2Q-8WA (constellation ID: 20000423)
 # SL0W CHILDREN AT PLAY collapsed and retreated to highsec.
 # Their remnant sov in neighboring constellations may attract
 # other groups looking to claim it.
-# We'll resolve the ESI IDs dynamically on startup.
 
-MONITORED_CONSTELLATION_NAMES = [
-    "6-CBBM",
-    "2Q-8WA",
+# Use constellation IDs directly - ESI search doesn't work well with names
+MONITORED_CONSTELLATION_IDS = [
+    20000414,  # 6-CBBM
+    20000423,  # 2Q-8WA
 ]
 
 # Your alliance info (for highlighting friendly vs hostile)
