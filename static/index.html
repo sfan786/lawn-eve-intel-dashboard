@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ASTRUM MECHANICA — Kalevala Expanse Intel</title>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js"></script>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700;900&family=Share+Tech+Mono&family=Rajdhani:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --bg-deep: #060a0f;
+            --bg-panel: #0a1018;
+            --bg-panel-hover: #0f1820;
+            --border-dim: #1a2a3a;
+            --border-active: #2a4a6a;
+            --cyan: #00d4ff;
+            --cyan-dim: #006680;
+            --cyan-glow: rgba(0, 212, 255, 0.15);
+            --amber: #ffaa00;
+            --amber-dim: #805500;
+            --red: #ff3355;
+            --red-dim: #661522;
+            --green: #00ff88;
+            --green-dim: #006633;
+            --text-primary: #c8d8e8;
+            --text-secondary: #6a8090;
+            --text-muted: #3a5060;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            background: var(--bg-deep);
+            color: var(--text-primary);
+            font-family: 'Rajdhani', sans-serif;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        body::after {
+            content: '';
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0, 212, 255, 0.01) 2px, rgba(0, 212, 255, 0.01) 4px);
+            pointer-events: none;
+            z-index: 9999;
+        }
+
+        .corner-bracket { position: absolute; width: 12px; height: 12px; border-color: var(--cyan-dim); border-style: solid; }
+        .corner-bracket.tl { top: -1px; left: -1px; border-width: 1px 0 0 1px; }
+        .corner-bracket.tr { top: -1px; right: -1px; border-width: 1px 1px 0 0; }
+        .corner-bracket.bl { bottom: -1px; left: -1px; border-width: 0 0 1px 1px; }
+        .corner-bracket.br { bottom: -1px; right: -1px; border-width: 0 1px 1px 0; }
+
+        .header {
+            padding: 20px 30px 12px;
+            border-bottom: 1px solid var(--border-dim);
+            background: linear-gradient(180deg, rgba(0,212,255,0.04) 0%, transparent 100%);
+            display: flex; align-items: flex-end; justify-content: space-between; gap: 20px;
+        }
+        .header-left { display: flex; align-items: flex-end; gap: 20px; }
+        .logo-text { font-family: 'Orbitron', sans-serif; font-weight: 900; font-size: 20px; letter-spacing: 6px; color: var(--cyan); text-shadow: 0 0 20px rgba(0,212,255,0.3); line-height: 1; }
+        .logo-sub { font-family: 'Share Tech Mono', monospace; font-size: 11px; color: var(--text-secondary); letter-spacing: 2px; padding-bottom: 2px; }
+        .status-bar { display: flex; align-items: center; gap: 20px; font-family: 'Share Tech Mono', monospace; font-size: 11px; color: var(--text-secondary); }
+        .status-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); box-shadow: 0 0 8px var(--green); display: inline-block; margin-right: 6px; animation: pulse-dot 2s infinite; }
+        @keyframes pulse-dot { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+
+        .dashboard { padding: 20px 30px; display: grid; grid-template-columns: 1fr 1fr; gap: 16px; max-width: 1600px; margin: 0 auto; }
+        .panel { background: var(--bg-panel); border: 1px solid var(--border-dim); position: relative; padding: 16px; transition: border-color 0.3s; }
+        .panel:hover { border-color: var(--border-active); }
+        .panel-wide { grid-column: 1 / -1; }
+        .panel-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; padding-bottom: 8px; border-bottom: 1px solid var(--border-dim); }
+        .panel-title { font-family: 'Orbitron', sans-serif; font-size: 11px; font-weight: 500; letter-spacing: 3px; color: var(--cyan); text-transform: uppercase; }
+        .panel-badge { font-family: 'Share Tech Mono', monospace; font-size: 10px; color: var(--text-muted); background: rgba(0,212,255,0.05); padding: 2px 8px; border: 1px solid var(--border-dim); }
+
+        .summary-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; }
+        .summary-card { background: rgba(0,212,255,0.03); border: 1px solid var(--border-dim); padding: 14px 16px; text-align: center; position: relative; }
+        .summary-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; background: var(--cyan-dim); }
+        .summary-label { font-family: 'Share Tech Mono', monospace; font-size: 9px; letter-spacing: 2px; color: var(--text-muted); text-transform: uppercase; margin-bottom: 6px; }
+        .summary-value { font-family: 'Orbitron', sans-serif; font-size: 28px; font-weight: 700; color: var(--cyan); text-shadow: 0 0 15px rgba(0,212,255,0.2); line-height: 1; }
+        .summary-value.warn { color: var(--amber); text-shadow: 0 0 15px rgba(255,170,0,0.2); }
+        .summary-value.danger { color: var(--red); text-shadow: 0 0 15px rgba(255,51,85,0.2); }
+        .summary-value.safe { color: var(--green); text-shadow: 0 0 15px rgba(0,255,136,0.2); }
+
+        .sys-table { width: 100%; border-collapse: collapse; font-family: 'Share Tech Mono', monospace; font-size: 12px; }
+        .sys-table thead th { text-align: left; padding: 6px 10px; color: var(--text-muted); font-weight: 400; font-size: 10px; letter-spacing: 1px; text-transform: uppercase; border-bottom: 1px solid var(--border-dim); }
+        .sys-table tbody tr { border-bottom: 1px solid rgba(26, 42, 58, 0.4); transition: background 0.15s; cursor: pointer; }
+        .sys-table tbody tr:hover { background: var(--bg-panel-hover); }
+        .sys-table tbody tr.selected { background: rgba(0,212,255,0.06); border-left: 2px solid var(--cyan); }
+        .sys-table td { padding: 8px 10px; white-space: nowrap; }
+        .sys-name { color: var(--text-primary); font-weight: 600; }
+        .sys-name.friendly { color: var(--green); }
+        .sys-name.hostile { color: var(--red); }
+        .sys-name.neutral { color: var(--amber); }
+        .sec-status { font-size: 11px; opacity: 0.7; }
+        .stat-num { text-align: right; font-variant-numeric: tabular-nums; }
+        .stat-num.high { color: var(--red); }
+        .stat-num.medium { color: var(--amber); }
+        .stat-num.low { color: var(--text-secondary); }
+        .stat-num.none { color: var(--text-muted); }
+        .sov-holder { font-size: 11px; }
+        .sov-holder.friendly { color: var(--green); }
+        .sov-holder.hostile { color: var(--red); }
+        .sov-holder.neutral { color: var(--amber); }
+
+        .activity-bar-container { display: flex; align-items: center; gap: 6px; }
+        .activity-bar { height: 4px; background: var(--border-dim); flex: 1; position: relative; overflow: hidden; }
+        .activity-bar-fill { height: 100%; transition: width 0.5s ease; }
+        .activity-bar-fill.npc { background: var(--cyan); }
+        .activity-bar-fill.pvp { background: var(--red); }
+        .activity-bar-fill.jumps { background: var(--amber); }
+
+        .campaign-alert { background: rgba(255,51,85,0.05); border: 1px solid var(--red-dim); padding: 12px 16px; margin-bottom: 8px; display: flex; align-items: center; gap: 12px; animation: alert-flash 3s infinite; }
+        @keyframes alert-flash { 0%, 100% { border-color: var(--red-dim); } 50% { border-color: var(--red); } }
+        .campaign-type { font-family: 'Orbitron', sans-serif; font-size: 10px; color: var(--red); letter-spacing: 2px; text-transform: uppercase; white-space: nowrap; }
+        .campaign-detail { font-family: 'Share Tech Mono', monospace; font-size: 12px; color: var(--text-primary); }
+
+        .const-tabs { display: flex; gap: 2px; margin-bottom: 14px; }
+        .const-tab { font-family: 'Orbitron', sans-serif; font-size: 10px; letter-spacing: 2px; padding: 6px 16px; background: transparent; border: 1px solid var(--border-dim); color: var(--text-secondary); cursor: pointer; transition: all 0.2s; }
+        .const-tab:hover { border-color: var(--border-active); color: var(--text-primary); }
+        .const-tab.active { background: rgba(0,212,255,0.08); border-color: var(--cyan-dim); color: var(--cyan); }
+
+        .loading { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 60vh; gap: 20px; }
+        .loading-spinner { width: 40px; height: 40px; border: 2px solid var(--border-dim); border-top-color: var(--cyan); border-radius: 50%; animation: spin 1s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .loading-text { font-family: 'Share Tech Mono', monospace; font-size: 12px; color: var(--text-muted); letter-spacing: 2px; }
+        .error-panel { background: rgba(255,51,85,0.05); border: 1px solid var(--red-dim); padding: 20px; text-align: center; margin: 30px; }
+        .error-panel h3 { font-family: 'Orbitron', sans-serif; color: var(--red); font-size: 13px; letter-spacing: 3px; margin-bottom: 8px; }
+        .error-panel p { font-family: 'Share Tech Mono', monospace; font-size: 12px; color: var(--text-secondary); }
+
+        .refresh-btn { font-family: 'Share Tech Mono', monospace; font-size: 10px; letter-spacing: 1px; padding: 4px 12px; background: transparent; border: 1px solid var(--border-dim); color: var(--text-secondary); cursor: pointer; transition: all 0.2s; }
+        .refresh-btn:hover { border-color: var(--cyan-dim); color: var(--cyan); }
+
+        /* ============ CONSTELLATION MAP ============ */
+        .map-container { width: 100%; background: rgba(0,5,10,0.6); border: 1px solid var(--border-dim); position: relative; overflow: hidden; }
+        .map-container svg { display: block; width: 100%; height: auto; }
+        .map-legend { display: flex; gap: 20px; margin-top: 10px; font-family: 'Share Tech Mono', monospace; font-size: 10px; color: var(--text-muted); flex-wrap: wrap; }
+        .map-legend-item { display: flex; align-items: center; gap: 6px; }
+        .map-legend-dot { width: 8px; height: 8px; border-radius: 1px; }
+        .map-tooltip { position: fixed; background: var(--bg-deep); border: 1px solid var(--border-active); padding: 10px 14px; font-family: 'Share Tech Mono', monospace; font-size: 11px; color: var(--text-primary); pointer-events: none; z-index: 10000; min-width: 180px; opacity: 0; transition: opacity 0.15s; }
+        .map-tooltip.visible { opacity: 1; }
+        .map-tooltip-name { font-family: 'Orbitron', sans-serif; font-size: 12px; letter-spacing: 2px; margin-bottom: 6px; }
+        .map-tooltip-row { display: flex; justify-content: space-between; gap: 16px; padding: 2px 0; }
+        .map-tooltip-label { color: var(--text-muted); }
+
+        @media (max-width: 900px) {
+            .dashboard { grid-template-columns: 1fr; padding: 12px; }
+            .header { flex-direction: column; align-items: flex-start; gap: 10px; padding: 16px; }
+            .panel-wide { grid-column: 1; }
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useCallback, useRef } = React;
+
+        function classifyKills(count, thresholds = [5, 20]) {
+            if (count === 0) return "none";
+            if (count < thresholds[0]) return "low";
+            if (count < thresholds[1]) return "medium";
+            return "high";
+        }
+
+        // ============ Map Layout (from Dotlan screenshot) ============
+        const MAP_LAYOUT = {
+            "UDVW-O":  { x: 100, y: 130, constellation: "6-CBBM" },
+            "UJXC-B":  { x: 220, y: 100, constellation: "6-CBBM" },
+            "F48K-D":  { x: 340, y: 90,  constellation: "6-CBBM" },
+            "1-KCSA":  { x: 300, y: 180, constellation: "6-CBBM" },
+            "XTJ-5Q":  { x: 290, y: 270, constellation: "6-CBBM" },
+            "JT2I-7":  { x: 170, y: 270, constellation: "6-CBBM" },
+            "N-JK02":  { x: 360, y: 340, constellation: "6-CBBM" },
+
+            "FB5U-I":  { x: 500, y: 90,  constellation: "2Q-8WA" },
+            "BZ-BCK":  { x: 620, y: 120, constellation: "2Q-8WA" },
+            "J-OAH2":  { x: 590, y: 42,  constellation: "2Q-8WA" },
+            "O5-YNW":  { x: 730, y: 140, constellation: "2Q-8WA" },
+            "86L-9F":  { x: 790, y: 60,  constellation: "2Q-8WA" },
+            "5-VFC6":  { x: 660, y: 210, constellation: "2Q-8WA" },
+            "IUU3-L":  { x: 870, y: 130, constellation: "2Q-8WA" },
+            "S-LHPJ":  { x: 950, y: 70,  constellation: "2Q-8WA" },
+
+            // Northern neighbors (Vale of the Silent - regional gates)
+            "LS-JEP":  { x: 120, y: 50,  constellation: "neighbor", holder: null, note: "Vale of the Silent" },
+            "A3-RQ3":  { x: 230, y: 40,  constellation: "neighbor", holder: null, note: "Vale of the Silent" },
+            // Southern neighbors (SL0W remnants + T.RD)
+            "LE-67X":  { x: 240, y: 370, constellation: "neighbor", holder: "SLOW" },
+            "L-TLFU":  { x: 120, y: 410, constellation: "neighbor", holder: "SLOW" },
+            "EPCD-D":  { x: 120, y: 340, constellation: "neighbor", holder: "T.RD" },
+            "BM-VYZ":  { x: 200, y: 440, constellation: "neighbor", holder: "T.RD" },
+            "L-GY1B":  { x: 380, y: 420, constellation: "neighbor", holder: "SLOW" },
+            "MN9P-A":  { x: 340, y: 480, constellation: "neighbor", holder: "SLOW" },
+            "AID-9T":  { x: 460, y: 380, constellation: "neighbor", holder: null, note: "Etherium Reach" },
+            // Eastern neighbors (SL0W remnants)
+            "6V-D0E":  { x: 960, y: 170, constellation: "neighbor", holder: "SLOW" },
+            "LS3-HP":  { x: 940, y: 260, constellation: "neighbor", holder: "SLOW" },
+            "QX-4HO":  { x: 920, y: 340, constellation: "neighbor", holder: "SLOW" },
+        };
+
+        const MAP_CONNECTIONS = [
+            // 6-CBBM internal gates
+            ["UDVW-O", "UJXC-B", "internal"],
+            ["UJXC-B", "F48K-D", "internal"],
+            ["F48K-D", "1-KCSA", "internal"],
+            ["1-KCSA", "XTJ-5Q", "internal"],
+            ["XTJ-5Q", "JT2I-7", "internal"],
+            ["XTJ-5Q", "N-JK02", "internal"],
+            // 2Q-8WA internal gates
+            ["FB5U-I", "BZ-BCK", "internal"],
+            ["BZ-BCK", "J-OAH2", "internal"],
+            ["BZ-BCK", "O5-YNW", "internal"],
+            ["O5-YNW", "86L-9F", "internal"],
+            ["O5-YNW", "5-VFC6", "internal"],
+            ["86L-9F", "IUU3-L", "internal"],
+            ["IUU3-L", "S-LHPJ", "internal"],
+            // Cross-constellation gate
+            ["F48K-D", "FB5U-I", "cross"],
+            // Regional gates (Vale of the Silent)
+            ["UDVW-O", "LS-JEP", "regional"],
+            ["UJXC-B", "A3-RQ3", "regional"],
+            // Southern borders (SL0W + T.RD)
+            ["XTJ-5Q", "LE-67X", "border"],
+            ["LE-67X", "L-TLFU", "border"],
+            ["LE-67X", "BM-VYZ", "border"],
+            ["L-TLFU", "EPCD-D", "border"],
+            ["N-JK02", "L-GY1B", "border"],
+            ["L-GY1B", "MN9P-A", "border"],
+            // Etherium Reach gate
+            ["N-JK02", "AID-9T", "regional"],
+            // Eastern borders (SL0W)
+            ["S-LHPJ", "6V-D0E", "border"],
+            ["6V-D0E", "LS3-HP", "border"],
+            ["LS3-HP", "QX-4HO", "border"],
+        ];
+
+        // ============ Map Component ============
+
+        function ConstellationMap({ config, sovereignty, activity, selectedSystem, onSelectSystem }) {
+            const [tooltip, setTooltip] = useState(null);
+            const svgRef = useRef(null);
+
+            const nameToId = {};
+            if (config && config.constellations) {
+                Object.values(config.constellations).forEach(c => {
+                    Object.values(c.systems).forEach(sys => {
+                        nameToId[sys.name] = String(sys.system_id);
+                    });
+                });
+            }
+
+            function getColor(name) {
+                const layout = MAP_LAYOUT[name];
+                if (!layout) return "#3a5060";
+                if (layout.constellation === "neighbor") {
+                    if (layout.holder === "SLOW") return "#664400";
+                    if (layout.holder === "T.RD") return "#886622";
+                    if (layout.note) return "#555577"; // regional gates
+                    return "#444444";
+                }
+                return "#00ff88";
+            }
+
+            function getPvpGlow(name) {
+                const sysId = nameToId[name];
+                if (!sysId) return 0;
+                const act = activity[sysId] || {};
+                const pvp = (act.ship_kills || 0) + (act.pod_kills || 0);
+                if (pvp >= 5) return 14;
+                if (pvp >= 1) return 8;
+                return 0;
+            }
+
+            function getNpcRing(name) {
+                const sysId = nameToId[name];
+                if (!sysId) return null;
+                const npc = (activity[sysId] || {}).npc_kills || 0;
+                if (npc > 500) return { r: 24, o: 0.18 };
+                if (npc > 200) return { r: 18, o: 0.10 };
+                return null;
+            }
+
+            function handleHover(e, name) {
+                const layout = MAP_LAYOUT[name];
+                const sysId = nameToId[name];
+                const act = sysId ? (activity[sysId] || {}) : {};
+                const sov = sysId ? (sovereignty[sysId] || {}) : {};
+
+                const rect = svgRef.current.getBoundingClientRect();
+                const sx = rect.width / 1020;
+                const sy = rect.height / 520;
+                let tx = layout.x * sx + rect.left + 20;
+                let ty = layout.y * sy + rect.top - 10;
+                if (tx + 210 > window.innerWidth) tx -= 230;
+
+                setTooltip({
+                    x: tx, y: ty, name,
+                    holder: layout.constellation === "neighbor" ? (layout.holder || layout.note || "Unknown") : (sov.alliance_name || "Unknown"),
+                    corp: sov.corporation_name || "",
+                    pvp: (act.ship_kills || 0) + (act.pod_kills || 0),
+                    npc: act.npc_kills || 0,
+                    jumps: act.jumps || 0,
+                    isNeighbor: layout.constellation === "neighbor",
+                    note: layout.note || null,
+                });
+            }
+
+            return (
+                <div style={{ position: 'relative' }}>
+                    <div className="map-container">
+                        <svg ref={svgRef} viewBox="0 0 1020 520" xmlns="http://www.w3.org/2000/svg">
+                            <defs>
+                                <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+                                    <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#0a1520" strokeWidth="0.5" />
+                                </pattern>
+                                <filter id="glow-r"><feGaussianBlur stdDeviation="4" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+                                <filter id="glow-c"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+                            </defs>
+                            <rect width="1020" height="520" fill="#030608" />
+                            <rect width="1020" height="520" fill="url(#grid)" />
+
+                            {/* Constellation boundaries */}
+                            <rect x="60" y="70" width="360" height="300" rx="4" fill="none" stroke="#0a2030" strokeWidth="1" strokeDasharray="4 4" />
+                            <text x="70" y="88" fontFamily="Orbitron, sans-serif" fontSize="9" fill="#0d2838" letterSpacing="2">6-CBBM</text>
+                            <rect x="460" y="20" width="530" height="220" rx="4" fill="none" stroke="#0a2030" strokeWidth="1" strokeDasharray="4 4" />
+                            <text x="470" y="38" fontFamily="Orbitron, sans-serif" fontSize="9" fill="#0d2838" letterSpacing="2">2Q-8WA</text>
+
+                            {/* Connections */}
+                            {MAP_CONNECTIONS.map(([from, to, type], i) => {
+                                const a = MAP_LAYOUT[from], b = MAP_LAYOUT[to];
+                                if (!a || !b) return null;
+                                const styles = {
+                                    internal: { stroke: "#1a3040", width: 1.5, dash: "none" },
+                                    cross:    { stroke: "#00d4ff", width: 1.2, dash: "6 3" },
+                                    border:   { stroke: "#331800", width: 1, dash: "3 3" },
+                                    regional: { stroke: "#444466", width: 1, dash: "8 4" },
+                                };
+                                const s = styles[type] || styles.border;
+                                return <line key={i} x1={a.x} y1={a.y} x2={b.x} y2={b.y} stroke={s.stroke} strokeWidth={s.width} strokeDasharray={s.dash} opacity={0.8} />;
+                            })}
+
+                            {/* Nodes */}
+                            {Object.entries(MAP_LAYOUT).map(([name, pos]) => {
+                                const isN = pos.constellation === "neighbor";
+                                const color = getColor(name);
+                                const pvp = getPvpGlow(name);
+                                const npc = getNpcRing(name);
+                                const sysId = nameToId[name];
+                                const isSel = sysId && selectedSystem === sysId;
+                                const r = isN ? 5 : 7;
+
+                                return (
+                                    <g key={name}
+                                        onMouseEnter={(e) => handleHover(e, name)}
+                                        onMouseLeave={() => setTooltip(null)}
+                                        onClick={() => sysId && onSelectSystem(sysId)}
+                                        style={{ cursor: isN ? 'default' : 'pointer' }}
+                                    >
+                                        {npc && <circle cx={pos.x} cy={pos.y} r={npc.r} fill={`rgba(0,212,255,${npc.o})`} />}
+                                        {pvp > 0 && <circle cx={pos.x} cy={pos.y} r={pvp} fill="rgba(255,51,85,0.3)" filter="url(#glow-r)" />}
+                                        {isSel && <circle cx={pos.x} cy={pos.y} r={13} fill="none" stroke="#00d4ff" strokeWidth="1.5" strokeDasharray="3 2" opacity={0.8} filter="url(#glow-c)" />}
+                                        <circle cx={pos.x} cy={pos.y} r={r}
+                                            fill={isN ? "#0a0a08" : "#060a0f"}
+                                            stroke={color}
+                                            strokeWidth={isN ? 1 : 1.5}
+                                            strokeDasharray={isN ? "2 2" : "none"}
+                                            opacity={isN ? 0.6 : 1}
+                                        />
+                                        <text x={pos.x} y={pos.y - (isN ? 10 : 14)}
+                                            textAnchor="middle"
+                                            fontFamily="Share Tech Mono, monospace"
+                                            fontSize={isN ? "8" : "10"}
+                                            fill={isN ? "#554400" : color}
+                                            opacity={isN ? 0.6 : 0.9}
+                                            letterSpacing="0.5"
+                                        >{name}</text>
+                                        {isN && pos.holder && (
+                                            <text x={pos.x} y={pos.y + 16} textAnchor="middle" fontFamily="Share Tech Mono, monospace" fontSize="7" fill="#443300" opacity={0.5}>{pos.holder}</text>
+                                        )}
+                                        {isN && pos.note && !pos.holder && (
+                                            <text x={pos.x} y={pos.y + 16} textAnchor="middle" fontFamily="Share Tech Mono, monospace" fontSize="7" fill="#444" fontStyle="italic">{pos.note}</text>
+                                        )}
+                                    </g>
+                                );
+                            })}
+                        </svg>
+                    </div>
+
+                    {tooltip && (
+                        <div className="map-tooltip visible" style={{ left: tooltip.x, top: tooltip.y }}>
+                            <div className="map-tooltip-name" style={{ color: tooltip.isNeighbor ? '#ffaa00' : '#00ff88' }}>{tooltip.name}</div>
+                            <div className="map-tooltip-row"><span className="map-tooltip-label">Holder</span><span>{tooltip.holder}</span></div>
+                            {tooltip.corp && <div className="map-tooltip-row"><span className="map-tooltip-label">Corp</span><span>{tooltip.corp}</span></div>}
+                            {!tooltip.isNeighbor && (
+                                <>
+                                    <div className="map-tooltip-row"><span className="map-tooltip-label">PVP kills</span><span style={{ color: tooltip.pvp > 0 ? '#ff3355' : '#3a5060' }}>{tooltip.pvp}</span></div>
+                                    <div className="map-tooltip-row"><span className="map-tooltip-label">NPC kills</span><span style={{ color: '#00d4ff' }}>{tooltip.npc}</span></div>
+                                    <div className="map-tooltip-row"><span className="map-tooltip-label">Jumps</span><span style={{ color: '#ffaa00' }}>{tooltip.jumps}</span></div>
+                                </>
+                            )}
+                            {tooltip.note && <div style={{ marginTop: 4, color: '#6a8090', fontStyle: 'italic', fontSize: 10 }}>{tooltip.note}</div>}
+                        </div>
+                    )}
+
+                    <div className="map-legend">
+                        <div className="map-legend-item"><div className="map-legend-dot" style={{ background: '#00ff88' }} /><span>LAWN Sov</span></div>
+                        <div className="map-legend-item"><div className="map-legend-dot" style={{ background: 'rgba(0,212,255,0.3)', border: '1px solid rgba(0,212,255,0.2)' }} /><span>NPC ratting</span></div>
+                        <div className="map-legend-item"><div className="map-legend-dot" style={{ background: '#ff3355' }} /><span>PVP danger</span></div>
+                        <div className="map-legend-item"><div className="map-legend-dot" style={{ background: '#664400', border: '1px dashed #664400' }} /><span>SL0W remnant</span></div>
+                        <div className="map-legend-item"><div className="map-legend-dot" style={{ background: '#886622', border: '1px dashed #886622' }} /><span>T.RD</span></div>
+                        <div className="map-legend-item"><div className="map-legend-dot" style={{ background: '#555577', border: '1px dashed #555577' }} /><span>Regional gate</span></div>
+                        <div className="map-legend-item"><div style={{ width: 16, height: 0, borderTop: '1.5px dashed #00d4ff', opacity: 0.5 }} /><span>Cross-const</span></div>
+                        <div className="map-legend-item"><div style={{ width: 16, height: 0, borderTop: '1.5px dashed #444466' }} /><span>Region gate</span></div>
+                    </div>
+                </div>
+            );
+        }
+
+        // ============ Other Components ============
+
+        function CornerBrackets() {
+            return (<><div className="corner-bracket tl"/><div className="corner-bracket tr"/><div className="corner-bracket bl"/><div className="corner-bracket br"/></>);
+        }
+
+        function SummaryCard({ label, value, type = "default" }) {
+            return (<div className="summary-card"><div className="summary-label">{label}</div><div className={`summary-value ${type === "danger" ? "danger" : type === "warn" ? "warn" : type === "safe" ? "safe" : ""}`}>{value}</div></div>);
+        }
+
+        function ActivityBar({ value, max, type = "npc" }) {
+            const pct = max > 0 ? Math.min((value / max) * 100, 100) : 0;
+            return (<div className="activity-bar"><div className={`activity-bar-fill ${type}`} style={{ width: `${pct}%` }} /></div>);
+        }
+
+        function SystemTable({ systems, sovereignty, activity, selectedSystem, onSelectSystem }) {
+            const sorted = [...systems].sort((a, b) => {
+                const sovA = sovereignty[a.system_id] || {}, sovB = sovereignty[b.system_id] || {};
+                const actA = activity[a.system_id] || {}, actB = activity[b.system_id] || {};
+                if (!sovA.is_friendly && sovB.is_friendly) return -1;
+                if (sovA.is_friendly && !sovB.is_friendly) return 1;
+                const pvpA = (actA.ship_kills || 0) + (actA.pod_kills || 0);
+                const pvpB = (actB.ship_kills || 0) + (actB.pod_kills || 0);
+                if (pvpB !== pvpA) return pvpB - pvpA;
+                return (actB.jumps || 0) - (actA.jumps || 0);
+            });
+            const maxNPC = Math.max(...systems.map(s => (activity[s.system_id] || {}).npc_kills || 0), 1);
+            const maxJumps = Math.max(...systems.map(s => (activity[s.system_id] || {}).jumps || 0), 1);
+
+            return (
+                <table className="sys-table"><thead><tr>
+                    <th>System</th><th>Sec</th><th>Sov Holder</th><th style={{textAlign:'right'}}>PVP</th><th style={{textAlign:'right'}}>Pods</th><th>NPC Kills</th><th>Traffic</th><th style={{textAlign:'right'}}>Jumps</th>
+                </tr></thead><tbody>
+                    {sorted.map(sys => {
+                        const sov = sovereignty[sys.system_id] || {};
+                        const act = activity[sys.system_id] || {};
+                        const pvp = act.ship_kills || 0, pods = act.pod_kills || 0, npc = act.npc_kills || 0, jumps = act.jumps || 0;
+                        const sc = sov.is_friendly ? "friendly" : sov.alliance_name ? "hostile" : "neutral";
+                        const isSel = String(sys.system_id) === String(selectedSystem);
+                        return (
+                            <tr key={sys.system_id} className={isSel ? 'selected' : ''} onClick={() => onSelectSystem(String(sys.system_id))}>
+                                <td><span className={`sys-name ${sc}`}>{sys.name}</span></td>
+                                <td className="sec-status">{sys.security_status}</td>
+                                <td><span className={`sov-holder ${sc}`}>{sov.alliance_name || "—"}</span></td>
+                                <td className={`stat-num ${classifyKills(pvp)}`}>{pvp}</td>
+                                <td className={`stat-num ${classifyKills(pods, [2,5])}`}>{pods}</td>
+                                <td><div className="activity-bar-container"><ActivityBar value={npc} max={maxNPC} type="npc"/><span className={`stat-num ${classifyKills(npc,[100,500])}`} style={{fontSize:'11px',minWidth:'36px',textAlign:'right'}}>{npc}</span></div></td>
+                                <td><div className="activity-bar-container"><ActivityBar value={jumps} max={maxJumps} type="jumps"/></div></td>
+                                <td className={`stat-num ${classifyKills(jumps,[20,100])}`}>{jumps}</td>
+                            </tr>
+                        );
+                    })}
+                </tbody></table>
+            );
+        }
+
+        function CampaignAlerts({ campaigns }) {
+            if (!campaigns || campaigns.length === 0) return null;
+            const labels = { 1: "TCU", 2: "IHUB", 3: "STATION", 4: "STATION" };
+            return (
+                <div className="panel panel-wide"><CornerBrackets/><div className="panel-header"><span className="panel-title">⚠ Active Campaigns</span><span className="panel-badge">{campaigns.length} active</span></div>
+                    {campaigns.map((c, i) => (<div key={i} className="campaign-alert"><span className="campaign-type">{labels[c.event_type] || "SOV"}</span><span className="campaign-detail">System {c.solar_system_id} — {((c.attackers_score||0)*100).toFixed(0)}% vs {((c.defender_score||0)*100).toFixed(0)}%</span></div>))}
+                </div>
+            );
+        }
+
+        // ============ Main App ============
+
+        function App() {
+            const [config, setConfig] = useState(null);
+            const [sovereignty, setSovereignty] = useState({});
+            const [activity, setActivity] = useState({});
+            const [campaigns, setCampaigns] = useState([]);
+            const [loading, setLoading] = useState(true);
+            const [error, setError] = useState(null);
+            const [refreshing, setRefreshing] = useState(false);
+            const [lastUpdate, setLastUpdate] = useState(null);
+            const [activeConst, setActiveConst] = useState("all");
+            const [selectedSystem, setSelectedSystem] = useState(null);
+            const timer = useRef(null);
+
+            const fetchData = useCallback(async (init = false) => {
+                try {
+                    if (!init) setRefreshing(true);
+                    const [cfg, sov, act, camp] = await Promise.all([
+                        fetch("/api/config").then(r => r.json()),
+                        fetch("/api/sovereignty").then(r => r.json()),
+                        fetch("/api/activity").then(r => r.json()),
+                        fetch("/api/campaigns").then(r => r.json()),
+                    ]);
+                    setConfig(cfg); setSovereignty(sov); setActivity(act); setCampaigns(camp);
+                    setLastUpdate(new Date()); setError(null);
+                } catch (err) { if (init) setError(err.message); }
+                finally { setLoading(false); setRefreshing(false); }
+            }, []);
+
+            useEffect(() => {
+                fetchData(true);
+                timer.current = setInterval(() => fetchData(false), 5 * 60 * 1000);
+                return () => clearInterval(timer.current);
+            }, [fetchData]);
+
+            if (loading) return (<div className="loading"><div className="loading-spinner"/><div className="loading-text">CONNECTING TO ESI...</div></div>);
+            if (error || !config || !config.constellations) return (<div className="error-panel"><h3>{error ? "CONNECTION FAILED" : "NO DATA"}</h3><p>{error || "Check config.py"}</p></div>);
+
+            const consts = config.constellations;
+            const cids = Object.keys(consts);
+            let visible = [];
+            if (activeConst === "all") { cids.forEach(c => Object.values(consts[c].systems).forEach(s => visible.push(s))); }
+            else { const c = consts[activeConst]; if (c) visible = Object.values(c.systems); }
+
+            const totPVP = visible.reduce((s, v) => { const a = activity[v.system_id]||{}; return s + (a.ship_kills||0) + (a.pod_kills||0); }, 0);
+            const totNPC = visible.reduce((s, v) => s + ((activity[v.system_id]||{}).npc_kills||0), 0);
+            const totJ = visible.reduce((s, v) => s + ((activity[v.system_id]||{}).jumps||0), 0);
+            const hostile = visible.filter(s => { const sv = sovereignty[s.system_id]; return sv && sv.alliance_name && !sv.is_friendly; }).length;
+
+            return (
+                <div>
+                    <div className="header">
+                        <div className="header-left"><div><div className="logo-text">ASTRUM MECHANICA</div><div className="logo-sub" style={{marginTop:'4px'}}>KALEVALA EXPANSE — INTEL DASHBOARD</div></div></div>
+                        <div className="status-bar">
+                            <span><span className="status-dot"/>ONLINE</span>
+                            {lastUpdate && <span>UPDATED {lastUpdate.toLocaleTimeString()}</span>}
+                            <button className={`refresh-btn ${refreshing?'refreshing':''}`} onClick={() => fetchData(false)} disabled={refreshing}>{refreshing ? "REFRESHING..." : "↻ REFRESH"}</button>
+                        </div>
+                    </div>
+                    <div className="dashboard">
+                        <div className="panel panel-wide"><CornerBrackets/><div className="panel-header"><span className="panel-title">Situation Overview</span><span className="panel-badge">Last hour</span></div>
+                            <div className="summary-row">
+                                <SummaryCard label="Systems" value={visible.length}/>
+                                <SummaryCard label="PVP Kills" value={totPVP} type={totPVP>10?"danger":totPVP>0?"warn":"safe"}/>
+                                <SummaryCard label="NPC Kills" value={totNPC.toLocaleString()}/>
+                                <SummaryCard label="Jumps" value={totJ.toLocaleString()} type={totJ>200?"warn":"default"}/>
+                                <SummaryCard label="Hostile Sov" value={hostile} type={hostile>0?"danger":"safe"}/>
+                                <SummaryCard label="Campaigns" value={campaigns.length} type={campaigns.length>0?"danger":"safe"}/>
+                            </div>
+                        </div>
+                        <CampaignAlerts campaigns={campaigns}/>
+                        <div className="panel panel-wide"><CornerBrackets/><div className="panel-header"><span className="panel-title">Constellation Map</span><span className="panel-badge">15 systems + 12 neighbors</span></div>
+                            <ConstellationMap config={config} sovereignty={sovereignty} activity={activity} selectedSystem={selectedSystem} onSelectSystem={setSelectedSystem}/>
+                        </div>
+                        <div className="panel panel-wide"><CornerBrackets/><div className="panel-header"><span className="panel-title">System Status</span><span className="panel-badge">{visible.length} systems</span></div>
+                            <div className="const-tabs">
+                                <button className={`const-tab ${activeConst==='all'?'active':''}`} onClick={() => setActiveConst('all')}>ALL</button>
+                                {cids.map(c => <button key={c} className={`const-tab ${activeConst===c?'active':''}`} onClick={() => setActiveConst(c)}>{consts[c].name}</button>)}
+                            </div>
+                            <SystemTable systems={visible} sovereignty={sovereignty} activity={activity} selectedSystem={selectedSystem} onSelectSystem={setSelectedSystem}/>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        ReactDOM.render(<App/>, document.getElementById("root"));
+    </script>
+</body>
+</html>
