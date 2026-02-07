@@ -81,23 +81,24 @@ MOCK_CONFIG = {
 }
 
 MOCK_SOVEREIGNTY = {
-    # 6-CBBM (7 systems) — all LAWN
-    "30003384": {"system_id": 30003384, "alliance_name": "Get Off My Lawn", "corporation_name": "Astrum Mechanica", "is_friendly": True},   # 1-KCSA
-    "30003385": {"system_id": 30003385, "alliance_name": "Get Off My Lawn", "corporation_name": "Astrum Mechanica", "is_friendly": True},   # UDVW-O
-    "30003386": {"system_id": 30003386, "alliance_name": "Get Off My Lawn", "corporation_name": "LAWN Logistics", "is_friendly": True},     # UJXC-B
-    "30003387": {"system_id": 30003387, "alliance_name": "Get Off My Lawn", "corporation_name": "Astrum Mechanica", "is_friendly": True},   # F48K-D
-    "30003388": {"system_id": 30003388, "alliance_name": "Get Off My Lawn", "corporation_name": "LAWN Logistics", "is_friendly": True},     # JT2I-7
-    "30003389": {"system_id": 30003389, "alliance_name": "Get Off My Lawn", "corporation_name": "Astrum Mechanica", "is_friendly": True},   # XTJ-5Q
-    "30003390": {"system_id": 30003390, "alliance_name": "Get Off My Lawn", "corporation_name": "LAWN Logistics", "is_friendly": True},     # N-JK02
-    # 2Q-8WA (8 systems) — all LAWN
-    "30003391": {"system_id": 30003391, "alliance_name": "Get Off My Lawn", "corporation_name": "Astrum Mechanica", "is_friendly": True},   # FB5U-I
-    "30003392": {"system_id": 30003392, "alliance_name": "Get Off My Lawn", "corporation_name": "LAWN Logistics", "is_friendly": True},     # BZ-BCK
-    "30003393": {"system_id": 30003393, "alliance_name": "Get Off My Lawn", "corporation_name": "Astrum Mechanica", "is_friendly": True},   # J-OAH2
-    "30003394": {"system_id": 30003394, "alliance_name": "Get Off My Lawn", "corporation_name": "LAWN Logistics", "is_friendly": True},     # O5-YNW
-    "30003395": {"system_id": 30003395, "alliance_name": "Get Off My Lawn", "corporation_name": "Astrum Mechanica", "is_friendly": True},   # 86L-9F
-    "30003396": {"system_id": 30003396, "alliance_name": "Get Off My Lawn", "corporation_name": "LAWN Logistics", "is_friendly": True},     # 5-VFC6
-    "30003397": {"system_id": 30003397, "alliance_name": "Get Off My Lawn", "corporation_name": "Astrum Mechanica", "is_friendly": True},   # IUU3-L
-    "30003398": {"system_id": 30003398, "alliance_name": "Get Off My Lawn", "corporation_name": "Astrum Mechanica", "is_friendly": True},   # S-LHPJ
+    # 6-CBBM (7 systems) — all LAWN, brand new claims (ADM 1-2, still grinding)
+    "30003384": {"system_id": 30003384, "alliance_name": "Get Off My Lawn", "corporation_name": "Astrum Mechanica", "is_friendly": True, "adm": 2},   # 1-KCSA
+    "30003385": {"system_id": 30003385, "alliance_name": "Get Off My Lawn", "corporation_name": "Astrum Mechanica", "is_friendly": True, "adm": 1},   # UDVW-O
+    "30003386": {"system_id": 30003386, "alliance_name": "Get Off My Lawn", "corporation_name": "LAWN Logistics", "is_friendly": True, "adm": 1},     # UJXC-B
+    "30003387": {"system_id": 30003387, "alliance_name": "Get Off My Lawn", "corporation_name": "Astrum Mechanica", "is_friendly": True, "adm": 2},   # F48K-D
+    "30003388": {"system_id": 30003388, "alliance_name": "Get Off My Lawn", "corporation_name": "LAWN Logistics", "is_friendly": True, "adm": 1},     # JT2I-7
+    "30003389": {"system_id": 30003389, "alliance_name": "Get Off My Lawn", "corporation_name": "Astrum Mechanica", "is_friendly": True, "adm": 2},   # XTJ-5Q
+    "30003390": {"system_id": 30003390, "alliance_name": "Get Off My Lawn", "corporation_name": "LAWN Logistics", "is_friendly": True, "adm": 1},     # N-JK02
+    # 2Q-8WA (8 systems) — all LAWN, brand new claims (ADM 1-2, still grinding)
+    # Note: SL0W remnant neighbors (LE-67X, L-GY1B, 6V-D0E) have ADM 4
+    "30003391": {"system_id": 30003391, "alliance_name": "Get Off My Lawn", "corporation_name": "Astrum Mechanica", "is_friendly": True, "adm": 2},   # FB5U-I
+    "30003392": {"system_id": 30003392, "alliance_name": "Get Off My Lawn", "corporation_name": "LAWN Logistics", "is_friendly": True, "adm": 2},     # BZ-BCK
+    "30003393": {"system_id": 30003393, "alliance_name": "Get Off My Lawn", "corporation_name": "Astrum Mechanica", "is_friendly": True, "adm": 1},   # J-OAH2
+    "30003394": {"system_id": 30003394, "alliance_name": "Get Off My Lawn", "corporation_name": "LAWN Logistics", "is_friendly": True, "adm": 2},     # O5-YNW
+    "30003395": {"system_id": 30003395, "alliance_name": "Get Off My Lawn", "corporation_name": "Astrum Mechanica", "is_friendly": True, "adm": 1},   # 86L-9F
+    "30003396": {"system_id": 30003396, "alliance_name": "Get Off My Lawn", "corporation_name": "LAWN Logistics", "is_friendly": True, "adm": 1},     # 5-VFC6
+    "30003397": {"system_id": 30003397, "alliance_name": "Get Off My Lawn", "corporation_name": "Astrum Mechanica", "is_friendly": True, "adm": 1},   # IUU3-L
+    "30003398": {"system_id": 30003398, "alliance_name": "Get Off My Lawn", "corporation_name": "Astrum Mechanica", "is_friendly": True, "adm": 1},   # S-LHPJ
 }
 
 MOCK_ACTIVITY = {

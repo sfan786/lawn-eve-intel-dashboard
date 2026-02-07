@@ -89,7 +89,19 @@ def api_sovereignty():
         all_system_ids.update(cdata["systems"].keys())
     
     sov_map = esi_client.get_sovereignty_map()
-    
+
+    # Get ADM data from sovereignty structures (iHub = 32458)
+    adm_by_system = {}
+    try:
+        sov_structures = esi_client.get_sovereignty_structures()
+        for struct in sov_structures:
+            if struct.get("structure_type_id") == 32458:  # iHub
+                sys_id = struct.get("solar_system_id")
+                adm = struct.get("vulnerability_occupancy_level", 0)
+                adm_by_system[sys_id] = adm
+    except Exception as e:
+        print(f"[!] Failed to fetch sovereignty structures: {e}")
+
     # Filter to our systems and resolve alliance names
     result = {}
     alliance_cache = {}
@@ -133,6 +145,7 @@ def api_sovereignty():
                 "corporation_name": corp_name,
                 "faction_id": faction_id,
                 "is_friendly": is_friendly,
+                "adm": adm_by_system.get(sys_id, 0),
             }
     
     return jsonify(result)
