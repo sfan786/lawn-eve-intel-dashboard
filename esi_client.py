@@ -119,6 +119,22 @@ def get_sovereignty_map() -> list:
     return data
 
 
+def get_sovereignty_structures() -> list:
+    """Get sovereignty structures (TCU/iHub) with ADM levels.
+    Returns list with alliance_id, solar_system_id,
+    structure_type_id (TCU=32226, iHub=32458),
+    vulnerability_occupancy_level (= ADM, 1.0-6.0).
+    """
+    cache_key = "sovereignty_structures"
+    cached = _get_cached(cache_key, "sovereignty_structures")
+    if cached:
+        return cached
+
+    data = esi_get("/sovereignty/structures/")
+    _set_cache(cache_key, data)
+    return data
+
+
 def get_sovereignty_campaigns() -> list:
     """Get active sovereignty campaigns (entosis timers)."""
     cache_key = "sovereignty_campaigns"

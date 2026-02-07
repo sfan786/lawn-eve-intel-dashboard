@@ -12,6 +12,7 @@ ESI_DATASOURCE = "tranquility"
 # Cache TTL in seconds
 CACHE_TTL = {
     "sovereignty": 300,      # 5 min - sov changes slowly
+    "sovereignty_structures": 300,  # 5 min - ADM levels
     "system_kills": 300,     # 5 min
     "system_jumps": 300,     # 5 min
     "constellation_info": 86400,  # 24h - static data

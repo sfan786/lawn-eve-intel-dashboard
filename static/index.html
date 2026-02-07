@@ -173,221 +173,245 @@
         // All 10 constellations with LAWN space (6-CBBM + 2Q-8WA) emphasized in center
 
         const MAP_LAYOUT = {
-            // ===== LAWN 6-CBBM (Center-West) - EMPHASIZED =====
-            "UDVW-O":  { x: 300, y: 100, constellation: "6-CBBM", lawn: true },
-            "UJXC-B":  { x: 400, y: 150, constellation: "6-CBBM", lawn: true },
-            "F48K-D":  { x: 500, y: 200, constellation: "6-CBBM", lawn: true },
-            "1-KCSA":  { x: 450, y: 300, constellation: "6-CBBM", lawn: true },
-            "XTJ-5Q":  { x: 350, y: 400, constellation: "6-CBBM", lawn: true },
-            "JT2I-7":  { x: 250, y: 450, constellation: "6-CBBM", lawn: true },
-            "N-JK02":  { x: 450, y: 500, constellation: "6-CBBM", lawn: true },
+            // ===== LAWN 6-CBBM (NE, top-center) - EMPHASIZED =====
+            "UDVW-O":  { x: 395, y: 48, constellation: "6-CBBM", lawn: true },
+            "UJXC-B":  { x: 490, y: 33, constellation: "6-CBBM", lawn: true },
+            "F48K-D":  { x: 576, y: 32, constellation: "6-CBBM", lawn: true },
+            "1-KCSA":  { x: 534, y: 71, constellation: "6-CBBM", lawn: true },
+            "XTJ-5Q":  { x: 535, y: 111, constellation: "6-CBBM", lawn: true },
+            "JT2I-7":  { x: 452, y: 108, constellation: "6-CBBM", lawn: true },
+            "N-JK02":  { x: 536, y: 150, constellation: "6-CBBM", lawn: true },
 
-            // ===== LAWN 2Q-8WA (Center-East) - EMPHASIZED =====
-            "FB5U-I":  { x: 650, y: 200, constellation: "2Q-8WA", lawn: true },
-            "BZ-BCK":  { x: 750, y: 250, constellation: "2Q-8WA", lawn: true },
-            "J-OAH2":  { x: 850, y: 200, constellation: "2Q-8WA", lawn: true },
-            "O5-YNW":  { x: 750, y: 350, constellation: "2Q-8WA", lawn: true },
-            "86L-9F":  { x: 850, y: 400, constellation: "2Q-8WA", lawn: true },
-            "5-VFC6":  { x: 650, y: 350, constellation: "2Q-8WA", lawn: true },
-            "IUU3-L":  { x: 750, y: 450, constellation: "2Q-8WA", lawn: true },
-            "S-LHPJ":  { x: 850, y: 500, constellation: "2Q-8WA", lawn: true },
+            // ===== LAWN 2Q-8WA (far NE, top-right) - EMPHASIZED =====
+            "FB5U-I":  { x: 682, y: 40, constellation: "2Q-8WA", lawn: true },
+            "BZ-BCK":  { x: 753, y: 52, constellation: "2Q-8WA", lawn: true },
+            "J-OAH2":  { x: 744, y: 7, constellation: "2Q-8WA", lawn: true },
+            "O5-YNW":  { x: 822, y: 50, constellation: "2Q-8WA", lawn: true },
+            "86L-9F":  { x: 827, y: 8, constellation: "2Q-8WA", lawn: true },
+            "5-VFC6":  { x: 743, y: 98, constellation: "2Q-8WA", lawn: true },
+            "IUU3-L":  { x: 895, y: 44, constellation: "2Q-8WA", lawn: true },
+            "S-LHPJ":  { x: 949, y: 13, constellation: "2Q-8WA", lawn: true },
 
-            // ===== S4S-SD (South of LAWN) =====
-            "L-GY1B":  { x: 450, y: 650, constellation: "S4S-SD" },
-            "LE-67X":  { x: 350, y: 700, constellation: "S4S-SD" },
-            "74-DRC":  { x: 550, y: 650, constellation: "S4S-SD" },
-            "0S1-GI":  { x: 550, y: 750, constellation: "S4S-SD" },
-            "M3-H2Y":  { x: 650, y: 750, constellation: "S4S-SD" },
-            "O31W-6":  { x: 650, y: 650, constellation: "S4S-SD" },
-            "B1UE-J":  { x: 750, y: 650, constellation: "S4S-SD" },
+            // ===== S4S-SD (below LAWN, south) =====
+            "L-GY1B":  { x: 539, y: 207, constellation: "S4S-SD" },
+            "LE-67X":  { x: 484, y: 171, constellation: "S4S-SD" },
+            "74-DRC":  { x: 535, y: 285, constellation: "S4S-SD" },
+            "0S1-GI":  { x: 645, y: 330, constellation: "S4S-SD" },
+            "M3-H2Y":  { x: 675, y: 295, constellation: "S4S-SD" },
+            "O31W-6":  { x: 735, y: 390, constellation: "S4S-SD" },
+            "B1UE-J":  { x: 810, y: 345, constellation: "S4S-SD" },
 
-            // ===== 3NA-Z1 (Southwest) =====
-            "MN9P-A":  { x: 200, y: 650, constellation: "3NA-Z1" },
-            "L-TLFU":  { x: 150, y: 700, constellation: "3NA-Z1" },
-            "BM-VYZ":  { x: 100, y: 650, constellation: "3NA-Z1" },
-            "EPCD-D":  { x: 100, y: 750, constellation: "3NA-Z1" },
-            "RAI-0E":  { x: 200, y: 550, constellation: "3NA-Z1" },
-            "TA9T-P":  { x: 150, y: 500, constellation: "3NA-Z1" },
-            "Q-GICU":  { x: 100, y: 550, constellation: "3NA-Z1" },
+            // ===== 3NA-Z1 (southwest of LAWN) =====
+            "MN9P-A":  { x: 445, y: 259, constellation: "3NA-Z1" },
+            "L-TLFU":  { x: 390, y: 213, constellation: "3NA-Z1" },
+            "BM-VYZ":  { x: 458, y: 214, constellation: "3NA-Z1" },
+            "EPCD-D":  { x: 333, y: 197, constellation: "3NA-Z1" },
+            "RAI-0E":  { x: 372, y: 257, constellation: "3NA-Z1" },
+            "TA9T-P":  { x: 302, y: 268, constellation: "3NA-Z1" },
+            "Q-GICU":  { x: 236, y: 285, constellation: "3NA-Z1" },
 
-            // ===== 78-6RI (East) =====
-            "6V-D0E":  { x: 1000, y: 600, constellation: "78-6RI" },
-            "LS3-HP":  { x: 1050, y: 650, constellation: "78-6RI" },
-            "QX-4HO":  { x: 1100, y: 600, constellation: "78-6RI" },
-            "BVRQ-O":  { x: 1100, y: 500, constellation: "78-6RI" },
-            "FBH-JN":  { x: 1000, y: 500, constellation: "78-6RI" },
-            "SH6X-F":  { x: 950, y: 550, constellation: "78-6RI" },
+            // ===== 78-6RI (east, below 2Q-8WA) =====
+            "6V-D0E":  { x: 945, y: 130, constellation: "78-6RI" },
+            "LS3-HP":  { x: 920, y: 175, constellation: "78-6RI" },
+            "QX-4HO":  { x: 905, y: 215, constellation: "78-6RI" },
+            "BVRQ-O":  { x: 875, y: 260, constellation: "78-6RI" },
+            "SH6X-F":  { x: 805, y: 265, constellation: "78-6RI" },
+            "FBH-JN":  { x: 860, y: 295, constellation: "78-6RI" },
 
-            // ===== U-HSM3 (Southeast) =====
-            "G-KCFT":  { x: 900, y: 700, constellation: "U-HSM3" },
-            "WNM-V0":  { x: 1000, y: 750, constellation: "U-HSM3" },
-            "C3J0-O":  { x: 800, y: 750, constellation: "U-HSM3" },
-            "B3ZU-H":  { x: 950, y: 800, constellation: "U-HSM3" },
-            "GSO-SR":  { x: 1050, y: 800, constellation: "U-HSM3" },
-            "6FS-CZ":  { x: 1100, y: 750, constellation: "U-HSM3" },
-            "H7S-5I":  { x: 1150, y: 800, constellation: "U-HSM3" },
-            "HPV-RJ":  { x: 1000, y: 850, constellation: "U-HSM3" },
+            // ===== U-HSM3 (south-center) =====
+            "G-KCFT":  { x: 725, y: 490, constellation: "U-HSM3" },
+            "WNM-V0":  { x: 650, y: 475, constellation: "U-HSM3" },
+            "C3J0-O":  { x: 730, y: 450, constellation: "U-HSM3" },
+            "B3ZU-H":  { x: 670, y: 535, constellation: "U-HSM3" },
+            "GSO-SR":  { x: 620, y: 515, constellation: "U-HSM3" },
+            "6FS-CZ":  { x: 565, y: 500, constellation: "U-HSM3" },
+            "H7S-5I":  { x: 495, y: 520, constellation: "U-HSM3" },
+            "HPV-RJ":  { x: 640, y: 430, constellation: "U-HSM3" },
 
-            // ===== 2O-VY7 (Far Southeast) =====
-            "SG-3HY":  { x: 1050, y: 900, constellation: "2O-VY7" },
-            "QZX-L9":  { x: 1150, y: 900, constellation: "2O-VY7" },
-            "SY-0AM":  { x: 1200, y: 950, constellation: "2O-VY7" },
-            "AU2V-J":  { x: 1100, y: 950, constellation: "2O-VY7" },
-            "D-6PKO":  { x: 1150, y: 1000, constellation: "2O-VY7" },
-            "A-YB15":  { x: 1000, y: 950, constellation: "2O-VY7" },
+            // ===== 2O-VY7 (far south) =====
+            "SG-3HY":  { x: 710, y: 595, constellation: "2O-VY7" },
+            "QZX-L9":  { x: 700, y: 640, constellation: "2O-VY7" },
+            "SY-0AM":  { x: 695, y: 740, constellation: "2O-VY7" },
+            "AU2V-J":  { x: 585, y: 685, constellation: "2O-VY7" },
+            "D-6PKO":  { x: 655, y: 685, constellation: "2O-VY7" },
+            "A-YB15":  { x: 630, y: 595, constellation: "2O-VY7" },
 
-            // ===== 8UD2-J (West) =====
-            "G4-QU6":  { x: 50, y: 450, constellation: "8UD2-J" },
-            "V2-GZS":  { x: 50, y: 350, constellation: "8UD2-J" },
-            "HD-HOZ":  { x: 100, y: 300, constellation: "8UD2-J" },
-            "42G-OB":  { x: 50, y: 250, constellation: "8UD2-J" },
-            "LEM-I1":  { x: 150, y: 250, constellation: "8UD2-J" },
-            "ND-GL4":  { x: 150, y: 350, constellation: "8UD2-J" },
-            "1S-SU1":  { x: 200, y: 300, constellation: "8UD2-J" },
+            // ===== 8UD2-J (west) =====
+            "G4-QU6":  { x: 166, y: 322, constellation: "8UD2-J" },
+            "V2-GZS":  { x: 146, y: 365, constellation: "8UD2-J" },
+            "HD-HOZ":  { x: 139, y: 411, constellation: "8UD2-J" },
+            "42G-OB":  { x: 82, y: 373, constellation: "8UD2-J" },
+            "LEM-I1":  { x: 53, y: 411, constellation: "8UD2-J" },
+            "ND-GL4":  { x: 131, y: 458, constellation: "8UD2-J" },
+            "1S-SU1":  { x: 7, y: 364, constellation: "8UD2-J" },
 
-            // ===== XPG-HE (Northwest) =====
-            "9-0QB7":  { x: 200, y: 150, constellation: "XPG-HE" },
-            "M-75WN":  { x: 150, y: 100, constellation: "XPG-HE" },
-            "HVGR-R":  { x: 100, y: 150, constellation: "XPG-HE" },
-            "PNFW-O":  { x: 50, y: 100, constellation: "XPG-HE" },
-            "K76A-3":  { x: 50, y: 50, constellation: "XPG-HE" },
-            "K95-9I":  { x: 150, y: 200, constellation: "XPG-HE" },
+            // ===== XPG-HE (south-center-west) =====
+            "9-0QB7":  { x: 410, y: 535, constellation: "XPG-HE" },
+            "M-75WN":  { x: 235, y: 535, constellation: "XPG-HE" },
+            "HVGR-R":  { x: 230, y: 640, constellation: "XPG-HE" },
+            "PNFW-O":  { x: 275, y: 575, constellation: "XPG-HE" },
+            "K76A-3":  { x: 330, y: 555, constellation: "XPG-HE" },
+            "K95-9I":  { x: 164, y: 512, constellation: "XPG-HE" },
 
-            // ===== P-B2NE (Far West) =====
-            "R1O-GN":  { x: 50, y: 600, constellation: "P-B2NE" },
-            "RQOO-U":  { x: 50, y: 700, constellation: "P-B2NE" },
-            "I2D3-5":  { x: 100, y: 850, constellation: "P-B2NE" },
-            "FZX-PU":  { x: 50, y: 800, constellation: "P-B2NE" },
-            "O9K-FT":  { x: 150, y: 800, constellation: "P-B2NE" },
-            "GQ-7SP":  { x: 100, y: 750, constellation: "P-B2NE" },
-            "BGMZ-0":  { x: 50, y: 650, constellation: "P-B2NE" },
+            // ===== P-B2NE (center-west) =====
+            "R1O-GN":  { x: 296, y: 359, constellation: "P-B2NE" },
+            "RQOO-U":  { x: 370, y: 345, constellation: "P-B2NE" },
+            "I2D3-5":  { x: 359, y: 410, constellation: "P-B2NE" },
+            "FZX-PU":  { x: 377, y: 444, constellation: "P-B2NE" },
+            "O9K-FT":  { x: 292, y: 466, constellation: "P-B2NE" },
+            "GQ-7SP":  { x: 233, y: 428, constellation: "P-B2NE" },
+            "BGMZ-0":  { x: 298, y: 395, constellation: "P-B2NE" },
 
             // ===== External Neighbor Systems (Regional Gates) =====
-            "LS-JEP":  { x: 300, y: 20, constellation: "neighbor", note: "Vale of the Silent" },
-            "AID-9T":  { x: 500, y: 850, constellation: "neighbor", note: "Etherium Reach" },
+            // Vale of the Silent
+            "LS-JEP":  { x: 289, y: 62, constellation: "neighbor", note: "Vale of the Silent" },
+            "A3-RQ3":  { x: 227, y: 40, constellation: "neighbor", note: "Vale of the Silent" },
+            "PX5-LR":  { x: 227, y: 0, constellation: "neighbor", note: "Vale of the Silent" },
+            // Geminate
+            "HJO-84":  { x: 27, y: 90, constellation: "neighbor", note: "Geminate" },
+            "4D9-66":  { x: 27, y: 133, constellation: "neighbor", note: "Geminate" },
+            "9-KWXC":  { x: 74, y: 27, constellation: "neighbor", note: "Geminate" },
+            // Etherium Reach / Dronelands
+            "AID-9T":  { x: 601, y: 187, constellation: "neighbor", note: "Etherium Reach" },
+            "TZ-74M":  { x: 442, y: 448, constellation: "neighbor", note: "Etherium Reach" },
+            "FB-MPY":  { x: 550, y: 595, constellation: "neighbor", note: "Etherium Reach" },
+            // Malpais
+            "Z-EKCY":  { x: 765, y: 645, constellation: "neighbor", note: "Malpais" },
+            "J7M-3W":  { x: 770, y: 740, constellation: "neighbor", note: "Malpais" },
+            "7-YHRX":  { x: 835, y: 435, constellation: "neighbor", note: "Malpais" },
+            "V3P-AZ":  { x: 905, y: 370, constellation: "neighbor", note: "Malpais" },
         };
 
-        // Accurate gate connections from ESI
+        // Gate connections from Dotlan (The Kalevala Expanse)
         const MAP_CONNECTIONS = [
-            // ===== LAWN 6-CBBM Internal Gates =====
-            ["N-JK02", "XTJ-5Q", "internal"],
+            // ===== LAWN 6-CBBM Internal =====
+            ["XTJ-5Q", "N-JK02", "internal"],
             ["JT2I-7", "XTJ-5Q", "internal"],
-            ["XTJ-5Q", "1-KCSA", "internal"],
-            ["1-KCSA", "UJXC-B", "internal"],
-            ["1-KCSA", "F48K-D", "internal"],
+            ["1-KCSA", "XTJ-5Q", "internal"],
+            ["UJXC-B", "1-KCSA", "internal"],
             ["UJXC-B", "UDVW-O", "internal"],
-            ["UJXC-B", "F48K-D", "internal"],
+            ["F48K-D", "UJXC-B", "internal"],
+            ["F48K-D", "1-KCSA", "internal"],
 
-            // ===== LAWN 2Q-8WA Internal Gates =====
+            // ===== LAWN 2Q-8WA Internal =====
             ["FB5U-I", "BZ-BCK", "internal"],
             ["BZ-BCK", "5-VFC6", "internal"],
             ["BZ-BCK", "O5-YNW", "internal"],
-            ["BZ-BCK", "J-OAH2", "internal"],
             ["O5-YNW", "86L-9F", "internal"],
-            ["O5-YNW", "IUU3-L", "internal"],
+            ["S-LHPJ", "86L-9F", "internal"],
+            ["5-VFC6", "J-OAH2", "internal"],
+            ["J-OAH2", "BZ-BCK", "internal"],
+            ["BZ-BCK", "IUU3-L", "internal"],
             ["IUU3-L", "S-LHPJ", "internal"],
 
-            // ===== Cross-Constellation (within TKE) =====
-            ["F48K-D", "FB5U-I", "cross"],  // 6-CBBM <-> 2Q-8WA
-            ["N-JK02", "L-GY1B", "cross"],  // 6-CBBM <-> S4S-SD
+            // ===== LAWN External Connections =====
+            ["F48K-D", "FB5U-I", "cross"],      // 6-CBBM <-> 2Q-8WA (internal TKE)
+            ["L-GY1B", "N-JK02", "border"],     // Only gate from LAWN to rest of TKE
+            ["UDVW-O", "LS-JEP", "regional"],   // Only gate from LAWN to Vale
 
-            // ===== Regional Gates (External to TKE) =====
-            ["UDVW-O", "LS-JEP", "regional"],  // -> Vale of the Silent
-            ["L-GY1B", "AID-9T", "regional"],  // -> Etherium Reach
+            // ===== S4S-SD =====
+            ["L-GY1B", "B1UE-J", "internal"],
+            ["LE-67X", "MN9P-A", "cross"],       // to 3NA-Z1
+            ["LE-67X", "74-DRC", "internal"],
+            ["74-DRC", "0S1-GI", "internal"],
+            ["74-DRC", "6FS-CZ", "cross"],       // to U-HSM3
+            ["74-DRC", "C3J0-O", "cross"],       // to U-HSM3
+            ["74-DRC", "WNM-V0", "cross"],       // to U-HSM3
+            ["74-DRC", "FB-MPY", "regional"],    // to Etherium Reach
+            ["O31W-6", "B1UE-J", "internal"],
+            ["O31W-6", "C3J0-O", "cross"],       // to U-HSM3
+            ["O31W-6", "AID-9T", "regional"],    // to Etherium Reach
+            ["O31W-6", "7-YHRX", "regional"],    // to Malpais
+            ["B1UE-J", "BVRQ-O", "cross"],       // to 78-6RI
 
-            // ===== S4S-SD Internal =====
-            ["L-GY1B", "74-DRC", "internal"],
-            ["L-GY1B", "LE-67X", "internal"],
-            ["0S1-GI", "74-DRC", "internal"],
-            ["0S1-GI", "O31W-6", "internal"],
-            ["0S1-GI", "M3-H2Y", "internal"],
-            ["B1UE-J", "O31W-6", "internal"],
-
-            // ===== 3NA-Z1 Internal =====
+            // ===== 3NA-Z1 =====
             ["RAI-0E", "MN9P-A", "internal"],
-            ["RAI-0E", "TA9T-P", "internal"],
             ["MN9P-A", "L-TLFU", "internal"],
-            ["MN9P-A", "BM-VYZ", "internal"],
-            ["TA9T-P", "Q-GICU", "internal"],
             ["L-TLFU", "BM-VYZ", "internal"],
-            ["L-TLFU", "EPCD-D", "internal"],
+            ["BM-VYZ", "EPCD-D", "internal"],
+            ["EPCD-D", "RAI-0E", "internal"],
+            ["BM-VYZ", "TA9T-P", "internal"],
+            ["TA9T-P", "Q-GICU", "internal"],
+            ["Q-GICU", "G4-QU6", "cross"],       // to 8UD2-J
+            ["Q-GICU", "R1O-GN", "cross"],       // to P-B2NE
+            ["G-KCFT", "BM-VYZ", "cross"],       // to U-HSM3
 
-            // ===== 78-6RI Internal =====
-            ["FBH-JN", "BVRQ-O", "internal"],
-            ["FBH-JN", "SH6X-F", "internal"],
+            // ===== 78-6RI =====
+            ["BVRQ-O", "M3-H2Y", "cross"],       // to S4S-SD
+            ["SH6X-F", "BVRQ-O", "internal"],
             ["BVRQ-O", "QX-4HO", "internal"],
             ["QX-4HO", "LS3-HP", "internal"],
             ["LS3-HP", "6V-D0E", "internal"],
 
-            // ===== U-HSM3 Internal =====
-            ["G-KCFT", "WNM-V0", "internal"],
+            // ===== U-HSM3 =====
             ["G-KCFT", "C3J0-O", "internal"],
-            ["G-KCFT", "B3ZU-H", "internal"],
-            ["WNM-V0", "6FS-CZ", "internal"],
-            ["WNM-V0", "HPV-RJ", "internal"],
+            ["G-KCFT", "GSO-SR", "internal"],
+            ["G-KCFT", "GQ-7SP", "cross"],       // to P-B2NE
+            ["WNM-V0", "G-KCFT", "internal"],
             ["WNM-V0", "C3J0-O", "internal"],
-            ["WNM-V0", "GSO-SR", "internal"],
-            ["WNM-V0", "B3ZU-H", "internal"],
+            ["WNM-V0", "HPV-RJ", "internal"],
+            ["M3-H2Y", "B3ZU-H", "internal"],
+            ["B3ZU-H", "GSO-SR", "internal"],
             ["6FS-CZ", "H7S-5I", "internal"],
-            ["GSO-SR", "B3ZU-H", "internal"],
+            ["H7S-5I", "M3-H2Y", "internal"],
+            ["SG-3HY", "G-KCFT", "cross"],       // to 2O-VY7
 
-            // ===== 2O-VY7 Internal =====
+            // ===== 2O-VY7 =====
             ["SG-3HY", "QZX-L9", "internal"],
+            ["QZX-L9", "AU2V-J", "internal"],
             ["AU2V-J", "SY-0AM", "internal"],
-            ["AU2V-J", "QZX-L9", "internal"],
-            ["AU2V-J", "D-6PKO", "internal"],
-            ["SY-0AM", "QZX-L9", "internal"],
-            ["SY-0AM", "D-6PKO", "internal"],
-            ["QZX-L9", "D-6PKO", "internal"],
+            ["QZX-L9", "SY-0AM", "internal"],
+            ["QZX-L9", "FB-MPY", "regional"],    // to Etherium Reach
+            ["QZX-L9", "Z-EKCY", "regional"],    // to Malpais
+            ["AU2V-J", "J7M-3W", "regional"],    // to Malpais
 
-            // ===== 8UD2-J Internal =====
+            // ===== 8UD2-J =====
             ["G4-QU6", "V2-GZS", "internal"],
             ["V2-GZS", "HD-HOZ", "internal"],
             ["V2-GZS", "42G-OB", "internal"],
             ["HD-HOZ", "42G-OB", "internal"],
             ["HD-HOZ", "LEM-I1", "internal"],
             ["HD-HOZ", "ND-GL4", "internal"],
-            ["42G-OB", "LEM-I1", "internal"],
-            ["LEM-I1", "1S-SU1", "internal"],
+            ["LEM-I1", "G4-QU6", "internal"],
             ["LEM-I1", "ND-GL4", "internal"],
+            ["K95-9I", "ND-GL4", "cross"],       // to XPG-HE
 
-            // ===== XPG-HE Internal =====
-            ["9-0QB7", "M-75WN", "internal"],
-            ["9-0QB7", "HVGR-R", "internal"],
-            ["M-75WN", "PNFW-O", "internal"],
-            ["M-75WN", "HVGR-R", "internal"],
-            ["M-75WN", "K95-9I", "internal"],
-            ["PNFW-O", "HVGR-R", "internal"],
-            ["PNFW-O", "K76A-3", "internal"],
-            ["HVGR-R", "K95-9I", "internal"],
+            // ===== XPG-HE =====
+            ["M-75WN", "9-0QB7", "internal"],
+            ["HVGR-R", "9-0QB7", "internal"],
+            ["9-0QB7", "PNFW-O", "internal"],
+            ["K76A-3", "HVGR-R", "internal"],
+            ["K76A-3", "PNFW-O", "internal"],
+            ["O9K-FT", "M-75WN", "cross"],       // to P-B2NE
 
-            // ===== P-B2NE Internal =====
-            ["R1O-GN", "GQ-7SP", "internal"],
-            ["R1O-GN", "BGMZ-0", "internal"],
-            ["R1O-GN", "I2D3-5", "internal"],
+            // ===== P-B2NE =====
+            ["FZX-PU", "I2D3-5", "internal"],
+            ["I2D3-5", "R1O-GN", "internal"],
             ["R1O-GN", "RQOO-U", "internal"],
-            ["GQ-7SP", "BGMZ-0", "internal"],
-            ["GQ-7SP", "I2D3-5", "internal"],
-            ["GQ-7SP", "FZX-PU", "internal"],
-            ["GQ-7SP", "O9K-FT", "internal"],
-            ["BGMZ-0", "I2D3-5", "internal"],
-            ["I2D3-5", "FZX-PU", "internal"],
-            ["I2D3-5", "RQOO-U", "internal"],
-            ["FZX-PU", "O9K-FT", "internal"],
+            ["RQOO-U", "I2D3-5", "internal"],
+            ["I2D3-5", "BGMZ-0", "internal"],
+            ["BGMZ-0", "R1O-GN", "internal"],
+            ["BGMZ-0", "FZX-PU", "internal"],
+            ["BGMZ-0", "O9K-FT", "internal"],
+            ["O9K-FT", "GQ-7SP", "internal"],
+            ["FZX-PU", "GQ-7SP", "internal"],
+            ["FZX-PU", "TZ-74M", "regional"],    // to Etherium Reach
 
-            // ===== Cross-Constellation (other TKE) =====
-            ["FBH-JN", "B1UE-J", "cross"],  // 78-6RI <-> S4S-SD
-            ["SG-3HY", "G-KCFT", "cross"],  // 2O-VY7 <-> U-HSM3
-            ["MN9P-A", "74-DRC", "cross"],  // 3NA-Z1 <-> S4S-SD
-            ["Q-GICU", "G4-QU6", "cross"],  // 3NA-Z1 <-> 8UD2-J
-            ["Q-GICU", "R1O-GN", "cross"],  // 3NA-Z1 <-> P-B2NE
-            ["O31W-6", "C3J0-O", "cross"],  // S4S-SD <-> U-HSM3
-            ["H7S-5I", "9-0QB7", "cross"],  // U-HSM3 <-> XPG-HE
-            ["ND-GL4", "K95-9I", "cross"],  // 8UD2-J <-> XPG-HE
+            // ===== Regional Neighbor Connections =====
+            ["A3-RQ3", "PX5-LR", "regional"],    // Vale internal
+            ["A3-RQ3", "LS-JEP", "regional"],    // Vale internal
+            ["HJO-84", "4D9-66", "regional"],    // Geminate internal
         ];
 
         const LAWN_SYSTEMS = ["UDVW-O", "UJXC-B", "F48K-D", "1-KCSA", "XTJ-5Q", "JT2I-7", "N-JK02", "FB5U-I", "BZ-BCK", "J-OAH2", "O5-YNW", "86L-9F", "5-VFC6", "IUU3-L", "S-LHPJ"];
         const BORDER_SYSTEMS = ["UDVW-O", "L-GY1B"];  // Systems with regional gates
+
+        function getAdmColor(adm) {
+            if (adm >= 6) return "#00ff88";
+            if (adm >= 4) return "#00d4ff";
+            if (adm >= 2) return "#ffaa00";
+            return "#ff3355";
+        }
 
         // ============ Map Component ============
 
@@ -457,16 +481,17 @@
                 const sov = sysId ? (sovereignty[sysId] || {}) : {};
 
                 const rect = svgRef.current.getBoundingClientRect();
-                const sx = rect.width / 1020;
-                const sy = rect.height / 520;
-                let tx = layout.x * sx + rect.left + 20;
-                let ty = layout.y * sy + rect.top - 10;
+                const sx = rect.width / 1000;
+                const sy = rect.height / 800;
+                let tx = (layout.x + 20) * sx + rect.left + 20;
+                let ty = (layout.y + 20) * sy + rect.top - 10;
                 if (tx + 210 > window.innerWidth) tx -= 230;
 
                 setTooltip({
                     x: tx, y: ty, name,
                     holder: layout.constellation === "neighbor" ? (layout.holder || layout.note || "Unknown") : (sov.alliance_name || "Unknown"),
                     corp: sov.corporation_name || "",
+                    adm: sov.adm || 0,
                     pvp: (act.ship_kills || 0) + (act.pod_kills || 0),
                     npc: act.npc_kills || 0,
                     jumps: act.jumps || 0,
@@ -478,7 +503,7 @@
             return (
                 <div style={{ position: 'relative' }}>
                     <div className="map-container">
-                        <svg ref={svgRef} viewBox="0 0 1020 520" xmlns="http://www.w3.org/2000/svg">
+                        <svg ref={svgRef} viewBox="-20 -20 1000 800" xmlns="http://www.w3.org/2000/svg">
                             <defs>
                                 <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
                                     <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#0a1520" strokeWidth="0.5" />
@@ -486,14 +511,15 @@
                                 <filter id="glow-r"><feGaussianBlur stdDeviation="4" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
                                 <filter id="glow-c"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
                             </defs>
-                            <rect width="1020" height="520" fill="#030608" />
-                            <rect width="1020" height="520" fill="url(#grid)" />
+                            <rect x="-20" y="-20" width="1000" height="800" fill="#030608" />
+                            <rect x="-20" y="-20" width="1000" height="800" fill="url(#grid)" />
 
-                            {/* Constellation boundaries */}
-                            <rect x="60" y="70" width="360" height="300" rx="4" fill="none" stroke="#0a2030" strokeWidth="1" strokeDasharray="4 4" />
-                            <text x="70" y="88" fontFamily="Orbitron, sans-serif" fontSize="9" fill="#0d2838" letterSpacing="2">6-CBBM</text>
-                            <rect x="460" y="20" width="530" height="220" rx="4" fill="none" stroke="#0a2030" strokeWidth="1" strokeDasharray="4 4" />
-                            <text x="470" y="38" fontFamily="Orbitron, sans-serif" fontSize="9" fill="#0d2838" letterSpacing="2">2Q-8WA</text>
+                            {/* LAWN constellation boundaries (emphasized) */}
+                            <rect x="380" y="-5" width="180" height="175" rx="4" fill="none" stroke="#0a3020" strokeWidth="1.5" strokeDasharray="4 4" />
+                            <text x="390" y="10" fontFamily="Orbitron, sans-serif" fontSize="9" fill="#0d3828" letterSpacing="2">6-CBBM</text>
+
+                            <rect x="665" y="-10" width="300" height="125" rx="4" fill="none" stroke="#0a3020" strokeWidth="1.5" strokeDasharray="4 4" />
+                            <text x="675" y="5" fontFamily="Orbitron, sans-serif" fontSize="9" fill="#0d3828" letterSpacing="2">2Q-8WA</text>
 
                             {/* Connections */}
                             {MAP_CONNECTIONS.map(([from, to, type], i) => {
@@ -517,7 +543,9 @@
                                 const npc = getNpcRing(name);
                                 const sysId = nameToId[name];
                                 const isSel = sysId && selectedSystem === sysId;
-                                const r = isN ? 5 : 7;
+                                const r = isN ? 4 : 6;
+                                const sov = sysId ? (sovereignty[sysId] || {}) : {};
+                                const adm = sov.adm || 0;
 
                                 return (
                                     <g key={name}
@@ -528,7 +556,7 @@
                                     >
                                         {npc && <circle cx={pos.x} cy={pos.y} r={npc.r} fill={`rgba(0,212,255,${npc.o})`} />}
                                         {pvp > 0 && <circle cx={pos.x} cy={pos.y} r={pvp} fill="rgba(255,51,85,0.3)" filter="url(#glow-r)" />}
-                                        {isSel && <circle cx={pos.x} cy={pos.y} r={13} fill="none" stroke="#00d4ff" strokeWidth="1.5" strokeDasharray="3 2" opacity={0.8} filter="url(#glow-c)" />}
+                                        {isSel && <circle cx={pos.x} cy={pos.y} r={11} fill="none" stroke="#00d4ff" strokeWidth="1.5" strokeDasharray="3 2" opacity={0.8} filter="url(#glow-c)" />}
                                         <circle cx={pos.x} cy={pos.y} r={r}
                                             fill={isN ? "#0a0a08" : "#060a0f"}
                                             stroke={color}
@@ -536,19 +564,29 @@
                                             strokeDasharray={isN ? "2 2" : "none"}
                                             opacity={isN ? 0.6 : 1}
                                         />
-                                        <text x={pos.x} y={pos.y - (isN ? 10 : 14)}
+                                        <text x={pos.x} y={pos.y - (isN ? 8 : 11)}
                                             textAnchor="middle"
                                             fontFamily="Share Tech Mono, monospace"
-                                            fontSize={isN ? "8" : "10"}
+                                            fontSize={isN ? "7" : "8"}
                                             fill={isN ? "#554400" : color}
                                             opacity={isN ? 0.6 : 0.9}
                                             letterSpacing="0.5"
                                         >{name}</text>
+                                        {/* ADM indicator below node (LAWN + data systems) */}
+                                        {!isN && adm > 0 && (
+                                            <text x={pos.x} y={pos.y + 14}
+                                                textAnchor="middle"
+                                                fontFamily="Share Tech Mono, monospace"
+                                                fontSize="7"
+                                                fill={getAdmColor(adm)}
+                                                opacity={0.9}
+                                            >{adm}</text>
+                                        )}
                                         {isN && pos.holder && (
-                                            <text x={pos.x} y={pos.y + 16} textAnchor="middle" fontFamily="Share Tech Mono, monospace" fontSize="7" fill="#443300" opacity={0.5}>{pos.holder}</text>
+                                            <text x={pos.x} y={pos.y + 14} textAnchor="middle" fontFamily="Share Tech Mono, monospace" fontSize="6" fill="#443300" opacity={0.5}>{pos.holder}</text>
                                         )}
                                         {isN && pos.note && !pos.holder && (
-                                            <text x={pos.x} y={pos.y + 16} textAnchor="middle" fontFamily="Share Tech Mono, monospace" fontSize="7" fill="#444" fontStyle="italic">{pos.note}</text>
+                                            <text x={pos.x} y={pos.y + 14} textAnchor="middle" fontFamily="Share Tech Mono, monospace" fontSize="6" fill="#444" fontStyle="italic">{pos.note}</text>
                                         )}
                                     </g>
                                 );
@@ -563,6 +601,7 @@
                             {tooltip.corp && <div className="map-tooltip-row"><span className="map-tooltip-label">Corp</span><span>{tooltip.corp}</span></div>}
                             {!tooltip.isNeighbor && (
                                 <>
+                                    <div className="map-tooltip-row"><span className="map-tooltip-label">ADM</span><span style={{ color: tooltip.adm > 0 ? getAdmColor(tooltip.adm) : '#3a5060' }}>{tooltip.adm > 0 ? tooltip.adm : '—'}</span></div>
                                     <div className="map-tooltip-row"><span className="map-tooltip-label">PVP kills</span><span style={{ color: tooltip.pvp > 0 ? '#ff3355' : '#3a5060' }}>{tooltip.pvp}</span></div>
                                     <div className="map-tooltip-row"><span className="map-tooltip-label">NPC kills</span><span style={{ color: '#00d4ff' }}>{tooltip.npc}</span></div>
                                     <div className="map-tooltip-row"><span className="map-tooltip-label">Jumps</span><span style={{ color: '#ffaa00' }}>{tooltip.jumps}</span></div>
@@ -617,12 +656,13 @@
 
             return (
                 <table className="sys-table"><thead><tr>
-                    <th>System</th><th>Sec</th><th>Sov Holder</th><th style={{textAlign:'right'}}>PVP</th><th style={{textAlign:'right'}}>Pods</th><th>NPC Kills</th><th>Traffic</th><th style={{textAlign:'right'}}>Jumps</th>
+                    <th>System</th><th>Sec</th><th>Sov Holder</th><th style={{textAlign:'right'}}>ADM</th><th style={{textAlign:'right'}}>PVP</th><th style={{textAlign:'right'}}>Pods</th><th>NPC Kills</th><th>Traffic</th><th style={{textAlign:'right'}}>Jumps</th>
                 </tr></thead><tbody>
                     {sorted.map(sys => {
                         const sov = sovereignty[sys.system_id] || {};
                         const act = activity[sys.system_id] || {};
                         const pvp = act.ship_kills || 0, pods = act.pod_kills || 0, npc = act.npc_kills || 0, jumps = act.jumps || 0;
+                        const adm = sov.adm || 0;
                         const sc = sov.is_friendly ? "friendly" : sov.alliance_name ? "hostile" : "neutral";
                         const isSel = String(sys.system_id) === String(selectedSystem);
                         return (
@@ -630,6 +670,7 @@
                                 <td><span className={`sys-name ${sc}`}>{sys.name}</span></td>
                                 <td className="sec-status">{sys.security_status}</td>
                                 <td><span className={`sov-holder ${sc}`}>{sov.alliance_name || "—"}</span></td>
+                                <td className="stat-num" style={{ color: adm > 0 ? getAdmColor(adm) : 'var(--text-muted)' }}>{adm > 0 ? adm : "—"}</td>
                                 <td className={`stat-num ${classifyKills(pvp)}`}>{pvp}</td>
                                 <td className={`stat-num ${classifyKills(pods, [2,5])}`}>{pods}</td>
                                 <td><div className="activity-bar-container"><ActivityBar value={npc} max={maxNPC} type="npc"/><span className={`stat-num ${classifyKills(npc,[100,500])}`} style={{fontSize:'11px',minWidth:'36px',textAlign:'right'}}>{npc}</span></div></td>
@@ -701,6 +742,8 @@
             const totNPC = visible.reduce((s, v) => s + ((activity[v.system_id]||{}).npc_kills||0), 0);
             const totJ = visible.reduce((s, v) => s + ((activity[v.system_id]||{}).jumps||0), 0);
             const hostile = visible.filter(s => { const sv = sovereignty[s.system_id]; return sv && sv.alliance_name && !sv.is_friendly; }).length;
+            const admSystems = visible.filter(s => { const sv = sovereignty[s.system_id]; return sv && sv.adm > 0; });
+            const avgAdm = admSystems.length > 0 ? (admSystems.reduce((s, v) => s + (sovereignty[v.system_id].adm || 0), 0) / admSystems.length).toFixed(1) : "—";
 
             return (
                 <div>
@@ -719,6 +762,7 @@
                                 <SummaryCard label="PVP Kills" value={totPVP} type={totPVP>10?"danger":totPVP>0?"warn":"safe"}/>
                                 <SummaryCard label="NPC Kills" value={totNPC.toLocaleString()}/>
                                 <SummaryCard label="Jumps" value={totJ.toLocaleString()} type={totJ>200?"warn":"default"}/>
+                                <SummaryCard label="Avg ADM" value={avgAdm} type={avgAdm !== "—" && parseFloat(avgAdm) < 3 ? "danger" : avgAdm !== "—" && parseFloat(avgAdm) < 5 ? "warn" : "safe"}/>
                                 <SummaryCard label="Hostile Sov" value={hostile} type={hostile>0?"danger":"safe"}/>
                                 <SummaryCard label="Campaigns" value={campaigns.length} type={campaigns.length>0?"danger":"safe"}/>
                             </div>
