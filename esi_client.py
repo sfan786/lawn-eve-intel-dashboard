@@ -199,6 +199,52 @@ def get_corporation_info(corp_id: int) -> dict:
     return data
 
 
+# ============ Killmail Enrichment ============
+
+def get_killmail(kill_id: int, kill_hash: str) -> dict:
+    """Get killmail details from ESI using kill ID and hash from zKillboard."""
+    cache_key = f"killmail_{kill_id}"
+    cached = _get_cached(cache_key, "zkill")
+    if cached:
+        return cached
+
+    data = esi_get(f"/killmails/{kill_id}/{kill_hash}/")
+    _set_cache(cache_key, data)
+    return data
+
+
+def get_type_name(type_id: int) -> str:
+    """Get the name of a type (ship, item, etc.) by ID."""
+    cache_key = f"type_{type_id}"
+    cached = _get_cached(cache_key, "system_info")  # static data, long cache
+    if cached:
+        return cached
+
+    try:
+        data = esi_get(f"/universe/types/{type_id}/")
+        name = data.get("name", f"Type {type_id}")
+        _set_cache(cache_key, name)
+        return name
+    except Exception:
+        return f"Type {type_id}"
+
+
+def get_character_name(character_id: int) -> str:
+    """Get character name by ID."""
+    cache_key = f"character_{character_id}"
+    cached = _get_cached(cache_key, "constellation_info")  # slow-changing
+    if cached:
+        return cached
+
+    try:
+        data = esi_get(f"/characters/{character_id}/")
+        name = data.get("name", f"Pilot {character_id}")
+        _set_cache(cache_key, name)
+        return name
+    except Exception:
+        return f"Pilot {character_id}"
+
+
 # ============ zKillboard ============
 
 def get_zkill_system(system_id: int) -> list:
