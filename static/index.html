@@ -138,6 +138,14 @@
         .refresh-btn { font-family: 'Share Tech Mono', monospace; font-size: 10px; letter-spacing: 1px; padding: 4px 12px; background: transparent; border: 1px solid var(--border-dim); color: var(--text-secondary); cursor: pointer; transition: all 0.2s; }
         .refresh-btn:hover { border-color: var(--cyan-dim); color: var(--cyan); }
 
+        /* ============ MAP MODE TOGGLE ============ */
+        .map-mode-toggle { display: flex; gap: 0; font-family: 'Orbitron', sans-serif; font-size: 9px; letter-spacing: 1px; }
+        .map-mode-btn { padding: 4px 12px; background: transparent; border: 1px solid var(--border-dim); color: var(--text-muted); cursor: pointer; transition: all 0.2s; text-transform: uppercase; }
+        .map-mode-btn:first-child { border-radius: 3px 0 0 3px; }
+        .map-mode-btn:last-child { border-radius: 0 3px 3px 0; border-left: none; }
+        .map-mode-btn.active { background: rgba(0,212,255,0.1); border-color: var(--cyan-dim); color: var(--cyan); }
+        .map-mode-btn:hover:not(.active) { border-color: var(--border-active); color: var(--text-secondary); }
+
         /* ============ CONSTELLATION MAP ============ */
         .map-container { width: 100%; background: rgba(0,5,10,0.6); border: 1px solid var(--border-dim); position: relative; overflow: hidden; }
         .map-container svg { display: block; width: 100%; height: auto; }
@@ -309,6 +317,127 @@
             "V3P-AZ":  { x: 1062, y: 368, constellation: "neighbor", note: "Malpais" },
             "7-YHRX":  { x: 995, y: 438, constellation: "neighbor", note: "Malpais" },
             "Z-EKCY":  { x: 885, y: 655, constellation: "neighbor", note: "Malpais" },
+        };
+
+        // ============ Subway Map Layout — abstract metro-style (same systems, new positions) ============
+        // LAWN systems: generous spacing (100px), strict 0/45/90° angles
+        // TKE systems: compact clusters (35px spacing)
+        // Neighbor systems: minimal, at edges
+        const MAP_LAYOUT_SUBWAY = {
+            // ===== LAWN 6-CBBM (Green Line, left wing) =====
+            "UDVW-O":  { x: 300, y: 20,   constellation: "6-CBBM", lawn: true },
+            "UJXC-B":  { x: 400, y: 120,  constellation: "6-CBBM", lawn: true },
+            "F48K-D":  { x: 600, y: 120,  constellation: "6-CBBM", lawn: true },
+            "1-KCSA":  { x: 500, y: 220,  constellation: "6-CBBM", lawn: true },
+            "XTJ-5Q":  { x: 500, y: 320,  constellation: "6-CBBM", lawn: true },
+            "JT2I-7":  { x: 400, y: 320,  constellation: "6-CBBM", lawn: true },
+            "N-JK02":  { x: 600, y: 420,  constellation: "6-CBBM", lawn: true },
+
+            // ===== LAWN 2Q-8WA (Green Line, right wing) =====
+            "FB5U-I":  { x: 700, y: 120,  constellation: "2Q-8WA", lawn: true },
+            "BZ-BCK":  { x: 850, y: 120,  constellation: "2Q-8WA", lawn: true },
+            "J-OAH2":  { x: 850, y: 20,   constellation: "2Q-8WA", lawn: true },
+            "O5-YNW":  { x: 1000, y: 120, constellation: "2Q-8WA", lawn: true },
+            "86L-9F":  { x: 1000, y: 20,  constellation: "2Q-8WA", lawn: true },
+            "5-VFC6":  { x: 750, y: 220,  constellation: "2Q-8WA", lawn: true },
+            "IUU3-L":  { x: 1100, y: 120, constellation: "2Q-8WA", lawn: true },
+            "S-LHPJ":  { x: 1100, y: 20,  constellation: "2Q-8WA", lawn: true },
+
+            // ===== S4S-SD (south from N-JK02, spread right into void) =====
+            "L-GY1B":  { x: 600, y: 490,  constellation: "S4S-SD" },
+            "LE-67X":  { x: 540, y: 490,  constellation: "S4S-SD" },
+            "74-DRC":  { x: 680, y: 550,  constellation: "S4S-SD" },
+            "0S1-GI":  { x: 770, y: 610,  constellation: "S4S-SD" },
+            "M3-H2Y":  { x: 850, y: 610,  constellation: "S4S-SD" },
+            "O31W-6":  { x: 830, y: 680,  constellation: "S4S-SD" },
+            "B1UE-J":  { x: 910, y: 740,  constellation: "S4S-SD" },
+
+            // ===== 3NA-Z1 (west from 74-DRC, spread up-left) =====
+            "MN9P-A":  { x: 470, y: 600,  constellation: "3NA-Z1" },
+            "BM-VYZ":  { x: 420, y: 575,  constellation: "3NA-Z1" },
+            "L-TLFU":  { x: 420, y: 625,  constellation: "3NA-Z1" },
+            "EPCD-D":  { x: 370, y: 625,  constellation: "3NA-Z1" },
+            "RAI-0E":  { x: 420, y: 675,  constellation: "3NA-Z1" },
+            "TA9T-P":  { x: 370, y: 725,  constellation: "3NA-Z1" },
+            "Q-GICU":  { x: 320, y: 775,  constellation: "3NA-Z1" },
+
+            // ===== 78-6RI (east from B1UE-J) =====
+            "FBH-JN":  { x: 890, y: 780,  constellation: "78-6RI" },
+            "SH6X-F":  { x: 890, y: 825,  constellation: "78-6RI" },
+            "BVRQ-O":  { x: 940, y: 780,  constellation: "78-6RI" },
+            "QX-4HO":  { x: 990, y: 780,  constellation: "78-6RI" },
+            "LS3-HP":  { x: 1040, y: 780, constellation: "78-6RI" },
+            "6V-D0E":  { x: 1090, y: 780, constellation: "78-6RI" },
+
+            // ===== U-HSM3 (south from O31W-6) =====
+            "C3J0-O":  { x: 730, y: 755,  constellation: "U-HSM3" },
+            "WNM-V0":  { x: 730, y: 810,  constellation: "U-HSM3" },
+            "HPV-RJ":  { x: 680, y: 810,  constellation: "U-HSM3" },
+            "G-KCFT":  { x: 785, y: 810,  constellation: "U-HSM3" },
+            "6FS-CZ":  { x: 680, y: 860,  constellation: "U-HSM3" },
+            "H7S-5I":  { x: 630, y: 910,  constellation: "U-HSM3" },
+            "GSO-SR":  { x: 730, y: 860,  constellation: "U-HSM3" },
+            "B3ZU-H":  { x: 785, y: 860,  constellation: "U-HSM3" },
+
+            // ===== 2O-VY7 (far south from G-KCFT) =====
+            "SG-3HY":  { x: 890, y: 860,  constellation: "2O-VY7" },
+            "A-YB15":  { x: 845, y: 910,  constellation: "2O-VY7" },
+            "QZX-L9":  { x: 940, y: 910,  constellation: "2O-VY7" },
+            "D-6PKO":  { x: 890, y: 960,  constellation: "2O-VY7" },
+            "AU2V-J":  { x: 845, y: 960,  constellation: "2O-VY7" },
+            "SY-0AM":  { x: 890, y: 1010, constellation: "2O-VY7" },
+
+            // ===== 8UD2-J (far west from Q-GICU) =====
+            "G4-QU6":  { x: 300, y: 820,  constellation: "8UD2-J" },
+            "V2-GZS":  { x: 250, y: 820,  constellation: "8UD2-J" },
+            "42G-OB":  { x: 200, y: 820,  constellation: "8UD2-J" },
+            "1S-SU1":  { x: 150, y: 870,  constellation: "8UD2-J" },
+            "LEM-I1":  { x: 200, y: 870,  constellation: "8UD2-J" },
+            "HD-HOZ":  { x: 250, y: 870,  constellation: "8UD2-J" },
+            "ND-GL4":  { x: 250, y: 920,  constellation: "8UD2-J" },
+
+            // ===== XPG-HE (south from ND-GL4) =====
+            "K95-9I":  { x: 320, y: 970,  constellation: "XPG-HE" },
+            "M-75WN":  { x: 370, y: 970,  constellation: "XPG-HE" },
+            "9-0QB7":  { x: 420, y: 970,  constellation: "XPG-HE" },
+            "HVGR-R":  { x: 370, y: 1020, constellation: "XPG-HE" },
+            "PNFW-O":  { x: 320, y: 1020, constellation: "XPG-HE" },
+            "K76A-3":  { x: 270, y: 1020, constellation: "XPG-HE" },
+
+            // ===== P-B2NE (south from Q-GICU, shifted right to avoid XPG-HE overlap) =====
+            "R1O-GN":  { x: 510, y: 870,  constellation: "P-B2NE" },
+            "RQOO-U":  { x: 560, y: 870,  constellation: "P-B2NE" },
+            "I2D3-5":  { x: 535, y: 920,  constellation: "P-B2NE" },
+            "BGMZ-0":  { x: 485, y: 920,  constellation: "P-B2NE" },
+            "GQ-7SP":  { x: 485, y: 970,  constellation: "P-B2NE" },
+            "FZX-PU":  { x: 535, y: 970,  constellation: "P-B2NE" },
+            "O9K-FT":  { x: 510, y: 1020, constellation: "P-B2NE" },
+
+            // ===== NEIGHBOR: Vale of the Silent =====
+            "LS-JEP":  { x: 170, y: 55,   constellation: "neighbor", note: "Vale of the Silent" },
+            "A3-RQ3":  { x: 120, y: 55,   constellation: "neighbor", note: "Vale of the Silent" },
+            "9-GBPD":  { x: 120, y: 105,  constellation: "neighbor", note: "Vale of the Silent" },
+            "PX5-LR":  { x: 70,  y: 20,   constellation: "neighbor", note: "Vale of the Silent" },
+
+            // ===== NEIGHBOR: Geminate =====
+            "9-KWXC":  { x: 80, y: 70,    constellation: "neighbor", note: "Geminate" },
+            "P-E9GN":  { x: 80, y: 140,   constellation: "neighbor", note: "Geminate" },
+            "HJO-84":  { x: 30, y: 140,   constellation: "neighbor", note: "Geminate" },
+            "4D9-66":  { x: 30, y: 210,   constellation: "neighbor", note: "Geminate" },
+            "L-TOFR":  { x: 80, y: 210,   constellation: "neighbor", note: "Geminate" },
+            "Q-TBHW":  { x: 80, y: 360,   constellation: "neighbor", note: "Geminate" },
+            "9P4O-F":  { x: 80, y: 530,   constellation: "neighbor", note: "Geminate" },
+
+            // ===== NEIGHBOR: Etherium Reach =====
+            "AID-9T":  { x: 730, y: 460,  constellation: "neighbor", note: "Etherium Reach" },
+            "TZ-74M":  { x: 540, y: 1060, constellation: "neighbor", note: "Etherium Reach" },
+            "FB-MPY":  { x: 800, y: 950,  constellation: "neighbor", note: "Etherium Reach" },
+            "J7M-3W":  { x: 920, y: 1050, constellation: "neighbor", note: "Etherium Reach" },
+
+            // ===== NEIGHBOR: Malpais =====
+            "V3P-AZ":  { x: 975, y: 700,  constellation: "neighbor", note: "Malpais" },
+            "7-YHRX":  { x: 930, y: 640,  constellation: "neighbor", note: "Malpais" },
+            "Z-EKCY":  { x: 970, y: 950,  constellation: "neighbor", note: "Malpais" },
         };
 
         // Gate connections — ALL verified from ESI /universe/stargates/ endpoint
@@ -492,7 +621,14 @@
 
         function ConstellationMap({ config, sovereignty, activity, campaigns, selectedSystem, onSelectSystem }) {
             const [tooltip, setTooltip] = useState(null);
+            const [mapMode, setMapMode] = useState("subway");
             const svgRef = useRef(null);
+
+            const isSubway = mapMode === "subway";
+            const activeLayout = isSubway ? MAP_LAYOUT_SUBWAY : MAP_LAYOUT;
+            const activeViewBox = isSubway ? "-10 -30 1180 1130" : "-40 -20 1220 790";
+            const vbWidth = isSubway ? 1180 : 1220;
+            const vbHeight = isSubway ? 1130 : 790;
 
             const nameToId = {};
             if (config && config.constellations) {
@@ -514,7 +650,7 @@
             }
 
             function getColor(name) {
-                const layout = MAP_LAYOUT[name];
+                const layout = activeLayout[name];
                 if (!layout) return "#3a5060";
 
                 // External neighbor systems (regional gates) - dimmed
@@ -581,17 +717,45 @@
                 return adm >= 2 && adm < 4;
             }
 
+            const GATEWAY_SYSTEMS = ["UDVW-O", "N-JK02"];
+
+            function getConnectionStyle(from, to, type) {
+                if (!isSubway) {
+                    // Traditional mode - original styles
+                    const styles = {
+                        internal: { stroke: "#1a3040", width: 1.5, dash: "none", opacity: 0.8 },
+                        cross:    { stroke: "#00d4ff", width: 1.2, dash: "6 3", opacity: 0.8 },
+                        regional: { stroke: "#cc44aa", width: 1,   dash: "8 4", opacity: 0.8 },
+                        neighbor: { stroke: "#1a2030", width: 1,   dash: "none", opacity: 0.5 },
+                    };
+                    return styles[type] || styles.internal;
+                }
+                // Subway mode - LAWN connections are bold, everything else fades
+                const fromLawn = activeLayout[from]?.lawn;
+                const toLawn = activeLayout[to]?.lawn;
+                const bothLawn = fromLawn && toLawn;
+
+                if (bothLawn && type === "internal") return { stroke: "#00ff88", width: 3, dash: "none", opacity: 1.0, cap: "round" };
+                if (bothLawn && type === "cross")    return { stroke: "#00d4ff", width: 2.5, dash: "8 4", opacity: 1.0, cap: "round" };
+                if ((fromLawn || toLawn) && !bothLawn) return { stroke: "#ffaa00", width: 2.5, dash: "6 4", opacity: 0.9, cap: "round" };
+
+                if (type === "neighbor") return { stroke: "#252535", width: 0.8, dash: "none", opacity: 0.4 };
+                if (type === "regional") return { stroke: "#774466", width: 1,   dash: "6 4", opacity: 0.5 };
+                if (type === "cross")    return { stroke: "#3a6070", width: 1.2, dash: "4 3", opacity: 0.6 };
+                return { stroke: "#1e3040", width: 1.2, dash: "none", opacity: 0.65 };
+            }
+
             function handleHover(e, name) {
-                const layout = MAP_LAYOUT[name];
+                const layout = activeLayout[name];
                 const sysId = nameToId[name];
                 const act = sysId ? (activity[sysId] || {}) : {};
                 const sov = sysId ? (sovereignty[sysId] || {}) : {};
 
                 const rect = svgRef.current.getBoundingClientRect();
-                const sx = rect.width / 1220;
-                const sy = rect.height / 790;
-                let tx = (layout.x + 20) * sx + rect.left + 20;
-                let ty = (layout.y + 20) * sy + rect.top - 10;
+                const sx = rect.width / vbWidth;
+                const sy = rect.height / vbHeight;
+                let tx = (layout.x + (isSubway ? 10 : 40)) * sx + rect.left + 20;
+                let ty = (layout.y + (isSubway ? 10 : 20)) * sy + rect.top - 10;
                 if (tx + 210 > window.innerWidth) tx -= 230;
 
                 setTooltip({
@@ -607,10 +771,26 @@
                 });
             }
 
+            // Determine sorted connections for subway mode (render LAWN on top)
+            const sortedConnections = isSubway
+                ? [...MAP_CONNECTIONS].sort((a, b) => {
+                    const aLawn = (activeLayout[a[0]]?.lawn && activeLayout[a[1]]?.lawn) ? 1 : 0;
+                    const bLawn = (activeLayout[b[0]]?.lawn && activeLayout[b[1]]?.lawn) ? 1 : 0;
+                    return aLawn - bLawn; // LAWN connections render last (on top)
+                })
+                : MAP_CONNECTIONS;
+
             return (
                 <div style={{ position: 'relative' }}>
+                    {/* Map mode toggle */}
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 8 }}>
+                        <div className="map-mode-toggle">
+                            <button className={`map-mode-btn ${mapMode === 'traditional' ? 'active' : ''}`} onClick={() => setMapMode('traditional')}>Traditional</button>
+                            <button className={`map-mode-btn ${mapMode === 'subway' ? 'active' : ''}`} onClick={() => setMapMode('subway')}>Subway</button>
+                        </div>
+                    </div>
                     <div className="map-container">
-                        <svg ref={svgRef} viewBox="-40 -20 1220 790" xmlns="http://www.w3.org/2000/svg">
+                        <svg ref={svgRef} viewBox={activeViewBox} xmlns="http://www.w3.org/2000/svg">
                             <defs>
                                 <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
                                     <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#0a1520" strokeWidth="0.5" />
@@ -618,46 +798,107 @@
                                 <filter id="glow-r"><feGaussianBlur stdDeviation="4" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
                                 <filter id="glow-c"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
                                 <filter id="glow-amber"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+                                <filter id="glow-green"><feGaussianBlur stdDeviation="5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
                             </defs>
-                            <rect x="-40" y="-20" width="1220" height="790" fill="#030608" />
-                            <rect x="-40" y="-20" width="1220" height="790" fill="url(#grid)" />
+                            <rect x={isSubway ? -10 : -40} y={isSubway ? -30 : -20} width={vbWidth} height={vbHeight} fill="#030608" />
+                            <rect x={isSubway ? -10 : -40} y={isSubway ? -10 : -20} width={vbWidth} height={vbHeight} fill="url(#grid)" />
 
-                            {/* LAWN constellation boundaries (emphasized) */}
-                            <rect x="460" y="30" width="210" height="162" rx="4" fill="none" stroke="#0a3020" strokeWidth="1.5" strokeDasharray="4 4" />
-                            <text x="470" y="44" fontFamily="Orbitron, sans-serif" fontSize="9" fill="#0d3828" letterSpacing="2">6-CBBM</text>
-
-                            <rect x="748" y="0" width="360" height="132" rx="4" fill="none" stroke="#0a3020" strokeWidth="1.5" strokeDasharray="4 4" />
-                            <text x="758" y="14" fontFamily="Orbitron, sans-serif" fontSize="9" fill="#0d3828" letterSpacing="2">2Q-8WA</text>
+                            {/* LAWN constellation boundaries */}
+                            {isSubway ? (
+                                <>
+                                    <rect x="270" y="-15" width="370" height="470" rx="6" fill="rgba(0,255,136,0.015)" stroke="rgba(0,255,136,0.06)" strokeWidth="1" strokeDasharray="6 4" />
+                                    <text x="282" y="450" fontFamily="Orbitron, sans-serif" fontSize="11" fill="rgba(0,255,136,0.2)" letterSpacing="2">6-CBBM</text>
+                                    <rect x="670" y="-15" width="460" height="270" rx="6" fill="rgba(0,255,136,0.015)" stroke="rgba(0,255,136,0.06)" strokeWidth="1" strokeDasharray="6 4" />
+                                    <text x="682" y="250" fontFamily="Orbitron, sans-serif" fontSize="11" fill="rgba(0,255,136,0.2)" letterSpacing="2">2Q-8WA</text>
+                                </>
+                            ) : (
+                                <>
+                                    <rect x="460" y="30" width="210" height="162" rx="4" fill="none" stroke="#0a3020" strokeWidth="1.5" strokeDasharray="4 4" />
+                                    <text x="470" y="44" fontFamily="Orbitron, sans-serif" fontSize="9" fill="#0d3828" letterSpacing="2">6-CBBM</text>
+                                    <rect x="748" y="0" width="360" height="132" rx="4" fill="none" stroke="#0a3020" strokeWidth="1.5" strokeDasharray="4 4" />
+                                    <text x="758" y="14" fontFamily="Orbitron, sans-serif" fontSize="9" fill="#0d3828" letterSpacing="2">2Q-8WA</text>
+                                </>
+                            )}
 
                             {/* Region labels for neighbor clusters */}
-                            <text x="90" y="25" fontFamily="Share Tech Mono, monospace" fontSize="8" fill="#333344" letterSpacing="1" fontStyle="italic">Geminate</text>
-                            <text x="245" y="-4" fontFamily="Share Tech Mono, monospace" fontSize="8" fill="#333344" letterSpacing="1" fontStyle="italic">Vale of the Silent</text>
+                            {isSubway ? (
+                                <>
+                                    <text x="50" y="50" fontFamily="Share Tech Mono, monospace" fontSize="7" fill="#222233" letterSpacing="1" fontStyle="italic">Geminate</text>
+                                    <text x="100" y="8" fontFamily="Share Tech Mono, monospace" fontSize="7" fill="#222233" letterSpacing="1" fontStyle="italic">Vale of the Silent</text>
+                                    <text x="720" y="440" fontFamily="Share Tech Mono, monospace" fontSize="7" fill="#222233" letterSpacing="1" fontStyle="italic">Etherium Reach</text>
+                                    <text x="940" y="620" fontFamily="Share Tech Mono, monospace" fontSize="7" fill="#222233" letterSpacing="1" fontStyle="italic">Malpais</text>
+                                </>
+                            ) : (
+                                <>
+                                    <text x="90" y="25" fontFamily="Share Tech Mono, monospace" fontSize="8" fill="#333344" letterSpacing="1" fontStyle="italic">Geminate</text>
+                                    <text x="245" y="-4" fontFamily="Share Tech Mono, monospace" fontSize="8" fill="#333344" letterSpacing="1" fontStyle="italic">Vale of the Silent</text>
+                                </>
+                            )}
 
                             {/* Connections */}
-                            {MAP_CONNECTIONS.map(([from, to, type], i) => {
-                                const a = MAP_LAYOUT[from], b = MAP_LAYOUT[to];
+                            {sortedConnections.map(([from, to, type], i) => {
+                                const a = activeLayout[from], b = activeLayout[to];
                                 if (!a || !b) return null;
-                                const styles = {
-                                    internal: { stroke: "#1a3040", width: 1.5, dash: "none" },
-                                    cross:    { stroke: "#00d4ff", width: 1.2, dash: "6 3" },
-                                    regional: { stroke: "#cc44aa", width: 1, dash: "8 4" },
-                                    neighbor: { stroke: "#1a2030", width: 1, dash: "none" },
-                                };
-                                const s = styles[type] || styles.regional;
-                                return <line key={i} x1={a.x} y1={a.y} x2={b.x} y2={b.y} stroke={s.stroke} strokeWidth={s.width} strokeDasharray={s.dash} opacity={type === "neighbor" ? 0.5 : 0.8} />;
+                                const s = getConnectionStyle(from, to, type);
+                                return <line key={`${from}-${to}`} x1={a.x} y1={a.y} x2={b.x} y2={b.y} stroke={s.stroke} strokeWidth={s.width} strokeDasharray={s.dash} opacity={s.opacity} strokeLinecap={s.cap || "butt"} />;
                             })}
 
                             {/* Nodes */}
-                            {Object.entries(MAP_LAYOUT).map(([name, pos]) => {
+                            {Object.entries(activeLayout).map(([name, pos]) => {
                                 const isN = pos.constellation === "neighbor";
+                                const isLawn = pos.lawn;
+                                const isGateway = isSubway && GATEWAY_SYSTEMS.includes(name);
                                 const color = getColor(name);
                                 const pvp = getPvpGlow(name);
                                 const npc = getNpcRing(name);
                                 const sysId = nameToId[name];
                                 const isSel = sysId && selectedSystem === sysId;
-                                const r = isN ? 4 : 6;
                                 const sov = sysId ? (sovereignty[sysId] || {}) : {};
                                 const adm = sov.adm || 0;
+
+                                // Subway mode: 3-tier sizing
+                                let r, nameSize, nameOff, admSize, admOff, nodeOpacity, nameFill, nodeStroke, nodeFill;
+                                if (!isSubway) {
+                                    // Traditional mode — original sizes
+                                    r = isN ? 4 : 6;
+                                    nameSize = isN ? 8 : 10;
+                                    nameOff = isN ? 10 : 13;
+                                    admSize = 9;
+                                    admOff = 16;
+                                    nodeOpacity = isN ? 0.6 : 1;
+                                    nameFill = isN ? "#554400" : color;
+                                    nodeStroke = isN ? 1 : 1.5;
+                                    nodeFill = isN ? "#0a0a08" : "#060a0f";
+                                } else if (isN) {
+                                    // Subway: neighbor tier — visible but secondary
+                                    r = 3; nameSize = 7; nameOff = 8; admSize = 0; admOff = 0;
+                                    nodeOpacity = 0.55; nameFill = "#555565"; nodeStroke = 1; nodeFill = "#080810";
+                                } else if (isLawn) {
+                                    // Subway: LAWN tier (dominant)
+                                    r = isGateway ? 12 : 10;
+                                    nameSize = 13; nameOff = isGateway ? 22 : 18;
+                                    admSize = 11; admOff = isGateway ? 24 : 20;
+                                    nodeOpacity = 1; nameFill = "#00ff88"; nodeStroke = isGateway ? 3 : 2.5; nodeFill = "#0a1a10";
+                                } else if (pos.constellation === "S4S-SD") {
+                                    // Subway: LAWN-border TKE tier — slightly more visible
+                                    r = 4.5; nameSize = 8; nameOff = 10; admSize = 0; admOff = 0;
+                                    nodeOpacity = 0.85; nameFill = color; nodeStroke = 1.2; nodeFill = "#060a0f";
+                                } else {
+                                    // Subway: TKE tier (compact)
+                                    r = 4; nameSize = 7.5; nameOff = 9; admSize = 0; admOff = 0;
+                                    nodeOpacity = 0.7; nameFill = color; nodeStroke = 1; nodeFill = "#060a0f";
+                                }
+
+                                // Override stroke for grinding status
+                                const critGrind = needsCriticalGrinding(name);
+                                const cautGrind = needsCautionGrinding(name);
+                                const strokeColor = critGrind ? "#ff3355" : cautGrind ? "#ffaa00" : color;
+                                const strokeW = critGrind ? (isSubway && isLawn ? 4 : 3) : cautGrind ? (isSubway && isLawn ? 3 : 2) : nodeStroke;
+                                const nodeFilter = critGrind ? "url(#glow-r)" : cautGrind ? "url(#glow-amber)" : (isSubway && isLawn ? "url(#glow-green)" : undefined);
+
+                                // Reffed ring size scales with node
+                                const reffedR = isSubway ? (isLawn ? r + 8 : r + 6) : 16;
+                                const selR = isSubway ? (isLawn ? r + 4 : r + 3) : 11;
 
                                 return (
                                     <g key={name}
@@ -666,64 +907,67 @@
                                         onClick={() => sysId && onSelectSystem(sysId)}
                                         style={{ cursor: isN ? 'default' : 'pointer' }}
                                     >
-                                        {isReffed(name) && (
-                                            <circle
-                                                cx={pos.x}
-                                                cy={pos.y}
-                                                r={16}
-                                                fill="none"
-                                                stroke="#ffaa00"
-                                                strokeWidth="2"
-                                                strokeDasharray="4 3"
-                                                filter="url(#glow-amber)"
-                                                style={{ animation: 'pulse-reffed 2s infinite' }}
-                                            />
+                                        {/* Gateway double-ring (subway only) */}
+                                        {isGateway && (
+                                            <circle cx={pos.x} cy={pos.y} r={r + 5} fill="none" stroke="#ffaa00" strokeWidth="1.5" strokeDasharray="4 3" opacity={0.6} />
                                         )}
-                                        {npc && <circle cx={pos.x} cy={pos.y} r={npc.r} fill={`rgba(0,212,255,${npc.o})`} />}
-                                        {pvp > 0 && <circle cx={pos.x} cy={pos.y} r={pvp} fill="rgba(255,51,85,0.3)" filter="url(#glow-r)" />}
-                                        {isSel && <circle cx={pos.x} cy={pos.y} r={11} fill="none" stroke="#00d4ff" strokeWidth="1.5" strokeDasharray="3 2" opacity={0.8} filter="url(#glow-c)" />}
+                                        {isReffed(name) && (
+                                            <circle cx={pos.x} cy={pos.y} r={reffedR} fill="none" stroke="#ffaa00" strokeWidth="2" strokeDasharray="4 3" filter="url(#glow-amber)" style={{ animation: 'pulse-reffed 2s infinite' }} />
+                                        )}
+                                        {npc && <circle cx={pos.x} cy={pos.y} r={isSubway && isLawn ? npc.r * 1.3 : npc.r} fill={`rgba(0,212,255,${npc.o})`} />}
+                                        {pvp > 0 && <circle cx={pos.x} cy={pos.y} r={isSubway && isLawn ? pvp * 1.3 : pvp} fill="rgba(255,51,85,0.3)" filter="url(#glow-r)" />}
+                                        {isSel && <circle cx={pos.x} cy={pos.y} r={selR} fill="none" stroke="#00d4ff" strokeWidth="1.5" strokeDasharray="3 2" opacity={0.8} filter="url(#glow-c)" />}
                                         <circle cx={pos.x} cy={pos.y} r={r}
-                                            fill={isN ? "#0a0a08" : "#060a0f"}
-                                            stroke={needsCriticalGrinding(name) ? "#ff3355" : needsCautionGrinding(name) ? "#ffaa00" : color}
-                                            strokeWidth={needsCriticalGrinding(name) ? 3 : needsCautionGrinding(name) ? 2 : (isN ? 1 : 1.5)}
-                                            strokeDasharray={isN ? "2 2" : "none"}
-                                            opacity={isN ? 0.6 : 1}
-                                            filter={needsCriticalGrinding(name) ? "url(#glow-r)" : needsCautionGrinding(name) ? "url(#glow-amber)" : undefined}
+                                            fill={nodeFill}
+                                            stroke={strokeColor}
+                                            strokeWidth={strokeW}
+                                            strokeDasharray={isN && !isSubway ? "2 2" : "none"}
+                                            opacity={nodeOpacity}
+                                            filter={nodeFilter}
                                         />
-                                        {needsCriticalGrinding(name) && (
+                                        {critGrind && (
                                             <text
-                                                x={pos.x + 9}
-                                                y={pos.y - 8}
+                                                x={pos.x + (isSubway && isLawn ? 14 : 9)}
+                                                y={pos.y - (isSubway && isLawn ? 12 : 8)}
                                                 fontFamily="Orbitron, sans-serif"
-                                                fontSize="11"
+                                                fontSize={isSubway && isLawn ? "14" : "11"}
                                                 fill="#ff3355"
                                                 fontWeight="bold"
                                                 opacity={0.95}
                                             >!</text>
                                         )}
-                                        <text x={pos.x} y={pos.y - (isN ? 10 : 13)}
+                                        <text x={pos.x} y={pos.y - nameOff}
                                             textAnchor="middle"
                                             fontFamily="Share Tech Mono, monospace"
-                                            fontSize={isN ? "8" : "10"}
-                                            fill={isN ? "#554400" : color}
-                                            opacity={isN ? 0.6 : 0.9}
-                                            letterSpacing="0.5"
+                                            fontSize={nameSize}
+                                            fill={nameFill}
+                                            opacity={isSubway ? (isN ? 0.4 : isLawn ? 1 : 0.7) : (isN ? 0.6 : 0.9)}
+                                            letterSpacing={isSubway && isLawn ? "1" : "0.5"}
+                                            fontWeight={isSubway && isLawn ? "bold" : "normal"}
                                         >{name}</text>
-                                        {/* ADM indicator below node (LAWN + data systems) */}
-                                        {!isN && adm > 0 && (
-                                            <text x={pos.x} y={pos.y + 16}
+                                        {/* ADM indicator */}
+                                        {!isN && adm > 0 && admSize > 0 && (
+                                            <text x={pos.x} y={pos.y + admOff}
                                                 textAnchor="middle"
                                                 fontFamily="Share Tech Mono, monospace"
-                                                fontSize="9"
+                                                fontSize={admSize}
                                                 fill={getAdmColor(adm)}
                                                 opacity={0.9}
                                             >{adm}</text>
                                         )}
+                                        {/* Gateway direction labels (subway only) */}
+                                        {isGateway && name === "UDVW-O" && (
+                                            <text x={pos.x - 25} y={pos.y} textAnchor="end" fontFamily="Orbitron, sans-serif" fontSize="9" fill="#ffaa00" opacity={0.85} letterSpacing="1">{'\u2192'} VALE</text>
+                                        )}
+                                        {isGateway && name === "N-JK02" && (
+                                            <text x={pos.x - 20} y={pos.y + 25} textAnchor="end" fontFamily="Orbitron, sans-serif" fontSize="9" fill="#ffaa00" opacity={0.85} letterSpacing="1">{'\u2192'} TKE</text>
+                                        )}
+                                        {/* Neighbor labels */}
                                         {isN && pos.holder && (
-                                            <text x={pos.x} y={pos.y + 14} textAnchor="middle" fontFamily="Share Tech Mono, monospace" fontSize="6" fill="#443300" opacity={0.5}>{pos.holder}</text>
+                                            <text x={pos.x} y={pos.y + (isSubway ? 8 : 14)} textAnchor="middle" fontFamily="Share Tech Mono, monospace" fontSize="6" fill="#443300" opacity={isSubway ? 0.3 : 0.5}>{pos.holder}</text>
                                         )}
                                         {isN && pos.note && !pos.holder && (
-                                            <text x={pos.x} y={pos.y + 14} textAnchor="middle" fontFamily="Share Tech Mono, monospace" fontSize="6" fill="#444" fontStyle="italic">{pos.note}</text>
+                                            <text x={pos.x} y={pos.y + (isSubway ? 12 : 14)} textAnchor="middle" fontFamily="Share Tech Mono, monospace" fontSize={isSubway ? "5" : "6"} fill={isSubway ? "#444455" : "#444"} fontStyle="italic" opacity={isSubway ? 0.5 : 1}>{pos.note}</text>
                                         )}
                                     </g>
                                 );
@@ -801,42 +1045,40 @@
 
                     <div className="map-legend">
                         <div className="map-legend-item">
-                            <div style={{
-                                width: 8,
-                                height: 8,
-                                background: 'transparent',
-                                border: '2px dashed #ffaa00',
-                                borderRadius: '50%'
-                            }} />
+                            <div style={{ width: 8, height: 8, background: 'transparent', border: '2px dashed #ffaa00', borderRadius: '50%' }} />
                             <span>Reffed (active timer)</span>
                         </div>
                         <div className="map-legend-item">
-                            <div style={{
-                                width: 8,
-                                height: 8,
-                                background: 'transparent',
-                                border: '3px solid #ff3355',
-                                borderRadius: '50%'
-                            }} />
+                            <div style={{ width: 8, height: 8, background: 'transparent', border: '3px solid #ff3355', borderRadius: '50%' }} />
                             <span>Critical (ADM &lt; 2)</span>
                         </div>
                         <div className="map-legend-item">
-                            <div style={{
-                                width: 8,
-                                height: 8,
-                                background: 'transparent',
-                                border: '2px solid #ffaa00',
-                                borderRadius: '50%'
-                            }} />
+                            <div style={{ width: 8, height: 8, background: 'transparent', border: '2px solid #ffaa00', borderRadius: '50%' }} />
                             <span>Caution (ADM 2-4)</span>
                         </div>
                         <div className="map-legend-item"><div className="map-legend-dot" style={{ background: '#00ff88' }} /><span>LAWN Sov</span></div>
                         <div className="map-legend-item"><div className="map-legend-dot" style={{ background: 'rgba(0,212,255,0.3)', border: '1px solid rgba(0,212,255,0.2)' }} /><span>NPC ratting</span></div>
                         <div className="map-legend-item"><div className="map-legend-dot" style={{ background: '#ff3355' }} /><span>PVP danger</span></div>
-                        <div className="map-legend-item"><div className="map-legend-dot" style={{ background: '#444455', border: '1px dashed #444455' }} /><span>Neighbor region</span></div>
-                        <div className="map-legend-item"><div style={{ width: 16, height: 0, borderTop: '1.5px solid #1a3040' }} /><span>Internal gate</span></div>
-                        <div className="map-legend-item"><div style={{ width: 16, height: 0, borderTop: '1.5px dashed #00d4ff', opacity: 0.6 }} /><span>Cross-constellation</span></div>
-                        <div className="map-legend-item"><div style={{ width: 16, height: 0, borderTop: '1.5px dashed #cc44aa' }} /><span>Regional gate</span></div>
+                        {isSubway ? (
+                            <>
+                                <div className="map-legend-item">
+                                    <div style={{ width: 10, height: 10, background: 'transparent', border: '2px solid #ffaa00', borderRadius: '50%', boxShadow: '0 0 0 2px transparent, 0 0 0 3px #ffaa0066' }} />
+                                    <span>Gateway (exit)</span>
+                                </div>
+                                <div className="map-legend-item"><div style={{ width: 16, height: 0, borderTop: '3px solid #00ff88' }} /><span>LAWN gate</span></div>
+                                <div className="map-legend-item"><div style={{ width: 16, height: 0, borderTop: '2.5px dashed #00d4ff' }} /><span>LAWN bridge</span></div>
+                                <div className="map-legend-item"><div style={{ width: 16, height: 0, borderTop: '2.5px dashed #ffaa00' }} /><span>LAWN exit</span></div>
+                                <div className="map-legend-item"><div style={{ width: 16, height: 0, borderTop: '1px solid #1a2a35', opacity: 0.6 }} /><span>TKE gate</span></div>
+                                <div className="map-legend-item"><div style={{ width: 16, height: 0, borderTop: '1px dashed #663355', opacity: 0.5 }} /><span>Regional gate</span></div>
+                            </>
+                        ) : (
+                            <>
+                                <div className="map-legend-item"><div className="map-legend-dot" style={{ background: '#444455', border: '1px dashed #444455' }} /><span>Neighbor region</span></div>
+                                <div className="map-legend-item"><div style={{ width: 16, height: 0, borderTop: '1.5px solid #1a3040' }} /><span>Internal gate</span></div>
+                                <div className="map-legend-item"><div style={{ width: 16, height: 0, borderTop: '1.5px dashed #00d4ff', opacity: 0.6 }} /><span>Cross-constellation</span></div>
+                                <div className="map-legend-item"><div style={{ width: 16, height: 0, borderTop: '1.5px dashed #cc44aa' }} /><span>Regional gate</span></div>
+                            </>
+                        )}
                     </div>
                 </div>
             );
