@@ -124,6 +124,10 @@ def get_sovereignty_structures() -> list:
     Returns list with alliance_id, solar_system_id,
     structure_type_id (TCU=32226, iHub=32458),
     vulnerability_occupancy_level (= ADM, 1.0-6.0).
+
+    NOTE: ESI does NOT provide separate Military, Industrial, or Strategic
+    indexes. Only the combined ADM (vulnerability_occupancy_level) is available.
+    Individual indexes must be estimated from other activity data.
     """
     cache_key = "sovereignty_structures"
     cached = _get_cached(cache_key, "sovereignty_structures")

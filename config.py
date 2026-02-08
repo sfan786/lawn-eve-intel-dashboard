@@ -47,6 +47,19 @@ FRIENDLY_CORPORATIONS = [
 ZKILL_BASE = "https://zkillboard.com/api"
 ZKILL_RECENT_HOURS = 24  # How far back to pull kills
 
+# ADM Index Estimation Thresholds
+# NOTE: ESI API does not provide separate Military/Industrial/Strategic indexes.
+# These thresholds are used by the frontend to estimate Military index from NPC kill activity.
+# Military index (0-5) is estimated based on NPC kills per hour:
+MILITARY_INDEX_THRESHOLDS = {
+    0: 0,      # No activity
+    1: 1,      # Minimal (1-99 NPC/hr)
+    2: 100,    # Light (100-299 NPC/hr)
+    3: 300,    # Moderate (300-599 NPC/hr)
+    4: 600,    # Heavy (600-999 NPC/hr)
+    5: 1000,   # Intense (1000+ NPC/hr)
+}
+
 # Flask settings
 FLASK_HOST = "0.0.0.0"
 FLASK_PORT = 5000
