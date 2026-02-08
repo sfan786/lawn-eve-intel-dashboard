@@ -106,17 +106,102 @@ python app.py       # Live ESI data
 - `GET /api/campaigns` — active sov contests
 - `GET /api/status` — health check
 
-## ADM Display
+### Map Implementation Details
 
-The dashboard shows the combined ADM value (1.0-6.0) from ESI and highlights systems that need grinding:
+**Key Functions** (in `static/index.html`):
+- `isReffed(name)` — checks if system has active sov campaign
+- `needsCriticalGrinding(name)` — checks if ADM < 2 (red treatment)
+- `needsCautionGrinding(name)` — checks if ADM 2-4 (amber treatment)
+- `getAdmColor(adm)` — returns color for ADM value display
+- `getColor(name)` — returns base stroke color for system nodes
 
-- **ADM < 2.0**: Critical - Needs immediate grinding (red)
-- **ADM 2.0-4.0**: Below safe threshold (amber)
-- **ADM 4.0+**: Safe from vulnerability (cyan/green)
+**Visual Rendering Order** (SVG z-order in node rendering):
+1. Reffed ring (rendered first, outermost)
+2. NPC ring (activity indicator)
+3. PVP glow (combat indicator)
+4. Selection ring (UI state)
+5. Main node circle (with grinding stroke if needed)
+6. "!" icon (critical systems only)
+7. System name and ADM labels
 
-Systems with ADM < 3.0 show a "⚠ GRIND" badge in the system table. The "Needs Grinding" summary card shows how many systems require ADM work.
+**CSS Animations**:
+- `pulse-dot` — status indicator (2s cycle)
+- `pulse-reffed` — reffed system ring (2s cycle, opacity 0.3→0.8)
 
-**Note**: ESI API does not provide separate Military/Industrial/Strategic indexes. Only the combined ADM is available.
+**SVG Filters**:
+- `glow-r` — red glow (stdDeviation 4) for PVP and critical systems
+- `glow-c` — cyan glow (stdDeviation 3) for selection
+- `glow-amber` — amber glow (stdDeviation 3) for reffed and caution systems
+
+## Map Visualization & Visual Indicators
+
+The constellation map shows The Kalevala Expanse with multiple visual indicators that stack to show system status at a glance:
+
+### Visual Priority Hierarchy (outermost to innermost)
+1. **Reffed Ring** (r=16, amber dashed) - Pulsing amber warning ring for systems with active sov campaigns
+2. **NPC Ring** (r=18-24, cyan) - Ratting activity indicator (>200 NPC kills/hour)
+3. **PVP Glow** (r=8-14, red) - Combat activity indicator (≥1 ship kill/hour)
+4. **Node Circle** (r=6) - System base with color-coded stroke for grinding status
+5. **"!" Icon** - Red exclamation mark for critical ADM systems (< 2.0)
+6. **System Name** (above node, fontSize 10) - 25% larger than previous version
+7. **ADM Value** (below node, fontSize 9) - 29% larger, color-coded by level
+
+### ADM Differentiation & Grinding Priority
+
+The dashboard emphasizes **critical systems (ADM < 2.0)** much more strongly than caution systems:
+
+**Critical Systems (ADM < 2.0)**:
+- **Map**: Thick red stroke (3px) with red glow + bold "!" icon (fontSize 11)
+- **Table**: "⚠ CRITICAL" badge in bright red with higher opacity background
+- **Tooltip**: "⚠ CRITICAL - PRIORITY GRINDING TARGET" banner in red
+- **Summary Card**: "Critical ADM" count shows systems needing immediate attention
+
+**Caution Systems (ADM 2.0-4.0)**:
+- **Map**: Amber stroke (2px) with amber glow (no icon)
+- **Table**: "⚠ GRIND" badge in amber
+- **Tooltip**: "⚠ GRIND RECOMMENDED" banner in amber
+
+**Safe Systems (ADM 4.0+)**:
+- Normal display with cyan/green ADM values
+- No grinding indicators
+
+### Sov Campaign Alerts
+
+Campaign alerts show **system names** instead of numeric IDs (e.g., "1-KCSA" instead of "System 30002826"):
+- Campaign type: TCU, IHUB, or STATION
+- Attack vs defense percentages
+- Systems with active campaigns display pulsing amber ring on map
+
+### Reffed System Indicators
+
+Systems under attack (reinforced structures) are clearly marked:
+- **Map**: Pulsing amber dashed ring (r=16) - 2s animation cycle
+- **Tooltip**: "⚠ ACTIVE SOV CAMPAIGN" banner in amber
+- Visible at a glance even when zoomed out
+
+### Map Legend
+
+Updated legend shows all indicators:
+- Reffed (active timer) - amber dashed ring
+- Critical (ADM < 2) - thick red border
+- Caution (ADM 2-4) - amber border
+- LAWN Sov - green dot
+- NPC ratting - cyan ring
+- PVP danger - red dot
+- Neighbor region - dimmed
+- Internal/cross/regional gates - various line styles
+
+### Enhanced Tooltips
+
+Hovering over systems shows detailed status with priority warnings:
+- ADM level with color coding
+- ADM status warnings for systems below safe threshold
+- Active campaign status (if reffed)
+- Grinding priority (critical or caution)
+- Activity metrics (PVP, NPC, jumps)
+- Sov holder and corporation
+
+**Note**: ESI API does not provide separate Military/Industrial/Strategic indexes. Only the combined ADM (vulnerability_occupancy_level) is available.
 
 ## Roadmap
 - [ ] Discord webhook alerts (ADM drops, hostile activity spikes, new sov campaigns)
@@ -129,8 +214,27 @@ Systems with ADM < 3.0 show a "⚠ GRIND" badge in the system table. The "Needs 
 - [ ] Time-zone activity heatmaps
 
 ## Visual Design
+
 Dark sci-fi HUD aesthetic matching EVE's Neocom interface:
-- Background: `#060a0f`, panels: `#0a1018`
-- Accent: cyan `#00d4ff`, friendly: green `#00ff88`, hostile: red `#ff3355`, caution: amber `#ffaa00`
-- Fonts: Orbitron (headings), Share Tech Mono (data), Rajdhani (body)
-- Scanline overlay, corner brackets on panels, pulsing status indicators
+- **Background**: `#060a0f`, panels: `#0a1018`
+- **Color Palette**:
+  - Accent: cyan `#00d4ff`
+  - Friendly: green `#00ff88`
+  - Critical/Hostile: red `#ff3355`
+  - Caution/Warning: amber `#ffaa00`
+  - Muted text: `#6a8090`, `#8a9aa0`
+- **Fonts**:
+  - Orbitron (headings, warnings) - bold, uppercase, letter-spaced
+  - Share Tech Mono (data, system names) - monospace, technical
+  - Rajdhani (body text)
+- **Visual Effects**:
+  - Scanline overlay for CRT aesthetic
+  - Corner brackets on panels
+  - Pulsing status indicators (dot, reffed ring)
+  - SVG glow filters (red, cyan, amber)
+  - Smooth transitions on hover
+- **Map Font Sizes** (increased Feb 2026):
+  - LAWN system names: 10px (was 8px)
+  - Neighbor system names: 8px (was 7px)
+  - ADM values: 9px (was 7px)
+  - Warning icons: 11px bold
