@@ -70,7 +70,7 @@ lawn-eve-intel-dashboard/
 
 ## Key Technical Decisions
 1. **static/index.html not templates/** — Must be served via `send_from_directory`, NOT `render_template`, because Jinja2's `{{ }}` conflicts with React JSX expressions
-2. **Map layout is manual** — System positions in `MAP_LAYOUT` (inside index.html) are manually placed to match the Dotlan sovereignty map layout. Gate connections are in `MAP_CONNECTIONS` array with types: `internal` (same constellation), `cross` (different TKE constellations), `regional` (to other regions), `neighbor` (neighbor region systems)
+2. **Map layout is manual** — Two layout modes: `MAP_LAYOUT` (traditional Dotlan-style) and `MAP_LAYOUT_SUBWAY` (abstract metro-style). Gate connections are in `MAP_CONNECTIONS` array with types: `internal` (same constellation), `cross` (different TKE constellations), `regional` (to other regions), `neighbor` (neighbor region systems). Subway mode prioritizes readability over geometric accuracy — LAWN at top, TKE spread below, neighbor systems positioned to avoid overlapping TKE connection lines
 3. **Demo mode** — `demo.py` serves identical API routes as `app.py` but returns hardcoded mock data (no ESI calls). Always test UI changes against demo mode first
 4. **In-memory caching** — `esi_client.py` caches responses in a dict with per-category TTLs. No persistence yet
 
