@@ -70,6 +70,7 @@
         .status-bar { display: flex; align-items: center; gap: 20px; font-family: 'Share Tech Mono', monospace; font-size: 11px; color: var(--text-secondary); }
         .status-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); box-shadow: 0 0 8px var(--green); display: inline-block; margin-right: 6px; animation: pulse-dot 2s infinite; }
         @keyframes pulse-dot { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+        @keyframes pulse-reffed { 0%, 100% { opacity: 0.3; } 50% { opacity: 0.8; } }
 
         .dashboard { padding: 20px 30px; display: grid; grid-template-columns: 1fr 1fr; gap: 16px; max-width: 1600px; margin: 0 auto; }
         .panel { background: var(--bg-panel); border: 1px solid var(--border-dim); position: relative; padding: 16px; transition: border-color 0.3s; }
@@ -469,7 +470,7 @@
 
         // ============ Map Component ============
 
-        function ConstellationMap({ config, sovereignty, activity, selectedSystem, onSelectSystem }) {
+        function ConstellationMap({ config, sovereignty, activity, campaigns, selectedSystem, onSelectSystem }) {
             const [tooltip, setTooltip] = useState(null);
             const svgRef = useRef(null);
 
@@ -478,6 +479,16 @@
                 Object.values(config.constellations).forEach(c => {
                     Object.values(c.systems).forEach(sys => {
                         nameToId[sys.name] = String(sys.system_id);
+                    });
+                });
+            }
+
+            // Build reverse mapping for campaign display
+            const idToName = {};
+            if (config && config.constellations) {
+                Object.values(config.constellations).forEach(c => {
+                    Object.values(c.systems).forEach(sys => {
+                        idToName[String(sys.system_id)] = sys.name;
                     });
                 });
             }
@@ -528,6 +539,28 @@
                 return null;
             }
 
+            function isReffed(name) {
+                const sysId = nameToId[name];
+                if (!sysId) return false;
+                return campaigns && campaigns.some(c => String(c.solar_system_id) === sysId);
+            }
+
+            function needsCriticalGrinding(name) {
+                const sysId = nameToId[name];
+                if (!sysId) return false;
+                const sov = sovereignty[sysId] || {};
+                const adm = sov.adm || 0;
+                return adm > 0 && adm < 2;
+            }
+
+            function needsCautionGrinding(name) {
+                const sysId = nameToId[name];
+                if (!sysId) return false;
+                const sov = sovereignty[sysId] || {};
+                const adm = sov.adm || 0;
+                return adm >= 2 && adm < 4;
+            }
+
             function handleHover(e, name) {
                 const layout = MAP_LAYOUT[name];
                 const sysId = nameToId[name];
@@ -564,6 +597,7 @@
                                 </pattern>
                                 <filter id="glow-r"><feGaussianBlur stdDeviation="4" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
                                 <filter id="glow-c"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+                                <filter id="glow-amber"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
                             </defs>
                             <rect x="-40" y="-20" width="1220" height="790" fill="#030608" />
                             <rect x="-40" y="-20" width="1220" height="790" fill="url(#grid)" />
@@ -612,30 +646,55 @@
                                         onClick={() => sysId && onSelectSystem(sysId)}
                                         style={{ cursor: isN ? 'default' : 'pointer' }}
                                     >
+                                        {isReffed(name) && (
+                                            <circle
+                                                cx={pos.x}
+                                                cy={pos.y}
+                                                r={16}
+                                                fill="none"
+                                                stroke="#ffaa00"
+                                                strokeWidth="2"
+                                                strokeDasharray="4 3"
+                                                filter="url(#glow-amber)"
+                                                style={{ animation: 'pulse-reffed 2s infinite' }}
+                                            />
+                                        )}
                                         {npc && <circle cx={pos.x} cy={pos.y} r={npc.r} fill={`rgba(0,212,255,${npc.o})`} />}
                                         {pvp > 0 && <circle cx={pos.x} cy={pos.y} r={pvp} fill="rgba(255,51,85,0.3)" filter="url(#glow-r)" />}
                                         {isSel && <circle cx={pos.x} cy={pos.y} r={11} fill="none" stroke="#00d4ff" strokeWidth="1.5" strokeDasharray="3 2" opacity={0.8} filter="url(#glow-c)" />}
                                         <circle cx={pos.x} cy={pos.y} r={r}
                                             fill={isN ? "#0a0a08" : "#060a0f"}
-                                            stroke={color}
-                                            strokeWidth={isN ? 1 : 1.5}
+                                            stroke={needsCriticalGrinding(name) ? "#ff3355" : needsCautionGrinding(name) ? "#ffaa00" : color}
+                                            strokeWidth={needsCriticalGrinding(name) ? 3 : needsCautionGrinding(name) ? 2 : (isN ? 1 : 1.5)}
                                             strokeDasharray={isN ? "2 2" : "none"}
                                             opacity={isN ? 0.6 : 1}
+                                            filter={needsCriticalGrinding(name) ? "url(#glow-r)" : needsCautionGrinding(name) ? "url(#glow-amber)" : undefined}
                                         />
-                                        <text x={pos.x} y={pos.y - (isN ? 8 : 11)}
+                                        {needsCriticalGrinding(name) && (
+                                            <text
+                                                x={pos.x + 9}
+                                                y={pos.y - 8}
+                                                fontFamily="Orbitron, sans-serif"
+                                                fontSize="11"
+                                                fill="#ff3355"
+                                                fontWeight="bold"
+                                                opacity={0.95}
+                                            >!</text>
+                                        )}
+                                        <text x={pos.x} y={pos.y - (isN ? 10 : 13)}
                                             textAnchor="middle"
                                             fontFamily="Share Tech Mono, monospace"
-                                            fontSize={isN ? "7" : "8"}
+                                            fontSize={isN ? "8" : "10"}
                                             fill={isN ? "#554400" : color}
                                             opacity={isN ? 0.6 : 0.9}
                                             letterSpacing="0.5"
                                         >{name}</text>
                                         {/* ADM indicator below node (LAWN + data systems) */}
                                         {!isN && adm > 0 && (
-                                            <text x={pos.x} y={pos.y + 14}
+                                            <text x={pos.x} y={pos.y + 16}
                                                 textAnchor="middle"
                                                 fontFamily="Share Tech Mono, monospace"
-                                                fontSize="7"
+                                                fontSize="9"
                                                 fill={getAdmColor(adm)}
                                                 opacity={0.9}
                                             >{adm}</text>
@@ -675,6 +734,42 @@
                                             {tooltip.adm < 2 ? '⚠ Critical - Needs immediate grinding' : '⚠ Below safe threshold (4.0)'}
                                         </div>
                                     )}
+                                    {isReffed(tooltip.name) && (
+                                        <div style={{
+                                            fontSize: 11,
+                                            color: '#ffaa00',
+                                            marginTop: 4,
+                                            fontWeight: 'bold',
+                                            borderTop: '1px solid #ffaa0033',
+                                            paddingTop: 4
+                                        }}>
+                                            ⚠ ACTIVE SOV CAMPAIGN
+                                        </div>
+                                    )}
+                                    {needsCriticalGrinding(tooltip.name) && !isReffed(tooltip.name) && (
+                                        <div style={{
+                                            fontSize: 11,
+                                            color: '#ff3355',
+                                            marginTop: 4,
+                                            fontWeight: 'bold',
+                                            borderTop: '1px solid #ff335533',
+                                            paddingTop: 4
+                                        }}>
+                                            ⚠ CRITICAL - PRIORITY GRINDING TARGET
+                                        </div>
+                                    )}
+                                    {needsCautionGrinding(tooltip.name) && !isReffed(tooltip.name) && (
+                                        <div style={{
+                                            fontSize: 11,
+                                            color: '#ffaa00',
+                                            marginTop: 4,
+                                            fontWeight: 'bold',
+                                            borderTop: '1px solid #ffaa0033',
+                                            paddingTop: 4
+                                        }}>
+                                            ⚠ GRIND RECOMMENDED
+                                        </div>
+                                    )}
                                     <div className="map-tooltip-row"><span className="map-tooltip-label">PVP kills</span><span style={{ color: tooltip.pvp > 0 ? '#ff3355' : '#3a5060' }}>{tooltip.pvp}</span></div>
                                     <div className="map-tooltip-row"><span className="map-tooltip-label">NPC kills</span><span style={{ color: '#00d4ff' }}>{tooltip.npc}</span></div>
                                     <div className="map-tooltip-row"><span className="map-tooltip-label">Jumps</span><span style={{ color: '#ffaa00' }}>{tooltip.jumps}</span></div>
@@ -685,6 +780,36 @@
                     )}
 
                     <div className="map-legend">
+                        <div className="map-legend-item">
+                            <div style={{
+                                width: 8,
+                                height: 8,
+                                background: 'transparent',
+                                border: '2px dashed #ffaa00',
+                                borderRadius: '50%'
+                            }} />
+                            <span>Reffed (active timer)</span>
+                        </div>
+                        <div className="map-legend-item">
+                            <div style={{
+                                width: 8,
+                                height: 8,
+                                background: 'transparent',
+                                border: '3px solid #ff3355',
+                                borderRadius: '50%'
+                            }} />
+                            <span>Critical (ADM &lt; 2)</span>
+                        </div>
+                        <div className="map-legend-item">
+                            <div style={{
+                                width: 8,
+                                height: 8,
+                                background: 'transparent',
+                                border: '2px solid #ffaa00',
+                                borderRadius: '50%'
+                            }} />
+                            <span>Caution (ADM 2-4)</span>
+                        </div>
                         <div className="map-legend-item"><div className="map-legend-dot" style={{ background: '#00ff88' }} /><span>LAWN Sov</span></div>
                         <div className="map-legend-item"><div className="map-legend-dot" style={{ background: 'rgba(0,212,255,0.3)', border: '1px solid rgba(0,212,255,0.2)' }} /><span>NPC ratting</span></div>
                         <div className="map-legend-item"><div className="map-legend-dot" style={{ background: '#ff3355' }} /><span>PVP danger</span></div>
@@ -744,11 +869,24 @@
                                 <td><span className={`sov-holder ${sc}`}>{sov.alliance_name || "—"}</span></td>
                                 <td className="stat-num" style={{ color: adm > 0 ? getAdmColor(adm) : 'var(--text-muted)' }}>{adm > 0 ? adm.toFixed(1) : "—"}</td>
                                 <td>
-                                    {adm > 0 && adm < 3 && (
+                                    {adm > 0 && adm < 2 && (
                                         <span style={{
-                                            background: '#ff335520',
+                                            background: '#ff335530',
                                             border: '1px solid #ff3355',
                                             color: '#ff3355',
+                                            padding: '2px 6px',
+                                            borderRadius: 3,
+                                            fontSize: 9,
+                                            fontWeight: 'bold'
+                                        }}>
+                                            ⚠ CRITICAL
+                                        </span>
+                                    )}
+                                    {adm >= 2 && adm < 4 && (
+                                        <span style={{
+                                            background: '#ffaa0020',
+                                            border: '1px solid #ffaa00',
+                                            color: '#ffaa00',
                                             padding: '2px 6px',
                                             borderRadius: 3,
                                             fontSize: 9,
@@ -770,12 +908,33 @@
             );
         }
 
-        function CampaignAlerts({ campaigns }) {
+        function CampaignAlerts({ campaigns, config }) {
             if (!campaigns || campaigns.length === 0) return null;
             const labels = { 1: "TCU", 2: "IHUB", 3: "STATION", 4: "STATION" };
+
+            // Build ID-to-name mapping
+            const idToName = {};
+            if (config && config.constellations) {
+                Object.values(config.constellations).forEach(c => {
+                    Object.values(c.systems).forEach(sys => {
+                        idToName[String(sys.system_id)] = sys.name;
+                    });
+                });
+            }
+
             return (
                 <div className="panel panel-wide"><CornerBrackets/><div className="panel-header"><span className="panel-title">⚠ Active Campaigns</span><span className="panel-badge">{campaigns.length} active</span></div>
-                    {campaigns.map((c, i) => (<div key={i} className="campaign-alert"><span className="campaign-type">{labels[c.event_type] || "SOV"}</span><span className="campaign-detail">System {c.solar_system_id} — {((c.attackers_score||0)*100).toFixed(0)}% vs {((c.defender_score||0)*100).toFixed(0)}%</span></div>))}
+                    {campaigns.map((c, i) => {
+                        const sysName = idToName[String(c.solar_system_id)] || `System ${c.solar_system_id}`;
+                        return (
+                            <div key={i} className="campaign-alert">
+                                <span className="campaign-type">{labels[c.event_type] || "SOV"}</span>
+                                <span className="campaign-detail">
+                                    {sysName} — {((c.attackers_score||0)*100).toFixed(0)}% vs {((c.defender_score||0)*100).toFixed(0)}%
+                                </span>
+                            </div>
+                        );
+                    })}
                 </div>
             );
         }
@@ -829,9 +988,9 @@
             const totNPC = visible.reduce((s, v) => s + ((activity[v.system_id]||{}).npc_kills||0), 0);
             const totJ = visible.reduce((s, v) => s + ((activity[v.system_id]||{}).jumps||0), 0);
             const hostile = visible.filter(s => { const sv = sovereignty[s.system_id]; return sv && sv.alliance_name && !sv.is_friendly; }).length;
-            const needsGrinding = visible.filter(s => {
+            const criticalSystems = visible.filter(s => {
                 const sov = sovereignty[s.system_id];
-                return sov && sov.adm > 0 && sov.adm < 3;
+                return sov && sov.adm > 0 && sov.adm < 2;
             }).length;
 
             return (
@@ -851,12 +1010,12 @@
                                 <SummaryCard label="PVP Kills" value={totPVP} type={totPVP>10?"danger":totPVP>0?"warn":"safe"}/>
                                 <SummaryCard label="NPC Kills" value={totNPC.toLocaleString()}/>
                                 <SummaryCard label="Jumps" value={totJ.toLocaleString()} type={totJ>200?"warn":"default"}/>
-                                <SummaryCard label="Needs Grinding" value={needsGrinding} type={needsGrinding > 5 ? "danger" : needsGrinding > 0 ? "warn" : "safe"}/>
+                                <SummaryCard label="Critical ADM" value={criticalSystems} type={criticalSystems > 3 ? "danger" : criticalSystems > 0 ? "warn" : "safe"}/>
                                 <SummaryCard label="Hostile Sov" value={hostile} type={hostile>0?"danger":"safe"}/>
                                 <SummaryCard label="Campaigns" value={campaigns.length} type={campaigns.length>0?"danger":"safe"}/>
                             </div>
                         </div>
-                        <CampaignAlerts campaigns={campaigns}/>
+                        <CampaignAlerts campaigns={campaigns} config={config}/>
                         <div className="panel" style={{ gridColumn: 'span 2', padding: 8 }}>
                             <div style={{ fontSize: 10, color: '#8a9aa0', display: 'flex', gap: 16, justifyContent: 'center' }}>
                                 <span><strong style={{ color: '#ff3355' }}>ADM 0-2:</strong> Vulnerable</span>
@@ -865,7 +1024,7 @@
                             </div>
                         </div>
                         <div className="panel panel-wide"><CornerBrackets/><div className="panel-header"><span className="panel-title">Constellation Map</span><span className="panel-badge">69 systems + 18 neighbors</span></div>
-                            <ConstellationMap config={config} sovereignty={sovereignty} activity={activity} selectedSystem={selectedSystem} onSelectSystem={setSelectedSystem}/>
+                            <ConstellationMap config={config} sovereignty={sovereignty} activity={activity} campaigns={campaigns} selectedSystem={selectedSystem} onSelectSystem={setSelectedSystem}/>
                         </div>
                         <div className="panel panel-wide"><CornerBrackets/><div className="panel-header"><span className="panel-title">System Status</span><span className="panel-badge">{visible.length} systems</span></div>
                             <div className="const-tabs">
