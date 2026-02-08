@@ -459,33 +459,6 @@
             return "#ff3355";
         }
 
-        // Estimate Military index from NPC kill activity (0-5 scale)
-        function estimateMilitaryIndex(npcKills) {
-            if (npcKills === 0) return 0;
-            if (npcKills < 100) return 1;
-            if (npcKills < 300) return 2;
-            if (npcKills < 600) return 3;
-            if (npcKills < 1000) return 4;
-            return 5;
-        }
-
-        // Estimate Strategic index (rough calculation: ADM - 1 - estimated military)
-        // Military max contribution: 5 * 0.34 = 1.7, Strategic max: 5 * 0.2 = 1.0
-        function estimateStrategicIndex(adm, npcKills) {
-            const militaryEstimate = estimateMilitaryIndex(npcKills) * 0.34;
-            const strategic = Math.max(0, adm - 1.0 - militaryEstimate);
-            return Math.min(5, Math.round(strategic / 0.2));
-        }
-
-        // Color coding for index levels (0-5 scale)
-        function getIndexColor(level) {
-            if (level >= 4) return "#00ff88";  // Green
-            if (level >= 3) return "#00d4ff";  // Cyan
-            if (level >= 2) return "#ffaa00";  // Amber
-            if (level >= 1) return "#ff9944";  // Orange
-            return "#ff3355";                   // Red
-        }
-
         // ============ Map Component ============
 
         function ConstellationMap({ config, sovereignty, activity, selectedSystem, onSelectSystem }) {
@@ -678,48 +651,7 @@
                             {tooltip.corp && <div className="map-tooltip-row"><span className="map-tooltip-label">Corp</span><span>{tooltip.corp}</span></div>}
                             {!tooltip.isNeighbor && (
                                 <>
-                                    <div className="map-tooltip-row">
-                                        <span className="map-tooltip-label">ADM</span>
-                                        <span style={{ color: tooltip.adm > 0 ? getAdmColor(tooltip.adm) : '#3a5060' }}>
-                                            {tooltip.adm > 0 ? tooltip.adm.toFixed(1) : '—'}
-                                        </span>
-                                    </div>
-                                    {tooltip.adm > 0 && (
-                                        <>
-                                            <div style={{ fontSize: 9, color: '#6a8090', marginTop: 4 }}>
-                                                Base: 1.0 + Indexes: {(tooltip.adm - 1.0).toFixed(1)}
-                                            </div>
-                                            <div style={{ borderTop: '1px solid #1a2030', margin: '4px 0' }} />
-                                            <div style={{ fontSize: 9, color: '#8a9aa0' }}>Estimated Indexes:</div>
-                                            {(() => {
-                                                const mil = estimateMilitaryIndex(tooltip.npc);
-                                                const strat = estimateStrategicIndex(tooltip.adm, tooltip.npc);
-                                                return (
-                                                    <>
-                                                        <div style={{ fontSize: 9, display: 'flex', justifyContent: 'space-between', marginTop: 2 }}>
-                                                            <span>Military:</span>
-                                                            <span style={{ color: getIndexColor(mil) }}>
-                                                                {'▮'.repeat(mil)}{'▯'.repeat(5-mil)} {mil}
-                                                            </span>
-                                                        </div>
-                                                        <div style={{ fontSize: 9, display: 'flex', justifyContent: 'space-between' }}>
-                                                            <span>Strategic:</span>
-                                                            <span style={{ color: getIndexColor(strat) }}>
-                                                                {'▮'.repeat(strat)}{'▯'.repeat(5-strat)} {strat}
-                                                            </span>
-                                                        </div>
-                                                        <div style={{ fontSize: 9, display: 'flex', justifyContent: 'space-between' }}>
-                                                            <span>Industrial:</span>
-                                                            <span style={{ color: '#666' }}>▯▯▯▯▯ ?</span>
-                                                        </div>
-                                                    </>
-                                                );
-                                            })()}
-                                            <div style={{ fontSize: 8, color: '#5a6a70', fontStyle: 'italic', marginTop: 4 }}>
-                                                (Military based on NPC kills)
-                                            </div>
-                                        </>
-                                    )}
+                                    <div className="map-tooltip-row"><span className="map-tooltip-label">ADM</span><span style={{ color: tooltip.adm > 0 ? getAdmColor(tooltip.adm) : '#3a5060' }}>{tooltip.adm > 0 ? tooltip.adm : '—'}</span></div>
                                     <div className="map-tooltip-row"><span className="map-tooltip-label">PVP kills</span><span style={{ color: tooltip.pvp > 0 ? '#ff3355' : '#3a5060' }}>{tooltip.pvp}</span></div>
                                     <div className="map-tooltip-row"><span className="map-tooltip-label">NPC kills</span><span style={{ color: '#00d4ff' }}>{tooltip.npc}</span></div>
                                     <div className="map-tooltip-row"><span className="map-tooltip-label">Jumps</span><span style={{ color: '#ffaa00' }}>{tooltip.jumps}</span></div>
@@ -773,7 +705,7 @@
 
             return (
                 <table className="sys-table"><thead><tr>
-                    <th>System</th><th>Sec</th><th>Sov Holder</th><th style={{textAlign:'right'}}>ADM</th><th style={{textAlign:'center'}} title="Military Index (estimated from NPC kills)">Mil</th><th style={{textAlign:'center'}} title="Strategic Index (estimated)">Str</th><th style={{textAlign:'center'}} title="Industrial Index (no data available)">Ind</th><th style={{textAlign:'right'}}>PVP</th><th style={{textAlign:'right'}}>Pods</th><th>NPC Kills</th><th>Traffic</th><th style={{textAlign:'right'}}>Jumps</th>
+                    <th>System</th><th>Sec</th><th>Sov Holder</th><th style={{textAlign:'right'}}>ADM</th><th style={{textAlign:'right'}}>PVP</th><th style={{textAlign:'right'}}>Pods</th><th>NPC Kills</th><th>Traffic</th><th style={{textAlign:'right'}}>Jumps</th>
                 </tr></thead><tbody>
                     {sorted.map(sys => {
                         const sov = sovereignty[sys.system_id] || {};
@@ -787,16 +719,7 @@
                                 <td><span className={`sys-name ${sc}`}>{sys.name}</span></td>
                                 <td className="sec-status">{sys.security_status}</td>
                                 <td><span className={`sov-holder ${sc}`}>{sov.alliance_name || "—"}</span></td>
-                                <td className="stat-num" style={{ color: adm > 0 ? getAdmColor(adm) : 'var(--text-muted)' }}>{adm > 0 ? adm.toFixed(1) : "—"}</td>
-                                <td style={{ textAlign: 'center', fontSize: 11, color: adm > 0 ? getIndexColor(estimateMilitaryIndex(npc)) : 'var(--text-muted)' }}>
-                                    {adm > 0 ? estimateMilitaryIndex(npc) : "—"}
-                                </td>
-                                <td style={{ textAlign: 'center', fontSize: 11, color: adm > 0 ? getIndexColor(estimateStrategicIndex(adm, npc)) : 'var(--text-muted)' }}>
-                                    {adm > 0 ? estimateStrategicIndex(adm, npc) : "—"}
-                                </td>
-                                <td style={{ textAlign: 'center', fontSize: 11, color: '#666' }}>
-                                    ?
-                                </td>
+                                <td className="stat-num" style={{ color: adm > 0 ? getAdmColor(adm) : 'var(--text-muted)' }}>{adm > 0 ? adm : "—"}</td>
                                 <td className={`stat-num ${classifyKills(pvp)}`}>{pvp}</td>
                                 <td className={`stat-num ${classifyKills(pods, [2,5])}`}>{pods}</td>
                                 <td><div className="activity-bar-container"><ActivityBar value={npc} max={maxNPC} type="npc"/><span className={`stat-num ${classifyKills(npc,[100,500])}`} style={{fontSize:'11px',minWidth:'36px',textAlign:'right'}}>{npc}</span></div></td>
@@ -894,25 +817,6 @@
                             </div>
                         </div>
                         <CampaignAlerts campaigns={campaigns}/>
-                        {/* ADM Index Information Panel */}
-                        <div className="panel" style={{ gridColumn: 'span 2' }}>
-                            <CornerBrackets/>
-                            <div className="panel-header">
-                                <span className="panel-title">ℹ️ ADM Index Information</span>
-                            </div>
-                            <div style={{ padding: 12, fontSize: 11, color: '#8a9aa0', lineHeight: 1.6 }}>
-                                <div><strong style={{ color: '#00d4ff' }}>Activity Defense Multiplier (ADM)</strong> = 1.0 + Strategic + Military + Industrial</div>
-                                <ul style={{ marginTop: 8, paddingLeft: 20, marginBottom: 8 }}>
-                                    <li><strong>Strategic Index (0-5):</strong> Increases over time while holding iHub (max +1.0)</li>
-                                    <li><strong>Military Index (0-5):</strong> Increases with NPC kills (max +1.7)</li>
-                                    <li><strong>Industrial Index (0-5):</strong> Increases with mining activity (max +1.0)</li>
-                                </ul>
-                                <div style={{ fontSize: 10, fontStyle: 'italic', color: '#6a7a80', background: '#0a1520', padding: 8, borderRadius: 4, borderLeft: '2px solid #ffaa00' }}>
-                                    <strong>Note:</strong> ESI API only provides combined ADM. Military index is estimated from NPC kill activity.
-                                    Strategic is calculated as ADM - 1.0 - estimated Military. Industrial data unavailable via API.
-                                </div>
-                            </div>
-                        </div>
                         <div className="panel panel-wide"><CornerBrackets/><div className="panel-header"><span className="panel-title">Constellation Map</span><span className="panel-badge">69 systems + 18 neighbors</span></div>
                             <ConstellationMap config={config} sovereignty={sovereignty} activity={activity} selectedSystem={selectedSystem} onSelectSystem={setSelectedSystem}/>
                         </div>
