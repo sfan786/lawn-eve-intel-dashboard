@@ -459,6 +459,14 @@
             return "#ff3355";
         }
 
+        // Classify ADM for grinding priority
+        function getAdmStatus(adm) {
+            if (adm >= 4) return { label: "Safe", color: "#00ff88", priority: 0 };
+            if (adm >= 2) return { label: "Caution", color: "#ffaa00", priority: 1 };
+            if (adm > 0) return { label: "Needs Grinding", color: "#ff3355", priority: 2 };
+            return { label: "No Sov", color: "#3a5060", priority: 3 };
+        }
+
         // ============ Map Component ============
 
         function ConstellationMap({ config, sovereignty, activity, selectedSystem, onSelectSystem }) {
@@ -651,7 +659,22 @@
                             {tooltip.corp && <div className="map-tooltip-row"><span className="map-tooltip-label">Corp</span><span>{tooltip.corp}</span></div>}
                             {!tooltip.isNeighbor && (
                                 <>
-                                    <div className="map-tooltip-row"><span className="map-tooltip-label">ADM</span><span style={{ color: tooltip.adm > 0 ? getAdmColor(tooltip.adm) : '#3a5060' }}>{tooltip.adm > 0 ? tooltip.adm : '—'}</span></div>
+                                    <div className="map-tooltip-row">
+                                        <span className="map-tooltip-label">ADM</span>
+                                        <span style={{ color: tooltip.adm > 0 ? getAdmColor(tooltip.adm) : '#3a5060' }}>
+                                            {tooltip.adm > 0 ? tooltip.adm.toFixed(1) : '—'}
+                                        </span>
+                                    </div>
+                                    {tooltip.adm > 0 && tooltip.adm < 4 && (
+                                        <div style={{
+                                            fontSize: 10,
+                                            color: tooltip.adm < 2 ? '#ff3355' : '#ffaa00',
+                                            marginTop: 4,
+                                            fontStyle: 'italic'
+                                        }}>
+                                            {tooltip.adm < 2 ? '⚠ Critical - Needs immediate grinding' : '⚠ Below safe threshold (4.0)'}
+                                        </div>
+                                    )}
                                     <div className="map-tooltip-row"><span className="map-tooltip-label">PVP kills</span><span style={{ color: tooltip.pvp > 0 ? '#ff3355' : '#3a5060' }}>{tooltip.pvp}</span></div>
                                     <div className="map-tooltip-row"><span className="map-tooltip-label">NPC kills</span><span style={{ color: '#00d4ff' }}>{tooltip.npc}</span></div>
                                     <div className="map-tooltip-row"><span className="map-tooltip-label">Jumps</span><span style={{ color: '#ffaa00' }}>{tooltip.jumps}</span></div>
@@ -705,7 +728,7 @@
 
             return (
                 <table className="sys-table"><thead><tr>
-                    <th>System</th><th>Sec</th><th>Sov Holder</th><th style={{textAlign:'right'}}>ADM</th><th style={{textAlign:'right'}}>PVP</th><th style={{textAlign:'right'}}>Pods</th><th>NPC Kills</th><th>Traffic</th><th style={{textAlign:'right'}}>Jumps</th>
+                    <th>System</th><th>Sec</th><th>Sov Holder</th><th style={{textAlign:'right'}}>ADM</th><th>Status</th><th style={{textAlign:'right'}}>PVP</th><th style={{textAlign:'right'}}>Pods</th><th>NPC Kills</th><th>Traffic</th><th style={{textAlign:'right'}}>Jumps</th>
                 </tr></thead><tbody>
                     {sorted.map(sys => {
                         const sov = sovereignty[sys.system_id] || {};
@@ -719,7 +742,22 @@
                                 <td><span className={`sys-name ${sc}`}>{sys.name}</span></td>
                                 <td className="sec-status">{sys.security_status}</td>
                                 <td><span className={`sov-holder ${sc}`}>{sov.alliance_name || "—"}</span></td>
-                                <td className="stat-num" style={{ color: adm > 0 ? getAdmColor(adm) : 'var(--text-muted)' }}>{adm > 0 ? adm : "—"}</td>
+                                <td className="stat-num" style={{ color: adm > 0 ? getAdmColor(adm) : 'var(--text-muted)' }}>{adm > 0 ? adm.toFixed(1) : "—"}</td>
+                                <td>
+                                    {adm > 0 && adm < 3 && (
+                                        <span style={{
+                                            background: '#ff335520',
+                                            border: '1px solid #ff3355',
+                                            color: '#ff3355',
+                                            padding: '2px 6px',
+                                            borderRadius: 3,
+                                            fontSize: 9,
+                                            fontWeight: 'bold'
+                                        }}>
+                                            ⚠ GRIND
+                                        </span>
+                                    )}
+                                </td>
                                 <td className={`stat-num ${classifyKills(pvp)}`}>{pvp}</td>
                                 <td className={`stat-num ${classifyKills(pods, [2,5])}`}>{pods}</td>
                                 <td><div className="activity-bar-container"><ActivityBar value={npc} max={maxNPC} type="npc"/><span className={`stat-num ${classifyKills(npc,[100,500])}`} style={{fontSize:'11px',minWidth:'36px',textAlign:'right'}}>{npc}</span></div></td>
@@ -791,8 +829,10 @@
             const totNPC = visible.reduce((s, v) => s + ((activity[v.system_id]||{}).npc_kills||0), 0);
             const totJ = visible.reduce((s, v) => s + ((activity[v.system_id]||{}).jumps||0), 0);
             const hostile = visible.filter(s => { const sv = sovereignty[s.system_id]; return sv && sv.alliance_name && !sv.is_friendly; }).length;
-            const admSystems = visible.filter(s => { const sv = sovereignty[s.system_id]; return sv && sv.adm > 0; });
-            const avgAdm = admSystems.length > 0 ? (admSystems.reduce((s, v) => s + (sovereignty[v.system_id].adm || 0), 0) / admSystems.length).toFixed(1) : "—";
+            const needsGrinding = visible.filter(s => {
+                const sov = sovereignty[s.system_id];
+                return sov && sov.adm > 0 && sov.adm < 3;
+            }).length;
 
             return (
                 <div>
@@ -811,12 +851,19 @@
                                 <SummaryCard label="PVP Kills" value={totPVP} type={totPVP>10?"danger":totPVP>0?"warn":"safe"}/>
                                 <SummaryCard label="NPC Kills" value={totNPC.toLocaleString()}/>
                                 <SummaryCard label="Jumps" value={totJ.toLocaleString()} type={totJ>200?"warn":"default"}/>
-                                <SummaryCard label="Avg ADM" value={avgAdm} type={avgAdm !== "—" && parseFloat(avgAdm) < 3 ? "danger" : avgAdm !== "—" && parseFloat(avgAdm) < 5 ? "warn" : "safe"}/>
+                                <SummaryCard label="Needs Grinding" value={needsGrinding} type={needsGrinding > 5 ? "danger" : needsGrinding > 0 ? "warn" : "safe"}/>
                                 <SummaryCard label="Hostile Sov" value={hostile} type={hostile>0?"danger":"safe"}/>
                                 <SummaryCard label="Campaigns" value={campaigns.length} type={campaigns.length>0?"danger":"safe"}/>
                             </div>
                         </div>
                         <CampaignAlerts campaigns={campaigns}/>
+                        <div className="panel" style={{ gridColumn: 'span 2', padding: 8 }}>
+                            <div style={{ fontSize: 10, color: '#8a9aa0', display: 'flex', gap: 16, justifyContent: 'center' }}>
+                                <span><strong style={{ color: '#ff3355' }}>ADM 0-2:</strong> Vulnerable</span>
+                                <span><strong style={{ color: '#ffaa00' }}>ADM 2-4:</strong> Caution</span>
+                                <span><strong style={{ color: '#00d4ff' }}>ADM 4-6:</strong> Safe</span>
+                            </div>
+                        </div>
                         <div className="panel panel-wide"><CornerBrackets/><div className="panel-header"><span className="panel-title">Constellation Map</span><span className="panel-badge">69 systems + 18 neighbors</span></div>
                             <ConstellationMap config={config} sovereignty={sovereignty} activity={activity} selectedSystem={selectedSystem} onSelectSystem={setSelectedSystem}/>
                         </div>

@@ -106,6 +106,18 @@ python app.py       # Live ESI data
 - `GET /api/campaigns` — active sov contests
 - `GET /api/status` — health check
 
+## ADM Display
+
+The dashboard shows the combined ADM value (1.0-6.0) from ESI and highlights systems that need grinding:
+
+- **ADM < 2.0**: Critical - Needs immediate grinding (red)
+- **ADM 2.0-4.0**: Below safe threshold (amber)
+- **ADM 4.0+**: Safe from vulnerability (cyan/green)
+
+Systems with ADM < 3.0 show a "⚠ GRIND" badge in the system table. The "Needs Grinding" summary card shows how many systems require ADM work.
+
+**Note**: ESI API does not provide separate Military/Industrial/Strategic indexes. Only the combined ADM is available.
+
 ## Roadmap
 - [ ] Discord webhook alerts (ADM drops, hostile activity spikes, new sov campaigns)
 - [ ] SQLite persistence for historical trends
