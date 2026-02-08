@@ -19,8 +19,8 @@ The dashboard monitors sovereignty, kill activity, jump traffic, and active sov 
 ### 6-CBBM Constellation (7 systems)
 | System | Notes |
 |--------|-------|
-| UDVW-O | Northern border — gate to LS-JEP (Vale of the Silent) |
-| UJXC-B | Northern border — gate to A3-RQ3 (Vale of the Silent) |
+| UDVW-O | **Northern border** — ONLY gate to Vale of the Silent (→ LS-JEP). Hot zone. |
+| UJXC-B | Northern interior — no external gates |
 | F48K-D | **Cross-constellation gate** to FB5U-I (2Q-8WA) |
 | 1-KCSA | Interior hub |
 | XTJ-5Q | **Southern interior** — dead-end off 1-KCSA via N-JK02 |
@@ -31,9 +31,9 @@ The dashboard monitors sovereignty, kill activity, jump traffic, and active sov 
 | System | Notes |
 |--------|-------|
 | FB5U-I | Cross-constellation gate to F48K-D |
-| BZ-BCK | Hub — connects to J-OAH2 and O5-YNW |
+| BZ-BCK | Hub — connects to J-OAH2, O5-YNW, and 5-VFC6 |
 | J-OAH2 | Dead-end off BZ-BCK |
-| O5-YNW | Hub — connects to 86L-9F and 5-VFC6 |
+| O5-YNW | Hub — connects to 86L-9F and IUU3-L |
 | 86L-9F | Dead-end off O5-YNW |
 | 5-VFC6 | Dead-end off BZ-BCK |
 | IUU3-L | Hub — connects to O5-YNW and S-LHPJ |
