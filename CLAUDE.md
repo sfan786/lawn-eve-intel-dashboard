@@ -23,9 +23,9 @@ The dashboard monitors sovereignty, kill activity, jump traffic, and active sov 
 | UJXC-B | Northern border — gate to A3-RQ3 (Vale of the Silent) |
 | F48K-D | **Cross-constellation gate** to FB5U-I (2Q-8WA) |
 | 1-KCSA | Interior hub |
-| XTJ-5Q | **Southern border** — gate to LE-67X (SL0W remnant). Hot zone. |
+| XTJ-5Q | **Southern interior** — dead-end off 1-KCSA via N-JK02 |
 | JT2I-7 | Dead-end off XTJ-5Q |
-| N-JK02 | **Southern border** — gates to L-GY1B (SL0W) and AID-9T (Etherium Reach). Hot zone. |
+| N-JK02 | **Southern border** — ONLY gate from LAWN to rest of TKE (→ L-GY1B). Hot zone. |
 
 ### 2Q-8WA Constellation (8 systems)
 | System | Notes |
@@ -34,17 +34,17 @@ The dashboard monitors sovereignty, kill activity, jump traffic, and active sov 
 | BZ-BCK | Hub — connects to J-OAH2 and O5-YNW |
 | J-OAH2 | Dead-end off BZ-BCK |
 | O5-YNW | Hub — connects to 86L-9F and 5-VFC6 |
-| 86L-9F | Connects to IUU3-L |
-| 5-VFC6 | Dead-end off O5-YNW |
-| IUU3-L | Connects to S-LHPJ |
-| S-LHPJ | **Eastern border** — gate to 6V-D0E (SL0W remnant). Hot zone. |
+| 86L-9F | Dead-end off O5-YNW |
+| 5-VFC6 | Dead-end off BZ-BCK |
+| IUU3-L | Hub — connects to O5-YNW and S-LHPJ |
+| S-LHPJ | **Eastern interior** — dead-end off IUU3-L |
 
 ### Threat Entry Points (border systems)
-- **XTJ-5Q** → LE-67X (SL0W remnant, ADM 4)
-- **N-JK02** → L-GY1B (SL0W, ADM 4) + AID-9T (Etherium Reach regional)
-- **S-LHPJ** → 6V-D0E (SL0W, ADM 4)
+LAWN has **only 2 exits** from sov space:
+- **N-JK02** → L-GY1B (rest of TKE, S4S-SD constellation)
 - **UDVW-O** → LS-JEP (Vale of the Silent regional)
-- **UJXC-B** → A3-RQ3 (Vale of the Silent regional)
+
+All other border systems (XTJ-5Q, S-LHPJ) are interior dead-ends with no external gates.
 
 ## Tech Stack
 - **Backend:** Python 3 + Flask
@@ -70,7 +70,7 @@ lawn-eve-intel-dashboard/
 
 ## Key Technical Decisions
 1. **static/index.html not templates/** — Must be served via `send_from_directory`, NOT `render_template`, because Jinja2's `{{ }}` conflicts with React JSX expressions
-2. **Map layout is manual** — System positions in `MAP_LAYOUT` (inside index.html) are manually placed to match the Dotlan sovereignty map layout. Gate connections are in `MAP_CONNECTIONS` array with types: `internal`, `cross`, `border`, `regional`
+2. **Map layout is manual** — System positions in `MAP_LAYOUT` (inside index.html) are manually placed to match the Dotlan sovereignty map layout. Gate connections are in `MAP_CONNECTIONS` array with types: `internal` (same constellation), `cross` (different TKE constellations), `regional` (to other regions), `neighbor` (neighbor region systems)
 3. **Demo mode** — `demo.py` serves identical API routes as `app.py` but returns hardcoded mock data (no ESI calls). Always test UI changes against demo mode first
 4. **In-memory caching** — `esi_client.py` caches responses in a dict with per-category TTLs. No persistence yet
 
