@@ -106,27 +106,6 @@ python app.py       # Live ESI data
 - `GET /api/campaigns` — active sov contests
 - `GET /api/status` — health check
 
-## ADM Index Display
-
-The dashboard shows estimated Military, Strategic, and Industrial indexes alongside the overall ADM value.
-
-**Data Source Limitation:** ESI API only provides combined ADM (via `/sovereignty/structures/` endpoint's `vulnerability_occupancy_level` field). Individual indexes are estimated:
-
-- **Military Index (0-5):** Estimated from NPC kill activity (available via `/universe/system_kills/`)
-  - Thresholds: 0=none, 1=<100 NPC/hr, 2=<300, 3=<600, 4=<1000, 5=1000+
-  - Max contribution to ADM: +1.7 (5 × 0.34)
-- **Strategic Index (0-5):** Calculated as `(ADM - 1.0 - estimated_military) / 0.2`
-  - Max contribution to ADM: +1.0 (5 × 0.2)
-- **Industrial Index (0-5):** No mining data available via ESI — shown as "?"
-  - Max contribution to ADM: +1.0 (if data were available)
-
-**Formula:** `ADM = 1.0 + (Strategic × 0.2) + (Military × 0.34) + (Industrial × 0.2)`
-
-These estimates provide useful approximations but may not match exact in-game values. The dashboard displays:
-- **Map tooltips:** Detailed index breakdown with 5-level bar indicators (▮▮▮▯▯)
-- **System table:** Mil/Str/Ind columns with color-coded values (0-5 scale)
-- **Info panel:** Explanation of ADM calculation and data limitations
-
 ## Roadmap
 - [ ] Discord webhook alerts (ADM drops, hostile activity spikes, new sov campaigns)
 - [ ] SQLite persistence for historical trends
