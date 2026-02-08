@@ -91,6 +91,9 @@ def api_sovereignty():
     sov_map = esi_client.get_sovereignty_map()
 
     # Get ADM data from sovereignty structures (iHub = 32458)
+    # NOTE: ESI API only provides combined ADM (vulnerability_occupancy_level).
+    # Separate Military/Industrial/Strategic indexes are NOT available via ESI.
+    # Frontend estimates these indexes from available activity data (NPC kills, etc).
     adm_by_system = {}
     try:
         sov_structures = esi_client.get_sovereignty_structures()
