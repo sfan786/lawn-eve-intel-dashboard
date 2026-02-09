@@ -358,8 +358,10 @@ def api_status():
 
 # ============ Startup ============
 
+# Load constellation data at module import time (works with gunicorn)
+resolve_constellations()
+
 if __name__ == "__main__":
-    resolve_constellations()
     print(f"\n[*] Dashboard starting at http://localhost:{FLASK_PORT}")
     print(f"[*] Astrum Mechanica Intel Dashboard - Kalevala Expanse")
     print(f"[*] Monitoring: {', '.join(c['name'] for c in CONSTELLATION_DATA.values())}\n")
