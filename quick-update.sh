@@ -11,8 +11,12 @@ echo ""
 echo "📥 Pulling latest code..."
 git pull origin main
 
+# Stop containers cleanly (prevents Docker Compose bugs)
+echo "🛑 Stopping containers..."
+docker-compose down
+
 # Rebuild and restart (uses cache)
-echo "🔄 Restarting with new code..."
+echo "🔄 Rebuilding and restarting..."
 docker-compose up -d --build
 
 # Wait for startup

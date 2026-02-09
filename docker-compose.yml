@@ -3,7 +3,6 @@ version: '3.8'
 services:
   app:
     build: .
-    container_name: lawn-intel
     restart: unless-stopped
     ports:
       - "5000:5000"
