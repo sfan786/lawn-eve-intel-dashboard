@@ -864,7 +864,7 @@
                                     nameSize = isN ? 8 : 10;
                                     nameOff = isN ? 10 : 13;
                                     admSize = 10;
-                                    admOff = 17;
+                                    admOff = 22;
                                     nodeOpacity = isN ? 0.6 : 1;
                                     nameFill = isN ? "#554400" : color;
                                     nodeStroke = isN ? 1 : 1.5;
@@ -877,7 +877,7 @@
                                     // Subway: LAWN tier (dominant)
                                     r = isGateway ? 12 : 10;
                                     nameSize = 13; nameOff = isGateway ? 22 : 18;
-                                    admSize = 11; admOff = isGateway ? 24 : 20;
+                                    admSize = 11; admOff = isGateway ? 28 : 24;
                                     nodeOpacity = 1; nameFill = "#e0fff0"; nodeStroke = isGateway ? 3 : 2.5; nodeFill = "#0a1a10";
                                 } else if (pos.constellation === "S4S-SD") {
                                     // Subway: LAWN-border TKE tier — slightly more visible
@@ -965,10 +965,10 @@
                                                         height={pillH}
                                                         rx={3}
                                                         fill="#060a0f"
-                                                        opacity={0.9}
+                                                        opacity={1}
                                                         stroke={admCol}
                                                         strokeWidth={0.5}
-                                                        strokeOpacity={0.4}
+                                                        strokeOpacity={0.35}
                                                     />
                                                     <text x={pos.x} y={admY}
                                                         textAnchor="middle"
