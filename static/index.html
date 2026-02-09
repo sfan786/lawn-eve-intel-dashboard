@@ -948,52 +948,42 @@
                                             strokeWidth={isSubway && isLawn ? 3 : 0}
                                             paintOrder={isSubway && isLawn ? "stroke" : "normal"}
                                         >{name}</text>
-                                        {/* ADM indicator with background pill */}
+                                        {/* ADM indicator — pill on subway, stroke-halo on traditional */}
                                         {!isN && adm > 0 && admSize > 0 && (() => {
                                             const admText = adm.toFixed(1);
                                             const admCol = getAdmColor(adm);
-                                            const charW = admSize * 0.62;
-                                            const pillPadX = 4, pillPadY = 3;
-                                            const pillW = admText.length * charW + pillPadX * 2;
-                                            const pillH = admSize + pillPadY * 2;
-                                            // Traditional: badge to the right of node; Subway: centered below
-                                            let admX, admY, admAnchor;
-                                            if (!isSubway) {
-                                                admX = pos.x + r + 3;
-                                                admY = pos.y + admSize * 0.35;
-                                                admAnchor = "start";
-                                            } else {
-                                                admX = pos.x;
-                                                admY = pos.y + admOff + (isLawn ? 2 : 0);
-                                                admAnchor = "middle";
+                                            const admX = pos.x;
+                                            const admY = pos.y + admOff + (isSubway && isLawn ? 2 : 0);
+                                            if (isSubway) {
+                                                const charW = admSize * 0.62;
+                                                const pillPadX = 4, pillPadY = 3;
+                                                const pillW = admText.length * charW + pillPadX * 2;
+                                                const pillH = admSize + pillPadY * 2;
+                                                return (
+                                                    <g>
+                                                        <rect
+                                                            x={admX - pillW / 2} y={admY - admSize + pillPadY - 1}
+                                                            width={pillW} height={pillH}
+                                                            rx={3} fill="#060a0f" opacity={1}
+                                                            stroke={admCol} strokeWidth={0.5} strokeOpacity={0.35}
+                                                        />
+                                                        <text x={admX} y={admY}
+                                                            textAnchor="middle"
+                                                            fontFamily="Share Tech Mono, monospace"
+                                                            fontSize={admSize} fill={admCol} fontWeight="bold"
+                                                            stroke="#060a0f" strokeWidth={2.5} paintOrder="stroke"
+                                                        >{admText}</text>
+                                                    </g>
+                                                );
                                             }
-                                            const pillX = admAnchor === "middle" ? admX - pillW / 2 : admX - pillPadX;
-                                            const pillY = admY - admSize + pillPadY - 1;
+                                            // Traditional: no pill — strong dark halo keeps text readable while lines stay visible
                                             return (
-                                                <g>
-                                                    <rect
-                                                        x={pillX}
-                                                        y={pillY}
-                                                        width={pillW}
-                                                        height={pillH}
-                                                        rx={3}
-                                                        fill="#060a0f"
-                                                        opacity={1}
-                                                        stroke={admCol}
-                                                        strokeWidth={0.5}
-                                                        strokeOpacity={0.35}
-                                                    />
-                                                    <text x={admX} y={admY}
-                                                        textAnchor={admAnchor}
-                                                        fontFamily="Share Tech Mono, monospace"
-                                                        fontSize={admSize}
-                                                        fill={admCol}
-                                                        fontWeight="bold"
-                                                        stroke="#060a0f"
-                                                        strokeWidth={2.5}
-                                                        paintOrder="stroke"
-                                                    >{admText}</text>
-                                                </g>
+                                                <text x={admX} y={admY}
+                                                    textAnchor="middle"
+                                                    fontFamily="Share Tech Mono, monospace"
+                                                    fontSize={admSize} fill={admCol} fontWeight="bold"
+                                                    stroke="#060a0f" strokeWidth={3} paintOrder="stroke"
+                                                >{admText}</text>
                                             );
                                         })()}
                                         {/* Gateway direction labels (subway only) */}
