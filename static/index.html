@@ -878,7 +878,7 @@
                                     r = isGateway ? 12 : 10;
                                     nameSize = 13; nameOff = isGateway ? 22 : 18;
                                     admSize = 11; admOff = isGateway ? 24 : 20;
-                                    nodeOpacity = 1; nameFill = "#00ff88"; nodeStroke = isGateway ? 3 : 2.5; nodeFill = "#0a1a10";
+                                    nodeOpacity = 1; nameFill = "#e0fff0"; nodeStroke = isGateway ? 3 : 2.5; nodeFill = "#0a1a10";
                                 } else if (pos.constellation === "S4S-SD") {
                                     // Subway: LAWN-border TKE tier — slightly more visible
                                     r = 4.5; nameSize = 8; nameOff = 10; admSize = 0; admOff = 0;
@@ -944,6 +944,9 @@
                                             opacity={isSubway ? (isN ? 0.4 : isLawn ? 1 : 0.7) : (isN ? 0.6 : 0.9)}
                                             letterSpacing={isSubway && isLawn ? "1" : "0.5"}
                                             fontWeight={isSubway && isLawn ? "bold" : "normal"}
+                                            stroke={isSubway && isLawn ? "#060a0f" : "none"}
+                                            strokeWidth={isSubway && isLawn ? 3 : 0}
+                                            paintOrder={isSubway && isLawn ? "stroke" : "normal"}
                                         >{name}</text>
                                         {/* ADM indicator */}
                                         {!isN && adm > 0 && admSize > 0 && (
