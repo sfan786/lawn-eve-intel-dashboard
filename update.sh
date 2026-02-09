@@ -41,4 +41,5 @@ if curl -s http://localhost:5000/api/status | grep -q "online"; then
 else
     echo "⚠️  API not responding. Check logs:"
     echo "  docker-compose logs -f"
+    exit 1
 fi
