@@ -950,12 +950,15 @@
                                         >{name}</text>
                                         {/* ADM indicator */}
                                         {!isN && adm > 0 && admSize > 0 && (
-                                            <text x={pos.x} y={pos.y + admOff}
+                                            <text x={pos.x} y={pos.y + admOff + (isSubway && isLawn ? 2 : 0)}
                                                 textAnchor="middle"
                                                 fontFamily="Share Tech Mono, monospace"
                                                 fontSize={admSize}
                                                 fill={getAdmColor(adm)}
                                                 opacity={0.9}
+                                                stroke={isSubway && isLawn ? "#060a0f" : "none"}
+                                                strokeWidth={isSubway && isLawn ? 2.5 : 0}
+                                                paintOrder={isSubway && isLawn ? "stroke" : "normal"}
                                             >{adm}</text>
                                         )}
                                         {/* Gateway direction labels (subway only) */}
