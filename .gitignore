@@ -43,3 +43,8 @@ config.local.py
 
 # Logs
 *.log
+
+# Deployment
+*.tar.gz
+*.pem
+*.key
