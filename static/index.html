@@ -863,8 +863,8 @@
                                     r = isN ? 4 : 6;
                                     nameSize = isN ? 8 : 10;
                                     nameOff = isN ? 10 : 13;
-                                    admSize = 9;
-                                    admOff = 16;
+                                    admSize = 10;
+                                    admOff = 17;
                                     nodeOpacity = isN ? 0.6 : 1;
                                     nameFill = isN ? "#554400" : color;
                                     nodeStroke = isN ? 1 : 1.5;
@@ -948,19 +948,41 @@
                                             strokeWidth={isSubway && isLawn ? 3 : 0}
                                             paintOrder={isSubway && isLawn ? "stroke" : "normal"}
                                         >{name}</text>
-                                        {/* ADM indicator */}
-                                        {!isN && adm > 0 && admSize > 0 && (
-                                            <text x={pos.x} y={pos.y + admOff + (isSubway && isLawn ? 2 : 0)}
-                                                textAnchor="middle"
-                                                fontFamily="Share Tech Mono, monospace"
-                                                fontSize={admSize}
-                                                fill={getAdmColor(adm)}
-                                                opacity={0.9}
-                                                stroke={isSubway && isLawn ? "#060a0f" : "none"}
-                                                strokeWidth={isSubway && isLawn ? 2.5 : 0}
-                                                paintOrder={isSubway && isLawn ? "stroke" : "normal"}
-                                            >{adm}</text>
-                                        )}
+                                        {/* ADM indicator with background pill */}
+                                        {!isN && adm > 0 && admSize > 0 && (() => {
+                                            const admText = adm.toFixed(1);
+                                            const admY = pos.y + admOff + (isSubway && isLawn ? 2 : 0);
+                                            const charW = admSize * 0.62;
+                                            const pillW = admText.length * charW + 8;
+                                            const pillH = admSize + 6;
+                                            const admCol = getAdmColor(adm);
+                                            return (
+                                                <g>
+                                                    <rect
+                                                        x={pos.x - pillW / 2}
+                                                        y={admY - pillH + 4}
+                                                        width={pillW}
+                                                        height={pillH}
+                                                        rx={3}
+                                                        fill="#060a0f"
+                                                        opacity={0.9}
+                                                        stroke={admCol}
+                                                        strokeWidth={0.5}
+                                                        strokeOpacity={0.4}
+                                                    />
+                                                    <text x={pos.x} y={admY}
+                                                        textAnchor="middle"
+                                                        fontFamily="Share Tech Mono, monospace"
+                                                        fontSize={admSize}
+                                                        fill={admCol}
+                                                        fontWeight="bold"
+                                                        stroke="#060a0f"
+                                                        strokeWidth={2.5}
+                                                        paintOrder="stroke"
+                                                    >{admText}</text>
+                                                </g>
+                                            );
+                                        })()}
                                         {/* Gateway direction labels (subway only) */}
                                         {isGateway && name === "UDVW-O" && (
                                             <text x={pos.x - 25} y={pos.y} textAnchor="end" fontFamily="Orbitron, sans-serif" fontSize="9" fill="#ffaa00" opacity={0.85} letterSpacing="1">{'\u2192'} VALE</text>
