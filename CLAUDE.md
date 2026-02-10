@@ -208,14 +208,29 @@ Hovering over systems shows detailed status with priority warnings:
 **Note**: ESI API does not provide separate Military/Industrial/Strategic indexes. Only the combined ADM (vulnerability_occupancy_level) is available.
 
 ## Roadmap
+See [ROADMAP.md](ROADMAP.md) for full details and backlog.
+
+**Done:**
 - [x] SQLite persistence for historical trends
 - [x] ADM tracking with trend sparklines and 24h change indicators
+
+**Priority 1 — Immediate tactical value:**
 - [ ] Neighbor threat profiling (who lives nearby, what they fly, TZ activity)
 - [ ] Time-zone activity heatmaps
 - [ ] zKillboard feed panel enhancements (filtering, ship class breakdowns)
+- [ ] ADM grinding planner (priority ranking, rate estimation, daily targets)
+
+**Priority 2 — Operational:**
+- [ ] Browser push notifications (PVP alerts, sov campaigns, ADM drops)
+- [ ] Structure tracking (requires SSO)
+- [ ] Regional intel aggregation (neighboring region early warning)
+- [ ] Jump bridge route overlay on map
+
+**Priority 3 — Long-term:**
 - [ ] Discord webhook alerts (ADM drops, hostile activity spikes, new sov campaigns)
 - [ ] EVE SSO auth for character-specific data
-- [ ] Jump bridge route overlay on map
+- [ ] Fleet composition analyzer
+- [ ] Moon mining tracker
 
 ## Visual Design
 
