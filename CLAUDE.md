@@ -1,7 +1,7 @@
 # CLAUDE.md — LAWN Eve Intel Dashboard
 
 ## What This Is
-Real-time intel dashboard for **Astrum Mechanica**, a corporation in the **Get Off My Lawn (LAWN)** alliance (EVE Online). LAWN was removed from the Imperium coalition after 14 years and relocated to the Dronelands, claiming 2 constellations in **The Kalevala Expanse** region.
+Real-time intel dashboard for **Get Off My Lawn [LAWN]** alliance (EVE Online). LAWN was removed from the Imperium coalition after 14 years and relocated to the Dronelands, claiming 2 constellations in **The Kalevala Expanse** region. The dashboard serves the whole alliance — multiple corps including Astrum Mechanica, LAWN Logistics, and others.
 
 The dashboard monitors sovereignty, kill activity, jump traffic, and active sov campaigns across LAWN's territory and the neighboring border systems.
 
