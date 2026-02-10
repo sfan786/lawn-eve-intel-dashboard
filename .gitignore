@@ -44,6 +44,11 @@ config.local.py
 # Logs
 *.log
 
+# Database
+intel.db
+intel.db-wal
+intel.db-shm
+
 # Deployment
 *.tar.gz
 *.pem

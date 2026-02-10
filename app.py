@@ -9,13 +9,14 @@ Usage:
     Open http://localhost:5000
 """
 
-from flask import Flask, jsonify, send_from_directory
+from flask import Flask, jsonify, request, send_from_directory
 from config import (
     FLASK_HOST, FLASK_PORT, FLASK_DEBUG,
     MONITORED_CONSTELLATION_IDS, FRIENDLY_ALLIANCES,
     FRIENDLY_CORPORATIONS
 )
 import esi_client
+import db
 
 app = Flask(__name__)
 
@@ -162,7 +163,18 @@ def api_sovereignty():
             # Add vulnerability windows if available
             if sys_id in vuln_by_system:
                 result[sys_id].update(vuln_by_system[sys_id])
-    
+
+    # Snapshot ADM values to database
+    adm_batch = []
+    for sys_id, sys_data in result.items():
+        sys_name = ""
+        for cdata in CONSTELLATION_DATA.values():
+            if sys_id in cdata["systems"]:
+                sys_name = cdata["systems"][sys_id]["name"]
+                break
+        adm_batch.append((sys_id, sys_name, sys_data["adm"], sys_data.get("alliance_name")))
+    db.snapshot_adm_batch(adm_batch)
+
     return jsonify(result)
 
 
@@ -196,7 +208,16 @@ def api_activity():
             "npc_kills": kills.get("npc_kills", 0),
             "jumps": jumps.get("ship_jumps", 0),
         }
-    
+
+    # Snapshot activity data to database
+    activity_batch = []
+    for sys_id, sys_data in result.items():
+        activity_batch.append((
+            sys_id, sys_data["ship_kills"], sys_data["pod_kills"],
+            sys_data["npc_kills"], sys_data["jumps"],
+        ))
+    db.snapshot_activity_batch(activity_batch)
+
     return jsonify(result)
 
 
@@ -377,6 +398,15 @@ def api_zkill_feed():
     return jsonify(feed)
 
 
+@app.route("/api/history/adm")
+def api_history_adm():
+    """Get ADM history for all monitored systems."""
+    hours = request.args.get("hours", 168, type=int)
+    hours = min(hours, 720)  # Cap at 30 days
+    history = db.get_adm_history(hours=hours)
+    return jsonify(history)
+
+
 @app.route("/api/status")
 def api_status():
     """Health check / status endpoint."""
@@ -393,6 +423,7 @@ def api_status():
 
 # Load constellation data at module import time (works with gunicorn)
 resolve_constellations()
+db.init()
 
 if __name__ == "__main__":
     print(f"\n[*] Dashboard starting at http://localhost:{FLASK_PORT}")
