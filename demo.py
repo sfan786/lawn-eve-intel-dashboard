@@ -408,6 +408,50 @@ MOCK_KILL_FEED = [
 ]
 
 
+def _generate_mock_adm_history():
+    """Generate 7 days of mock ADM history showing grinding progress."""
+    now = datetime.utcnow()
+    history = {}
+
+    for sys_id_str, sov_data in MOCK_SOVEREIGNTY.items():
+        sys_id = int(sys_id_str)
+        current_adm = sov_data["adm"]
+        sys_name = ""
+
+        for const_data in MOCK_CONFIG["constellations"].values():
+            if sys_id_str in const_data["systems"]:
+                sys_name = const_data["systems"][sys_id_str]["name"]
+                break
+
+        # Each system started ~1.5-2 ADM lower, 7 days ago
+        start_adm = max(0.3, current_adm - 1.8)
+        points = []
+
+        for hours_ago in range(168, -1, -4):  # Every 4 hours for 7 days
+            t = now - timedelta(hours=hours_ago)
+            progress = 1.0 - (hours_ago / 168.0)
+            # Power curve: faster early gains, tapering off
+            adm = start_adm + (current_adm - start_adm) * (progress ** 0.7)
+            # Deterministic small wobble based on system + time
+            wobble = ((sys_id * 7 + hours_ago * 3) % 17 - 8) * 0.005
+            adm = round(max(0.1, min(6.0, adm + wobble)), 2)
+            points.append({
+                "adm": adm,
+                "timestamp": t.strftime("%Y-%m-%dT%H:%M:%SZ"),
+            })
+
+        # Ensure last point matches current ADM exactly
+        if points:
+            points[-1]["adm"] = current_adm
+
+        history[sys_id] = {
+            "system_name": sys_name,
+            "history": points,
+        }
+
+    return history
+
+
 @app.route("/")
 def index():
     return send_from_directory("static", "index.html")
@@ -482,6 +526,11 @@ def api_activity():
 def api_campaigns():
     """Mock campaign data for UI testing."""
     return jsonify(get_mock_campaigns())
+
+
+@app.route("/api/history/adm")
+def api_history_adm():
+    return jsonify(_generate_mock_adm_history())
 
 
 @app.route("/api/zkill/feed")

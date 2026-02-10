@@ -59,10 +59,12 @@ lawn-eve-intel-dashboard/
 ├── app.py              # Flask backend — live ESI data
 ├── demo.py             # Demo mode — mock data for testing UI
 ├── config.py           # Constellation IDs, friendly alliance definitions
+├── db.py               # SQLite persistence — ADM/activity snapshots + history queries
 ├── esi_client.py       # ESI API wrapper with in-memory TTL caching
+├── intel.db            # SQLite database (auto-created, gitignored)
 ├── requirements.txt    # flask, requests
 ├── static/
-│   └── index.html      # React SPA with SVG constellation map
+│   └── index.html      # React SPA with SVG constellation map + ADM sparklines
 ├── .gitignore
 ├── CLAUDE.md           # This file
 └── README.md
@@ -72,7 +74,8 @@ lawn-eve-intel-dashboard/
 1. **static/index.html not templates/** — Must be served via `send_from_directory`, NOT `render_template`, because Jinja2's `{{ }}` conflicts with React JSX expressions
 2. **Map layout is manual** — Two layout modes: `MAP_LAYOUT` (traditional Dotlan-style) and `MAP_LAYOUT_SUBWAY` (abstract metro-style). Gate connections are in `MAP_CONNECTIONS` array with types: `internal` (same constellation), `cross` (different TKE constellations), `regional` (to other regions), `neighbor` (neighbor region systems). Subway mode prioritizes readability over geometric accuracy — LAWN at top, TKE spread below, neighbor systems positioned to avoid overlapping TKE connection lines
 3. **Demo mode** — `demo.py` serves identical API routes as `app.py` but returns hardcoded mock data (no ESI calls). Always test UI changes against demo mode first
-4. **In-memory caching** — `esi_client.py` caches responses in a dict with per-category TTLs. No persistence yet
+4. **In-memory caching** — `esi_client.py` caches responses in a dict with per-category TTLs
+5. **SQLite persistence** — `db.py` snapshots ADM and activity data hourly (deduplicated). WAL mode for concurrent reads. History API serves sparkline data to frontend
 
 ## Development
 
@@ -104,6 +107,7 @@ python app.py       # Live ESI data
 - `GET /api/sovereignty` — sov holder per system with friendly/hostile flag
 - `GET /api/activity` — kills + jumps per system
 - `GET /api/campaigns` — active sov contests
+- `GET /api/history/adm?hours=168` — ADM history for sparklines (default 7 days, max 30)
 - `GET /api/status` — health check
 
 ### Map Implementation Details
@@ -204,14 +208,14 @@ Hovering over systems shows detailed status with priority warnings:
 **Note**: ESI API does not provide separate Military/Industrial/Strategic indexes. Only the combined ADM (vulnerability_occupancy_level) is available.
 
 ## Roadmap
-- [ ] Discord webhook alerts (ADM drops, hostile activity spikes, new sov campaigns)
-- [ ] SQLite persistence for historical trends
-- [ ] zKillboard feed panel (recent kills with ship types, ISK values)
+- [x] SQLite persistence for historical trends
+- [x] ADM tracking with trend sparklines and 24h change indicators
 - [ ] Neighbor threat profiling (who lives nearby, what they fly, TZ activity)
-- [ ] ADM tracking with threshold alerts
+- [ ] Time-zone activity heatmaps
+- [ ] zKillboard feed panel enhancements (filtering, ship class breakdowns)
+- [ ] Discord webhook alerts (ADM drops, hostile activity spikes, new sov campaigns)
 - [ ] EVE SSO auth for character-specific data
 - [ ] Jump bridge route overlay on map
-- [ ] Time-zone activity heatmaps
 
 ## Visual Design
 

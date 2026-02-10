@@ -1386,6 +1386,148 @@
             );
         }
 
+        // ============ ADM Trends Components ============
+
+        function Sparkline({ history, width = 120, height = 24 }) {
+            if (!history || history.length === 0) {
+                return <svg width={width} height={height} />;
+            }
+
+            const pad = 2;
+            const h = height - pad * 2;
+            const w = width - pad * 2;
+
+            if (history.length === 1) {
+                const y = pad + h - (history[0].adm / 6) * h;
+                return (
+                    <svg width={width} height={height}>
+                        <circle cx={width / 2} cy={y} r="2" fill={getAdmColor(history[0].adm)} />
+                    </svg>
+                );
+            }
+
+            const points = history.map((pt, i) => {
+                const x = pad + (i / (history.length - 1)) * w;
+                const y = pad + h - (pt.adm / 6) * h;
+                return `${x.toFixed(1)},${y.toFixed(1)}`;
+            });
+
+            // Threshold reference lines
+            const y2 = pad + h - (2 / 6) * h;
+            const y4 = pad + h - (4 / 6) * h;
+
+            const lastAdm = history[history.length - 1].adm;
+            const color = getAdmColor(lastAdm);
+
+            // Fill polygon (area under the line)
+            const fillPoints = [
+                `${pad},${pad + h}`,
+                ...points,
+                `${(width - pad).toFixed(1)},${pad + h}`,
+            ].join(' ');
+
+            return (
+                <svg width={width} height={height}>
+                    <line x1={pad} y1={y2} x2={width - pad} y2={y2} stroke="#ff3355" strokeWidth="0.5" opacity="0.15" strokeDasharray="2 2" />
+                    <line x1={pad} y1={y4} x2={width - pad} y2={y4} stroke="#00d4ff" strokeWidth="0.5" opacity="0.15" strokeDasharray="2 2" />
+                    <polygon points={fillPoints} fill={color} opacity="0.08" />
+                    <polyline points={points.join(' ')} fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+            );
+        }
+
+        function AdmTrends({ admHistory, config, sovereignty }) {
+            const lawnSystems = [];
+            if (config && config.constellations) {
+                Object.values(config.constellations).forEach(c => {
+                    Object.values(c.systems).forEach(sys => {
+                        lawnSystems.push({ system_id: sys.system_id, name: sys.name });
+                    });
+                });
+            }
+
+            // Sort by ADM priority — lowest first (most urgent)
+            lawnSystems.sort((a, b) => {
+                const admA = (sovereignty[a.system_id] || {}).adm || 0;
+                const admB = (sovereignty[b.system_id] || {}).adm || 0;
+                return admA - admB;
+            });
+
+            const hasData = admHistory && Object.keys(admHistory).length > 0;
+
+            return (
+                <div className="panel panel-wide">
+                    <CornerBrackets/>
+                    <div className="panel-header">
+                        <span className="panel-title">ADM Trends</span>
+                        <span className="panel-badge">7 day history</span>
+                    </div>
+                    {!hasData ? (
+                        <div style={{ textAlign: 'center', padding: 20, color: 'var(--text-muted)', fontFamily: 'Share Tech Mono, monospace', fontSize: 11 }}>
+                            Collecting data... trends will appear after first snapshot
+                        </div>
+                    ) : (
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 6 }}>
+                            {lawnSystems.map(sys => {
+                                const histData = admHistory[String(sys.system_id)] || {};
+                                const history = histData.history || [];
+                                const sov = sovereignty[sys.system_id] || {};
+                                const currentAdm = sov.adm || 0;
+
+                                // 24h change
+                                let change24h = null;
+                                if (history.length >= 2) {
+                                    const cutoff = Date.now() - 24 * 60 * 60 * 1000;
+                                    let oldPoint = history[0];
+                                    for (let i = 0; i < history.length; i++) {
+                                        if (new Date(history[i].timestamp).getTime() >= cutoff) {
+                                            oldPoint = history[Math.max(0, i - 1)];
+                                            break;
+                                        }
+                                    }
+                                    change24h = currentAdm - oldPoint.adm;
+                                }
+
+                                return (
+                                    <div key={sys.system_id} style={{
+                                        display: 'flex', alignItems: 'center', gap: 8,
+                                        padding: '5px 10px',
+                                        background: 'rgba(0,5,10,0.4)',
+                                        border: '1px solid var(--border-dim)',
+                                    }}>
+                                        <span style={{
+                                            fontFamily: 'Share Tech Mono, monospace',
+                                            fontSize: 11, color: '#c8d8e8',
+                                            minWidth: 56,
+                                        }}>{sys.name}</span>
+                                        <span style={{
+                                            fontFamily: 'Share Tech Mono, monospace',
+                                            fontSize: 13, fontWeight: 'bold',
+                                            color: currentAdm > 0 ? getAdmColor(currentAdm) : '#3a5060',
+                                            minWidth: 30, textAlign: 'right',
+                                        }}>{currentAdm > 0 ? currentAdm.toFixed(1) : '\u2014'}</span>
+                                        {change24h !== null && (
+                                            <span style={{
+                                                fontFamily: 'Share Tech Mono, monospace',
+                                                fontSize: 10,
+                                                color: change24h > 0.01 ? '#00ff88' : change24h < -0.01 ? '#ff3355' : '#3a5060',
+                                                minWidth: 38,
+                                            }}>
+                                                {change24h > 0.01 ? '\u2191' : change24h < -0.01 ? '\u2193' : '\u2014'}{Math.abs(change24h).toFixed(1)}
+                                            </span>
+                                        )}
+                                        <div style={{ flex: 1, minWidth: 80 }}>
+                                            <Sparkline history={history} />
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    )}
+                </div>
+            );
+        }
+
         function CampaignAlerts({ campaigns }) {
             if (!campaigns || campaigns.length === 0) return null;
 
@@ -1527,6 +1669,7 @@
             const [activity, setActivity] = useState({});
             const [campaigns, setCampaigns] = useState([]);
             const [killFeed, setKillFeed] = useState([]);
+            const [admHistory, setAdmHistory] = useState({});
             const [loading, setLoading] = useState(true);
             const [error, setError] = useState(null);
             const [refreshing, setRefreshing] = useState(false);
@@ -1545,8 +1688,9 @@
                         fetch("/api/campaigns").then(r => r.json()),
                     ]);
                     setConfig(cfg); setSovereignty(sov); setActivity(act); setCampaigns(camp);
-                    // Fetch kill feed separately — don't block main data load
+                    // Fetch kill feed and ADM history separately — don't block main data load
                     fetch("/api/zkill/feed").then(r => r.json()).then(setKillFeed).catch(() => {});
+                    fetch("/api/history/adm").then(r => r.json()).then(setAdmHistory).catch(() => {});
                     setLastUpdate(new Date()); setError(null);
                 } catch (err) { if (init) setError(err.message); }
                 finally { setLoading(false); setRefreshing(false); }
@@ -1609,6 +1753,7 @@
                         <div className="panel panel-wide"><CornerBrackets/><div className="panel-header"><span className="panel-title">Constellation Map</span><span className="panel-badge">69 systems + 18 neighbors</span></div>
                             <ConstellationMap config={config} sovereignty={sovereignty} activity={activity} campaigns={campaigns} selectedSystem={selectedSystem} onSelectSystem={setSelectedSystem}/>
                         </div>
+                        <AdmTrends admHistory={admHistory} config={config} sovereignty={sovereignty} />
                         <KillFeed kills={killFeed}/>
                         <div className="panel panel-wide"><CornerBrackets/><div className="panel-header"><span className="panel-title">System Status</span><span className="panel-badge">{visible.length} systems</span></div>
                             <div className="const-tabs">
