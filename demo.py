@@ -3,6 +3,7 @@ Demo mode - Run the dashboard with mock data for UI testing.
 Usage: python demo.py
 """
 
+from datetime import datetime, timedelta
 from flask import Flask, jsonify, send_from_directory
 
 app = Flask(__name__)
@@ -81,24 +82,24 @@ MOCK_CONFIG = {
 }
 
 MOCK_SOVEREIGNTY = {
-    # 6-CBBM (7 systems) — all LAWN, brand new claims (ADM 1-2, still grinding)
-    "30003384": {"system_id": 30003384, "alliance_name": "Get Off My Lawn", "corporation_name": "Astrum Mechanica", "is_friendly": True, "adm": 2},   # 1-KCSA
-    "30003385": {"system_id": 30003385, "alliance_name": "Get Off My Lawn", "corporation_name": "Astrum Mechanica", "is_friendly": True, "adm": 1},   # UDVW-O
-    "30003386": {"system_id": 30003386, "alliance_name": "Get Off My Lawn", "corporation_name": "LAWN Logistics", "is_friendly": True, "adm": 1},     # UJXC-B
-    "30003387": {"system_id": 30003387, "alliance_name": "Get Off My Lawn", "corporation_name": "Astrum Mechanica", "is_friendly": True, "adm": 2},   # F48K-D
-    "30003388": {"system_id": 30003388, "alliance_name": "Get Off My Lawn", "corporation_name": "LAWN Logistics", "is_friendly": True, "adm": 1},     # JT2I-7
-    "30003389": {"system_id": 30003389, "alliance_name": "Get Off My Lawn", "corporation_name": "Astrum Mechanica", "is_friendly": True, "adm": 2},   # XTJ-5Q
-    "30003390": {"system_id": 30003390, "alliance_name": "Get Off My Lawn", "corporation_name": "LAWN Logistics", "is_friendly": True, "adm": 1},     # N-JK02
-    # 2Q-8WA (8 systems) — all LAWN, brand new claims (ADM 1-2, still grinding)
+    # 6-CBBM (7 systems) — all LAWN, brand new claims (realistic decimal ADMs)
+    "30003384": {"system_id": 30003384, "alliance_name": "Get Off My Lawn", "corporation_name": "Astrum Mechanica", "is_friendly": True, "adm": 2.5},   # 1-KCSA
+    "30003385": {"system_id": 30003385, "alliance_name": "Get Off My Lawn", "corporation_name": "Astrum Mechanica", "is_friendly": True, "adm": 1.6},   # UDVW-O
+    "30003386": {"system_id": 30003386, "alliance_name": "Get Off My Lawn", "corporation_name": "LAWN Logistics", "is_friendly": True, "adm": 1.2},     # UJXC-B
+    "30003387": {"system_id": 30003387, "alliance_name": "Get Off My Lawn", "corporation_name": "Astrum Mechanica", "is_friendly": True, "adm": 2.1},   # F48K-D
+    "30003388": {"system_id": 30003388, "alliance_name": "Get Off My Lawn", "corporation_name": "LAWN Logistics", "is_friendly": True, "adm": 1.4},     # JT2I-7
+    "30003389": {"system_id": 30003389, "alliance_name": "Get Off My Lawn", "corporation_name": "Astrum Mechanica", "is_friendly": True, "adm": 1.9},   # XTJ-5Q
+    "30003390": {"system_id": 30003390, "alliance_name": "Get Off My Lawn", "corporation_name": "LAWN Logistics", "is_friendly": True, "adm": 1.3},     # N-JK02
+    # 2Q-8WA (8 systems) — all LAWN, brand new claims (realistic decimal ADMs)
     # Note: SL0W remnant neighbors (LE-67X, L-GY1B, 6V-D0E) have ADM 4
-    "30003391": {"system_id": 30003391, "alliance_name": "Get Off My Lawn", "corporation_name": "Astrum Mechanica", "is_friendly": True, "adm": 2},   # FB5U-I
-    "30003392": {"system_id": 30003392, "alliance_name": "Get Off My Lawn", "corporation_name": "LAWN Logistics", "is_friendly": True, "adm": 2},     # BZ-BCK
-    "30003393": {"system_id": 30003393, "alliance_name": "Get Off My Lawn", "corporation_name": "Astrum Mechanica", "is_friendly": True, "adm": 1},   # J-OAH2
-    "30003394": {"system_id": 30003394, "alliance_name": "Get Off My Lawn", "corporation_name": "LAWN Logistics", "is_friendly": True, "adm": 2},     # O5-YNW
-    "30003395": {"system_id": 30003395, "alliance_name": "Get Off My Lawn", "corporation_name": "Astrum Mechanica", "is_friendly": True, "adm": 1},   # 86L-9F
-    "30003396": {"system_id": 30003396, "alliance_name": "Get Off My Lawn", "corporation_name": "LAWN Logistics", "is_friendly": True, "adm": 1},     # 5-VFC6
-    "30003397": {"system_id": 30003397, "alliance_name": "Get Off My Lawn", "corporation_name": "Astrum Mechanica", "is_friendly": True, "adm": 1},   # IUU3-L
-    "30003398": {"system_id": 30003398, "alliance_name": "Get Off My Lawn", "corporation_name": "Astrum Mechanica", "is_friendly": True, "adm": 1},   # S-LHPJ
+    "30003391": {"system_id": 30003391, "alliance_name": "Get Off My Lawn", "corporation_name": "Astrum Mechanica", "is_friendly": True, "adm": 2.3},   # FB5U-I
+    "30003392": {"system_id": 30003392, "alliance_name": "Get Off My Lawn", "corporation_name": "LAWN Logistics", "is_friendly": True, "adm": 1.8},     # BZ-BCK
+    "30003393": {"system_id": 30003393, "alliance_name": "Get Off My Lawn", "corporation_name": "Astrum Mechanica", "is_friendly": True, "adm": 1.1},   # J-OAH2
+    "30003394": {"system_id": 30003394, "alliance_name": "Get Off My Lawn", "corporation_name": "LAWN Logistics", "is_friendly": True, "adm": 2.7},     # O5-YNW
+    "30003395": {"system_id": 30003395, "alliance_name": "Get Off My Lawn", "corporation_name": "Astrum Mechanica", "is_friendly": True, "adm": 1.5},   # 86L-9F
+    "30003396": {"system_id": 30003396, "alliance_name": "Get Off My Lawn", "corporation_name": "LAWN Logistics", "is_friendly": True, "adm": 1.7},     # 5-VFC6
+    "30003397": {"system_id": 30003397, "alliance_name": "Get Off My Lawn", "corporation_name": "Astrum Mechanica", "is_friendly": True, "adm": 1.4},   # IUU3-L
+    "30003398": {"system_id": 30003398, "alliance_name": "Get Off My Lawn", "corporation_name": "Astrum Mechanica", "is_friendly": True, "adm": 2.0},   # S-LHPJ
 }
 
 MOCK_ACTIVITY = {
@@ -122,8 +123,51 @@ MOCK_ACTIVITY = {
     "30003398": {"system_id": 30003398, "ship_kills": 2, "pod_kills": 1, "npc_kills": 510, "jumps": 35},   # S-LHPJ (border w/ SL0W)
 }
 
-# No active campaigns — space is secured for now
-MOCK_CAMPAIGNS = []
+# Mock campaigns for UI testing - two scenarios
+def get_mock_campaigns():
+    """Generate mock campaign data with realistic timers."""
+    now = datetime.utcnow()
+
+    # Campaign 1: Reinforced phase (12 hours into 48-hour timer)
+    reffed_time = now - timedelta(hours=12)
+    vuln_start = now.replace(hour=16, minute=0, second=0, microsecond=0)
+    if vuln_start < now:
+        vuln_start += timedelta(days=1)
+    vuln_end = vuln_start + timedelta(hours=6, minutes=30)
+
+    # Campaign 2: Active nodes (50 hours in, nodes spawned 2 hours ago)
+    nodes_time = now - timedelta(hours=50)
+
+    return [
+        {
+            "campaign_id": 999001,
+            "solar_system_id": 30003384,  # 1-KCSA
+            "system_name": "1-KCSA",
+            "constellation_id": 20000490,
+            "event_type": "ihub_defense",
+            "structure_id": 1051234567890,
+            "structure_type_id": 32876,  # Sov Hub
+            "start_time": reffed_time.isoformat() + "Z",
+            "attackers_score": 0.0,
+            "defender_score": 0.0,
+            "vulnerable_start_time": vuln_start.isoformat() + "Z",
+            "vulnerable_end_time": vuln_end.isoformat() + "Z",
+        },
+        {
+            "campaign_id": 999002,
+            "solar_system_id": 30003387,  # F48K-D
+            "system_name": "F48K-D",
+            "constellation_id": 20000490,
+            "event_type": "tcu_defense",
+            "structure_id": 1051234567891,
+            "structure_type_id": 32876,  # Sov Hub
+            "start_time": nodes_time.isoformat() + "Z",
+            "attackers_score": 0.35,
+            "defender_score": 0.65,
+            "vulnerable_start_time": vuln_start.isoformat() + "Z",
+            "vulnerable_end_time": vuln_end.isoformat() + "Z",
+        }
+    ]
 
 # Mock kill feed — realistic mix of LAWN and regional kills
 from datetime import datetime, timedelta, timezone
@@ -376,7 +420,57 @@ def api_config():
 
 @app.route("/api/sovereignty")
 def api_sovereignty():
-    return jsonify(MOCK_SOVEREIGNTY)
+    """Mock sovereignty data with ADM-based vulnerability windows."""
+    def get_vuln_duration(adm):
+        """Calculate vulnerability window duration based on ADM with linear interpolation."""
+        if adm <= 0:
+            return 18
+
+        # ADM breakpoints: (adm, hours)
+        breakpoints = [
+            (1.0, 18.0),
+            (2.0, 10.0),
+            (3.0, 6.0),
+            (4.0, 4.0),
+            (5.0, 3.0),
+            (6.0, 2.0)
+        ]
+
+        # Cap at max ADM
+        if adm >= 6.0:
+            return 2.0
+
+        # Find surrounding breakpoints and interpolate
+        for i in range(len(breakpoints) - 1):
+            adm_low, hours_low = breakpoints[i]
+            adm_high, hours_high = breakpoints[i + 1]
+
+            if adm_low <= adm <= adm_high:
+                # Linear interpolation
+                ratio = (adm - adm_low) / (adm_high - adm_low)
+                hours = hours_low + ratio * (hours_high - hours_low)
+                return hours
+
+        return 18.0  # Default fallback
+
+    now = datetime.utcnow()
+    base_vuln_start = now.replace(hour=16, minute=0, second=0, microsecond=0)
+    if base_vuln_start < now:
+        base_vuln_start += timedelta(days=1)
+
+    enriched_sov = {}
+    for sys_id, sov_data in MOCK_SOVEREIGNTY.items():
+        adm = sov_data.get("adm", 0)
+        vuln_hours = get_vuln_duration(adm)
+        vuln_end = base_vuln_start + timedelta(hours=vuln_hours)
+
+        enriched_sov[sys_id] = {
+            **sov_data,
+            "vulnerable_start_time": base_vuln_start.isoformat() + "Z",
+            "vulnerable_end_time": vuln_end.isoformat() + "Z",
+        }
+
+    return jsonify(enriched_sov)
 
 
 @app.route("/api/activity")
@@ -386,7 +480,8 @@ def api_activity():
 
 @app.route("/api/campaigns")
 def api_campaigns():
-    return jsonify(MOCK_CAMPAIGNS)
+    """Mock campaign data for UI testing."""
+    return jsonify(get_mock_campaigns())
 
 
 @app.route("/api/zkill/feed")

@@ -617,6 +617,68 @@
             return { label: "No Sov", color: "#3a5060", priority: 3 };
         }
 
+        // ============ Campaign Helper Functions ============
+
+        // Campaign phase detection
+        function getCampaignPhase(campaign) {
+            const now = new Date();
+            const startTime = new Date(campaign.start_time);
+            const elapsedHours = (now - startTime) / (1000 * 60 * 60);
+
+            // EVE sov: 48-hour reff timer before nodes spawn
+            // Scores only increase during active node capture event
+            const hasActiveScores = (campaign.attackers_score > 0 || campaign.defender_score > 0);
+            const isNodesActive = elapsedHours >= 48 || hasActiveScores;
+
+            return {
+                phase: isNodesActive ? "nodes" : "reinforced",
+                elapsedHours,
+                nodesSpawnTime: new Date(startTime.getTime() + 48 * 60 * 60 * 1000),
+            };
+        }
+
+        // Format countdown timer
+        function formatCountdown(targetDate) {
+            const now = new Date();
+            const diff = targetDate - now;
+
+            if (diff <= 0) return "ACTIVE NOW";
+
+            const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+            const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+            const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+
+            if (days > 0) return `${days}d ${hours}h`;
+            if (hours > 0) return `${hours}h ${minutes}m`;
+            return `${minutes}m`;
+        }
+
+        // Format EVE time (UTC timestamp)
+        function formatEveTime(isoTimestamp) {
+            const date = new Date(isoTimestamp);
+            const month = (date.getUTCMonth() + 1).toString().padStart(2, '0');
+            const day = date.getUTCDate().toString().padStart(2, '0');
+            const hours = date.getUTCHours().toString().padStart(2, '0');
+            const minutes = date.getUTCMinutes().toString().padStart(2, '0');
+
+            return `${month}/${day} ${hours}:${minutes} EVE`;
+        }
+
+        // Format vulnerability window (UTC time)
+        function formatVulnWindow(start, end) {
+            if (!start || !end) return null;
+
+            const startTime = new Date(start);
+            const endTime = new Date(end);
+
+            const startHour = startTime.getUTCHours().toString().padStart(2, '0');
+            const startMin = startTime.getUTCMinutes().toString().padStart(2, '0');
+            const endHour = endTime.getUTCHours().toString().padStart(2, '0');
+            const endMin = endTime.getUTCMinutes().toString().padStart(2, '0');
+
+            return `${startHour}:${startMin} - ${endHour}:${endMin} EVE`;
+        }
+
         // ============ Map Component ============
 
         function ConstellationMap({ config, sovereignty, activity, campaigns, selectedSystem, onSelectSystem }) {
@@ -768,6 +830,8 @@
                     jumps: act.jumps || 0,
                     isNeighbor: layout.constellation === "neighbor",
                     note: layout.note || null,
+                    vulnerable_start_time: sov.vulnerable_start_time || null,
+                    vulnerable_end_time: sov.vulnerable_end_time || null,
                 });
             }
 
@@ -911,9 +975,32 @@
                                         {isGateway && (
                                             <circle cx={pos.x} cy={pos.y} r={r + 5} fill="none" stroke="#ffaa00" strokeWidth="1.5" strokeDasharray="4 3" opacity={0.6} />
                                         )}
-                                        {isReffed(name) && (
-                                            <circle cx={pos.x} cy={pos.y} r={reffedR} fill="none" stroke="#ffaa00" strokeWidth="2" strokeDasharray="4 3" filter="url(#glow-amber)" style={{ animation: 'pulse-reffed 2s infinite' }} />
-                                        )}
+                                        {/* Reffed ring (active sov campaign) - phase-dependent styling */}
+                                        {isReffed(name) && (() => {
+                                            const sysId = nameToId[name];
+                                            if (!sysId) return null;
+                                            const campaign = campaigns.find(c => String(c.solar_system_id) === sysId);
+                                            if (!campaign) return null;
+
+                                            const phase = getCampaignPhase(campaign);
+                                            const isNodesActive = phase.phase === "nodes";
+
+                                            return (
+                                                <circle
+                                                    cx={pos.x} cy={pos.y} r={reffedR}
+                                                    fill="none"
+                                                    stroke={isNodesActive ? "#ff3355" : "#ffaa00"}
+                                                    strokeWidth={isNodesActive ? "2.5" : "2"}
+                                                    strokeDasharray={isNodesActive ? "6 2" : "4 3"}
+                                                    filter={isNodesActive ? "url(#glow-r)" : "url(#glow-amber)"}
+                                                    style={{
+                                                        animation: isNodesActive ?
+                                                            'pulse-reffed 1s infinite' :
+                                                            'pulse-reffed 2s infinite'
+                                                    }}
+                                                />
+                                            );
+                                        })()}
                                         {npc && <circle cx={pos.x} cy={pos.y} r={isSubway && isLawn ? npc.r * 1.3 : npc.r} fill={`rgba(0,212,255,${npc.o})`} />}
                                         {pvp > 0 && <circle cx={pos.x} cy={pos.y} r={isSubway && isLawn ? pvp * 1.3 : pvp} fill="rgba(255,51,85,0.3)" filter="url(#glow-r)" />}
                                         {isSel && <circle cx={pos.x} cy={pos.y} r={selR} fill="none" stroke="#00d4ff" strokeWidth="1.5" strokeDasharray="3 2" opacity={0.8} filter="url(#glow-c)" />}
@@ -1030,45 +1117,56 @@
                                             {tooltip.adm < 2 ? '⚠ Critical - Needs immediate grinding' : '⚠ Below safe threshold (4.0)'}
                                         </div>
                                     )}
-                                    {isReffed(tooltip.name) && (
-                                        <div style={{
-                                            fontSize: 11,
-                                            color: '#ffaa00',
-                                            marginTop: 4,
-                                            fontWeight: 'bold',
-                                            borderTop: '1px solid #ffaa0033',
-                                            paddingTop: 4
-                                        }}>
-                                            ⚠ ACTIVE SOV CAMPAIGN
-                                        </div>
-                                    )}
-                                    {needsCriticalGrinding(tooltip.name) && !isReffed(tooltip.name) && (
-                                        <div style={{
-                                            fontSize: 11,
-                                            color: '#ff3355',
-                                            marginTop: 4,
-                                            fontWeight: 'bold',
-                                            borderTop: '1px solid #ff335533',
-                                            paddingTop: 4
-                                        }}>
-                                            ⚠ CRITICAL - PRIORITY GRINDING TARGET
-                                        </div>
-                                    )}
-                                    {needsCautionGrinding(tooltip.name) && !isReffed(tooltip.name) && (
-                                        <div style={{
-                                            fontSize: 11,
-                                            color: '#ffaa00',
-                                            marginTop: 4,
-                                            fontWeight: 'bold',
-                                            borderTop: '1px solid #ffaa0033',
-                                            paddingTop: 4
-                                        }}>
-                                            ⚠ GRIND RECOMMENDED
-                                        </div>
-                                    )}
+                                    {/* Campaign status (if reffed) */}
+                                    {isReffed(tooltip.name) && (() => {
+                                        const sysId = nameToId[tooltip.name];
+                                        if (!sysId) return null;
+                                        const campaign = campaigns.find(c => String(c.solar_system_id) === sysId);
+                                        if (!campaign) return null;
+
+                                        const phase = getCampaignPhase(campaign);
+                                        const isNodesActive = phase.phase === "nodes";
+                                        const vulnWindow = formatVulnWindow(campaign.vulnerable_start_time, campaign.vulnerable_end_time);
+
+                                        return (
+                                            <div style={{
+                                                fontSize: 11,
+                                                color: isNodesActive ? '#ff3355' : '#ffaa00',
+                                                marginTop: 8,
+                                                paddingTop: 8,
+                                                fontWeight: 'bold',
+                                                borderTop: `1px solid ${isNodesActive ? '#ff335533' : '#ffaa0033'}`
+                                            }}>
+                                                {isNodesActive ? (
+                                                    <>
+                                                        ⚠ NODES ACTIVE — {((campaign.attackers_score||0)*100).toFixed(0)}% vs {((campaign.defender_score||0)*100).toFixed(0)}%
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        ⚠ REINFORCED — Nodes in {formatCountdown(phase.nodesSpawnTime)}
+                                                    </>
+                                                )}
+                                            </div>
+                                        );
+                                    })()}
                                     <div className="map-tooltip-row"><span className="map-tooltip-label">PVP kills</span><span style={{ color: tooltip.pvp > 0 ? '#ff3355' : '#3a5060' }}>{tooltip.pvp}</span></div>
                                     <div className="map-tooltip-row"><span className="map-tooltip-label">NPC kills</span><span style={{ color: '#00d4ff' }}>{tooltip.npc}</span></div>
                                     <div className="map-tooltip-row"><span className="map-tooltip-label">Jumps</span><span style={{ color: '#ffaa00' }}>{tooltip.jumps}</span></div>
+                                    {/* Vulnerability window (for systems with sov structures) */}
+                                    {tooltip.vulnerable_start_time && tooltip.vulnerable_end_time && (
+                                        <div style={{
+                                            fontSize: 10,
+                                            color: '#6a8090',
+                                            marginTop: 6,
+                                            paddingTop: 6,
+                                            borderTop: '1px solid rgba(106,128,144,0.2)',
+                                            fontFamily: 'Share Tech Mono, monospace'
+                                        }}>
+                                            Vuln Window: <span style={{ color: '#00d4ff' }}>
+                                                {formatVulnWindow(tooltip.vulnerable_start_time, tooltip.vulnerable_end_time)}
+                                            </span>
+                                        </div>
+                                    )}
                                 </>
                             )}
                             {tooltip.note && <div style={{ marginTop: 4, color: '#6a8090', fontStyle: 'italic', fontSize: 10 }}>{tooltip.note}</div>}
@@ -1288,30 +1386,132 @@
             );
         }
 
-        function CampaignAlerts({ campaigns, config }) {
+        function CampaignAlerts({ campaigns }) {
             if (!campaigns || campaigns.length === 0) return null;
-            const labels = { 1: "TCU", 2: "IHUB", 3: "STATION", 4: "STATION" };
 
-            // Build ID-to-name mapping
-            const idToName = {};
-            if (config && config.constellations) {
-                Object.values(config.constellations).forEach(c => {
-                    Object.values(c.systems).forEach(sys => {
-                        idToName[String(sys.system_id)] = sys.name;
-                    });
-                });
-            }
+            // Event type labels (post-Equinox: Sov Hub replaces TCU/IHUB)
+            const eventTypeLabels = {
+                "tcu_defense": "SOV HUB",
+                "ihub_defense": "SOV HUB",
+                "station_defense": "STATION",
+                "station_freeport": "STATION",
+            };
 
             return (
-                <div className="panel panel-wide"><CornerBrackets/><div className="panel-header"><span className="panel-title">⚠ Active Campaigns</span><span className="panel-badge">{campaigns.length} active</span></div>
+                <div className="panel panel-wide">
+                    <CornerBrackets/>
+                    <div className="panel-header">
+                        <span className="panel-title">⚠ Active Campaigns</span>
+                        <span className="panel-badge">{campaigns.length} active</span>
+                    </div>
                     {campaigns.map((c, i) => {
-                        const sysName = idToName[String(c.solar_system_id)] || `System ${c.solar_system_id}`;
+                        const phase = getCampaignPhase(c);
+                        const eventLabel = eventTypeLabels[c.event_type] || "SOV HUB";
+                        const vulnWindow = formatVulnWindow(c.vulnerable_start_time, c.vulnerable_end_time);
+                        const isNodesActive = phase.phase === "nodes";
+
                         return (
-                            <div key={i} className="campaign-alert">
-                                <span className="campaign-type">{labels[c.event_type] || "SOV"}</span>
-                                <span className="campaign-detail">
-                                    {sysName} — {((c.attackers_score||0)*100).toFixed(0)}% vs {((c.defender_score||0)*100).toFixed(0)}%
-                                </span>
+                            <div key={i} className="campaign-alert" style={{
+                                borderColor: isNodesActive ? "#ff3355" : "#ffaa00",
+                                background: isNodesActive ? "rgba(255,51,85,0.08)" : "rgba(255,170,0,0.05)"
+                            }}>
+                                <div style={{ flex: 1 }}>
+                                    {/* Header with structure type and system name */}
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 6 }}>
+                                        <span className="campaign-type" style={{
+                                            color: isNodesActive ? "#ff3355" : "#ffaa00"
+                                        }}>
+                                            {eventLabel}
+                                        </span>
+                                        <span className="campaign-detail" style={{ fontWeight: 'bold' }}>
+                                            {c.system_name}
+                                        </span>
+                                        <span style={{
+                                            fontSize: 10,
+                                            color: isNodesActive ? '#ff3355' : '#ffaa00',
+                                            background: isNodesActive ? 'rgba(255,51,85,0.15)' : 'rgba(255,170,0,0.1)',
+                                            padding: '2px 6px',
+                                            borderRadius: 3,
+                                            fontFamily: 'Orbitron, sans-serif',
+                                            letterSpacing: 1,
+                                            animation: isNodesActive ? 'alert-flash 2s infinite' : 'none'
+                                        }}>
+                                            {isNodesActive ? 'NODES ACTIVE' : 'REFFED'}
+                                        </span>
+                                    </div>
+
+                                    {/* Reinforced phase: Show timer countdown and exact time */}
+                                    {!isNodesActive && (
+                                        <div style={{
+                                            fontFamily: 'Share Tech Mono, monospace',
+                                            fontSize: 12,
+                                            color: '#c8d8e8',
+                                            marginTop: 4
+                                        }}>
+                                            Nodes spawn in: <span style={{
+                                                color: '#ffaa00',
+                                                fontWeight: 'bold'
+                                            }}>
+                                                {formatCountdown(phase.nodesSpawnTime)}
+                                            </span>
+                                            <span style={{ color: '#6a8090', marginLeft: 8, fontSize: 11 }}>
+                                                ({formatEveTime(phase.nodesSpawnTime.toISOString())})
+                                            </span>
+                                        </div>
+                                    )}
+
+                                    {/* Nodes active phase: Show progress bar */}
+                                    {isNodesActive && (
+                                        <div style={{ marginTop: 6 }}>
+                                            <div style={{
+                                                display: 'flex',
+                                                justifyContent: 'space-between',
+                                                fontSize: 11,
+                                                marginBottom: 3,
+                                                fontFamily: 'Share Tech Mono, monospace'
+                                            }}>
+                                                <span style={{ color: '#ff3355' }}>
+                                                    Attackers: {((c.attackers_score||0)*100).toFixed(0)}%
+                                                </span>
+                                                <span style={{ color: '#00ff88' }}>
+                                                    Defenders: {((c.defender_score||0)*100).toFixed(0)}%
+                                                </span>
+                                            </div>
+                                            <div style={{
+                                                height: 6,
+                                                background: 'var(--border-dim)',
+                                                borderRadius: 2,
+                                                overflow: 'hidden',
+                                                display: 'flex'
+                                            }}>
+                                                <div style={{
+                                                    width: `${(c.attackers_score||0)*100}%`,
+                                                    background: '#ff3355',
+                                                    transition: 'width 0.5s ease'
+                                                }}/>
+                                                <div style={{
+                                                    width: `${(c.defender_score||0)*100}%`,
+                                                    background: '#00ff88',
+                                                    transition: 'width 0.5s ease'
+                                                }}/>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Vulnerability window */}
+                                    {vulnWindow && (
+                                        <div style={{
+                                            fontFamily: 'Share Tech Mono, monospace',
+                                            fontSize: 10,
+                                            color: '#6a8090',
+                                            marginTop: 6,
+                                            paddingTop: 6,
+                                            borderTop: '1px solid rgba(106,128,144,0.2)'
+                                        }}>
+                                            Vuln Window: <span style={{ color: '#00d4ff' }}>{vulnWindow}</span>
+                                        </div>
+                                    )}
+                                </div>
                             </div>
                         );
                     })}

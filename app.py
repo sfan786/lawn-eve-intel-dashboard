@@ -90,15 +90,26 @@ def api_sovereignty():
     
     sov_map = esi_client.get_sovereignty_map()
 
-    # Get ADM data from sovereignty structures (iHub = 32458)
+    # Get ADM and vulnerability window data from sovereignty structures
     adm_by_system = {}
+    vuln_by_system = {}
     try:
         sov_structures = esi_client.get_sovereignty_structures()
         for struct in sov_structures:
-            if struct.get("structure_type_id") == 32458:  # iHub
+            # Support both old iHub (32458) and new Sov Hub (32876)
+            if struct.get("structure_type_id") in [32458, 32876]:
                 sys_id = struct.get("solar_system_id")
                 adm = struct.get("vulnerability_occupancy_level", 0)
                 adm_by_system[sys_id] = adm
+
+                # Extract vulnerability windows
+                vuln_start = struct.get("vulnerable_start_time")
+                vuln_end = struct.get("vulnerable_end_time")
+                if vuln_start and vuln_end:
+                    vuln_by_system[sys_id] = {
+                        "vulnerable_start_time": vuln_start,
+                        "vulnerable_end_time": vuln_end
+                    }
     except Exception as e:
         print(f"[!] Failed to fetch sovereignty structures: {e}")
 
@@ -136,7 +147,7 @@ def api_sovereignty():
                 corp_name = corp_cache[corp_id]
             
             is_friendly = alliance_name in FRIENDLY_ALLIANCES if alliance_name else False
-            
+
             result[sys_id] = {
                 "system_id": sys_id,
                 "alliance_id": alliance_id,
@@ -147,6 +158,10 @@ def api_sovereignty():
                 "is_friendly": is_friendly,
                 "adm": adm_by_system.get(sys_id, 0),
             }
+
+            # Add vulnerability windows if available
+            if sys_id in vuln_by_system:
+                result[sys_id].update(vuln_by_system[sys_id])
     
     return jsonify(result)
 
@@ -187,22 +202,40 @@ def api_activity():
 
 @app.route("/api/campaigns")
 def api_campaigns():
-    """Get active sovereignty campaigns in our systems."""
-    all_system_ids = set()
-    for cdata in CONSTELLATION_DATA.values():
-        all_system_ids.update(cdata["systems"].keys())
-    
+    """Get active sovereignty campaigns with enriched data."""
+    # Build system name lookup
+    system_names = {}
+    our_constellation_ids = set()
+    for const_id, cdata in CONSTELLATION_DATA.items():
+        our_constellation_ids.add(const_id)
+        for sys_id, sys_info in cdata["systems"].items():
+            system_names[sys_id] = sys_info["name"]
+
+    # Fetch campaigns and structures
     campaigns = esi_client.get_sovereignty_campaigns()
-    
-    # Filter to our constellation IDs
-    our_constellation_ids = set(CONSTELLATION_DATA.keys())
-    relevant = []
-    
+    structures = esi_client.get_sovereignty_structures()
+    structure_by_id = {s["structure_id"]: s for s in structures}
+
+    # Filter and enrich
+    enriched = []
     for campaign in campaigns:
-        if campaign.get("constellation_id") in our_constellation_ids:
-            relevant.append(campaign)
-    
-    return jsonify(relevant)
+        if campaign.get("constellation_id") not in our_constellation_ids:
+            continue
+
+        sys_id = campaign.get("solar_system_id")
+        struct_id = campaign.get("structure_id")
+        struct_data = structure_by_id.get(struct_id, {})
+
+        enriched_campaign = {
+            **campaign,
+            "system_name": system_names.get(sys_id, f"System {sys_id}"),
+            "vulnerable_start_time": struct_data.get("vulnerable_start_time"),
+            "vulnerable_end_time": struct_data.get("vulnerable_end_time"),
+            "structure_type_id": struct_data.get("structure_type_id"),
+        }
+        enriched.append(enriched_campaign)
+
+    return jsonify(enriched)
 
 
 @app.route("/api/zkill/<int:system_id>")
