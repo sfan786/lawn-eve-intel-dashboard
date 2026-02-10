@@ -1,7 +1,6 @@
 """
 EVE Intel Dashboard - Flask Backend
-Astrum Mechanica / Get Off My Lawn
-Kalevala Expanse Constellation Monitor
+Get Off My Lawn [LAWN] — Kalevala Expanse
 
 Usage:
     pip install flask requests
@@ -427,6 +426,6 @@ db.init()
 
 if __name__ == "__main__":
     print(f"\n[*] Dashboard starting at http://localhost:{FLASK_PORT}")
-    print(f"[*] Astrum Mechanica Intel Dashboard - Kalevala Expanse")
+    print(f"[*] LAWN Intel Dashboard - Kalevala Expanse")
     print(f"[*] Monitoring: {', '.join(c['name'] for c in CONSTELLATION_DATA.values())}\n")
     app.run(host=FLASK_HOST, port=FLASK_PORT, debug=FLASK_DEBUG)
