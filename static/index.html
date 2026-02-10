@@ -959,16 +959,17 @@
                                                 const pillPadX = 4, pillPadY = 3;
                                                 const pillW = admText.length * charW + pillPadX * 2;
                                                 const pillH = admSize + pillPadY * 2;
+                                                const centerY = admY - admSize * 0.3;
                                                 return (
                                                     <g>
                                                         <rect
-                                                            x={admX - pillW / 2} y={admY - admSize + pillPadY - 1}
+                                                            x={admX - pillW / 2} y={centerY - pillH / 2}
                                                             width={pillW} height={pillH}
                                                             rx={3} fill="#060a0f" opacity={1}
                                                             stroke={admCol} strokeWidth={0.5} strokeOpacity={0.35}
                                                         />
-                                                        <text x={admX} y={admY}
-                                                            textAnchor="middle"
+                                                        <text x={admX} y={centerY}
+                                                            textAnchor="middle" dominantBaseline="central"
                                                             fontFamily="Share Tech Mono, monospace"
                                                             fontSize={admSize} fill={admCol} fontWeight="bold"
                                                             stroke="#060a0f" strokeWidth={2.5} paintOrder="stroke"
