@@ -1746,17 +1746,9 @@
                             </div>
                         </div>
                         <CampaignAlerts campaigns={campaigns} config={config}/>
-                        <div className="panel" style={{ gridColumn: 'span 2', padding: 8 }}>
-                            <div style={{ fontSize: 10, color: '#8a9aa0', display: 'flex', gap: 16, justifyContent: 'center' }}>
-                                <span><strong style={{ color: '#ff3355' }}>ADM 0-2:</strong> Vulnerable</span>
-                                <span><strong style={{ color: '#ffaa00' }}>ADM 2-4:</strong> Caution</span>
-                                <span><strong style={{ color: '#00d4ff' }}>ADM 4-6:</strong> Safe</span>
-                            </div>
-                        </div>
                         <div className="panel panel-wide"><CornerBrackets/><div className="panel-header"><span className="panel-title">Constellation Map</span><span className="panel-badge">69 systems + 18 neighbors</span></div>
                             <ConstellationMap config={config} sovereignty={sovereignty} activity={activity} campaigns={campaigns} selectedSystem={selectedSystem} onSelectSystem={setSelectedSystem}/>
                         </div>
-                        <AdmTrends admHistory={admHistory} config={config} sovereignty={sovereignty} />
                         <KillFeed kills={killFeed}/>
                         <div className="panel panel-wide"><CornerBrackets/><div className="panel-header"><span className="panel-title">System Status</span><span className="panel-badge">{visible.length} systems</span></div>
                             <div className="const-tabs">
@@ -1765,6 +1757,7 @@
                             </div>
                             <SystemTable systems={visible} sovereignty={sovereignty} activity={activity} selectedSystem={selectedSystem} onSelectSystem={setSelectedSystem}/>
                         </div>
+                        <AdmTrends admHistory={admHistory} config={config} sovereignty={sovereignty} />
                     </div>
                 </div>
             );
