@@ -1,6 +1,6 @@
 """
 EVE Intel Dashboard Configuration
-Astrum Mechanica / Get Off My Lawn - Kalevala Expanse
+Get Off My Lawn [LAWN] — Kalevala Expanse
 
 Configure your monitored constellations and other settings here.
 """
