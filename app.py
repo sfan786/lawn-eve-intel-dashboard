@@ -11,24 +11,49 @@ Usage:
 from flask import Flask, jsonify, request, send_from_directory
 from config import (
     FLASK_HOST, FLASK_PORT, FLASK_DEBUG,
-    MONITORED_CONSTELLATION_IDS, FRIENDLY_ALLIANCES,
-    FRIENDLY_CORPORATIONS
+    LAWN_CONSTELLATION_IDS, FRIENDLY_ALLIANCES,
+    FRIENDLY_CORPORATIONS, REGION_ID, NEIGHBOR_SYSTEM_NAMES
 )
 import esi_client
 import db
 
 app = Flask(__name__)
 
-# Resolved constellation data (populated on startup)
+# ============ Data Structures (populated on startup) ============
+
+# All TKE constellations (10 total, including LAWN's 2)
 CONSTELLATION_DATA = {}
 
+# Neighbor systems outside TKE {sys_id: {name, region_name, system_id, security_status}}
+NEIGHBOR_SYSTEMS = {}
 
-def resolve_constellations():
-    """Load constellation data from ESI using constellation IDs."""
-    global CONSTELLATION_DATA
-    print("[*] Loading monitored constellations...")
+# Quick lookup sets
+LAWN_CONSTELLATION_IDS_SET = set()
+LAWN_SYSTEM_IDS = set()
+ALL_MONITORED_IDS = set()  # All ~87 system IDs (TKE + neighbors)
 
-    for cid in MONITORED_CONSTELLATION_IDS:
+
+def resolve_all_systems():
+    """Load all TKE constellations + neighbor systems from ESI."""
+    global CONSTELLATION_DATA, NEIGHBOR_SYSTEMS
+    global LAWN_CONSTELLATION_IDS_SET, LAWN_SYSTEM_IDS, ALL_MONITORED_IDS
+
+    LAWN_CONSTELLATION_IDS_SET = set(LAWN_CONSTELLATION_IDS)
+
+    # 1. Get all constellation IDs for The Kalevala Expanse
+    print(f"[*] Loading region {REGION_ID} (The Kalevala Expanse)...")
+    try:
+        region_info = esi_client.get_region_info(REGION_ID)
+        tke_constellation_ids = region_info.get("constellations", [])
+        print(f"  [+] Region has {len(tke_constellation_ids)} constellations")
+    except Exception as e:
+        print(f"  [!] Failed to load region info: {e}")
+        print(f"  [*] Falling back to LAWN constellations only")
+        tke_constellation_ids = LAWN_CONSTELLATION_IDS
+
+    # 2. Resolve all TKE constellations
+    print(f"[*] Resolving {len(tke_constellation_ids)} TKE constellations...")
+    for cid in tke_constellation_ids:
         try:
             info = esi_client.get_constellation_info(cid)
             systems = {}
@@ -40,18 +65,81 @@ def resolve_constellations():
                     "system_id": sys_id,
                 }
 
+            is_lawn = cid in LAWN_CONSTELLATION_IDS_SET
             CONSTELLATION_DATA[cid] = {
                 "constellation_id": cid,
                 "name": info.get("name", str(cid)),
                 "region_id": info.get("region_id"),
                 "systems": systems,
+                "is_lawn": is_lawn,
             }
-            print(f"  [+] {info.get('name')} (ID: {cid}) -> {len(systems)} systems")
+            tag = "LAWN" if is_lawn else "TKE"
+            print(f"  [+] {info.get('name')} (ID: {cid}) -> {len(systems)} systems [{tag}]")
         except Exception as e:
             print(f"  [!] Error loading constellation {cid}: {e}")
 
-    print(f"[*] Monitoring {len(CONSTELLATION_DATA)} constellations, "
-          f"{sum(len(c['systems']) for c in CONSTELLATION_DATA.values())} systems total")
+    # Build LAWN system ID set
+    for cid, cdata in CONSTELLATION_DATA.items():
+        if cdata.get("is_lawn"):
+            LAWN_SYSTEM_IDS.update(cdata["systems"].keys())
+
+    # 3. Resolve neighbor systems via POST /universe/ids/
+    print(f"[*] Resolving {len(NEIGHBOR_SYSTEM_NAMES)} neighbor systems...")
+    try:
+        id_result = esi_client.post_universe_ids(NEIGHBOR_SYSTEM_NAMES)
+        resolved_systems = id_result.get("systems", [])
+        print(f"  [+] Resolved {len(resolved_systems)} / {len(NEIGHBOR_SYSTEM_NAMES)} names")
+
+        for entry in resolved_systems:
+            sys_id = entry["id"]
+            sys_name = entry["name"]
+            try:
+                sys_info = esi_client.get_system_info(sys_id)
+                # Get region name via constellation
+                const_id = sys_info.get("constellation_id")
+                region_name = "Unknown"
+                if const_id:
+                    const_info = esi_client.get_constellation_info(const_id)
+                    region_id = const_info.get("region_id")
+                    if region_id:
+                        try:
+                            reg_info = esi_client.get_region_info(region_id)
+                            region_name = reg_info.get("name", "Unknown")
+                        except Exception:
+                            pass
+
+                NEIGHBOR_SYSTEMS[sys_id] = {
+                    "name": sys_name,
+                    "system_id": sys_id,
+                    "security_status": round(sys_info.get("security_status", 0), 2),
+                    "region_name": region_name,
+                }
+            except Exception as e:
+                print(f"  [!] Error loading neighbor {sys_name}: {e}")
+    except Exception as e:
+        print(f"  [!] Failed to resolve neighbor names: {e}")
+
+    # Build ALL_MONITORED_IDS
+    for cdata in CONSTELLATION_DATA.values():
+        ALL_MONITORED_IDS.update(cdata["systems"].keys())
+    ALL_MONITORED_IDS.update(NEIGHBOR_SYSTEMS.keys())
+
+    tke_count = sum(len(c["systems"]) for c in CONSTELLATION_DATA.values())
+    lawn_count = len(LAWN_SYSTEM_IDS)
+    neighbor_count = len(NEIGHBOR_SYSTEMS)
+    print(f"[*] Total: {len(CONSTELLATION_DATA)} constellations, "
+          f"{lawn_count} LAWN + {tke_count - lawn_count} TKE + {neighbor_count} neighbor "
+          f"= {len(ALL_MONITORED_IDS)} systems")
+
+
+def _lookup_system_name(sys_id):
+    """Look up system name from CONSTELLATION_DATA or NEIGHBOR_SYSTEMS."""
+    for cdata in CONSTELLATION_DATA.values():
+        if sys_id in cdata["systems"]:
+            return cdata["systems"][sys_id]["name"]
+    if sys_id in NEIGHBOR_SYSTEMS:
+        return NEIGHBOR_SYSTEMS[sys_id]["name"]
+    return ""
 
 
 # ============ API Routes ============
@@ -73,9 +161,15 @@ def api_config():
                 "region_id": data["region_id"],
                 "system_ids": list(data["systems"].keys()),
                 "systems": data["systems"],
+                "is_lawn": data.get("is_lawn", False),
             }
             for cid, data in CONSTELLATION_DATA.items()
         },
+        "neighbor_systems": {
+            str(sys_id): info
+            for sys_id, info in NEIGHBOR_SYSTEMS.items()
+        },
+        "lawn_constellation_ids": list(LAWN_CONSTELLATION_IDS_SET),
         "friendly_alliances": FRIENDLY_ALLIANCES,
         "friendly_corporations": FRIENDLY_CORPORATIONS,
     })
@@ -83,11 +177,7 @@ def api_config():
 
 @app.route("/api/sovereignty")
 def api_sovereignty():
-    """Get sovereignty data for monitored systems."""
-    all_system_ids = set()
-    for cdata in CONSTELLATION_DATA.values():
-        all_system_ids.update(cdata["systems"].keys())
-    
+    """Get sovereignty data for all monitored systems."""
     sov_map = esi_client.get_sovereignty_map()
 
     # Get ADM and vulnerability window data from sovereignty structures
@@ -113,21 +203,21 @@ def api_sovereignty():
     except Exception as e:
         print(f"[!] Failed to fetch sovereignty structures: {e}")
 
-    # Filter to our systems and resolve alliance names
+    # Filter to ALL monitored systems and resolve alliance names
     result = {}
     alliance_cache = {}
     corp_cache = {}
-    
+
     for entry in sov_map:
         sys_id = entry.get("system_id")
-        if sys_id in all_system_ids:
+        if sys_id in ALL_MONITORED_IDS:
             alliance_id = entry.get("alliance_id")
             corp_id = entry.get("corporation_id")
             faction_id = entry.get("faction_id")
-            
+
             alliance_name = None
             corp_name = None
-            
+
             if alliance_id:
                 if alliance_id not in alliance_cache:
                     try:
@@ -136,7 +226,7 @@ def api_sovereignty():
                     except Exception:
                         alliance_cache[alliance_id] = f"Alliance {alliance_id}"
                 alliance_name = alliance_cache[alliance_id]
-            
+
             if corp_id:
                 if corp_id not in corp_cache:
                     try:
@@ -145,7 +235,7 @@ def api_sovereignty():
                     except Exception:
                         corp_cache[corp_id] = f"Corp {corp_id}"
                 corp_name = corp_cache[corp_id]
-            
+
             is_friendly = alliance_name in FRIENDLY_ALLIANCES if alliance_name else False
 
             result[sys_id] = {
@@ -166,11 +256,7 @@ def api_sovereignty():
     # Snapshot ADM values to database
     adm_batch = []
     for sys_id, sys_data in result.items():
-        sys_name = ""
-        for cdata in CONSTELLATION_DATA.values():
-            if sys_id in cdata["systems"]:
-                sys_name = cdata["systems"][sys_id]["name"]
-                break
+        sys_name = _lookup_system_name(sys_id)
         adm_batch.append((sys_id, sys_name, sys_data["adm"], sys_data.get("alliance_name")))
     db.snapshot_adm_batch(adm_batch)
 
@@ -179,14 +265,10 @@ def api_sovereignty():
 
 @app.route("/api/activity")
 def api_activity():
-    """Get kill and jump activity for monitored systems."""
-    all_system_ids = set()
-    for cdata in CONSTELLATION_DATA.values():
-        all_system_ids.update(cdata["systems"].keys())
-    
+    """Get kill and jump activity for all monitored systems."""
     kills_data = esi_client.get_system_kills()
     jumps_data = esi_client.get_system_jumps()
-    
+
     # Index by system_id
     kills_by_system = {
         entry["system_id"]: entry for entry in kills_data
@@ -194,12 +276,12 @@ def api_activity():
     jumps_by_system = {
         entry["system_id"]: entry for entry in jumps_data
     }
-    
+
     result = {}
-    for sys_id in all_system_ids:
+    for sys_id in ALL_MONITORED_IDS:
         kills = kills_by_system.get(sys_id, {})
         jumps = jumps_by_system.get(sys_id, {})
-        
+
         result[sys_id] = {
             "system_id": sys_id,
             "ship_kills": kills.get("ship_kills", 0),
@@ -222,29 +304,33 @@ def api_activity():
 
 @app.route("/api/campaigns")
 def api_campaigns():
-    """Get active sovereignty campaigns with enriched data."""
-    # Build system name lookup
+    """Get active sovereignty campaigns across all TKE constellations."""
+    # Build system name lookup from ALL sources
     system_names = {}
-    our_constellation_ids = set()
+    all_constellation_ids = set()
     for const_id, cdata in CONSTELLATION_DATA.items():
-        our_constellation_ids.add(const_id)
+        all_constellation_ids.add(const_id)
         for sys_id, sys_info in cdata["systems"].items():
             system_names[sys_id] = sys_info["name"]
+    for sys_id, info in NEIGHBOR_SYSTEMS.items():
+        system_names[sys_id] = info["name"]
 
     # Fetch campaigns and structures
     campaigns = esi_client.get_sovereignty_campaigns()
     structures = esi_client.get_sovereignty_structures()
     structure_by_id = {s["structure_id"]: s for s in structures}
 
-    # Filter and enrich
+    # Filter to ALL TKE constellations (not just LAWN)
     enriched = []
     for campaign in campaigns:
-        if campaign.get("constellation_id") not in our_constellation_ids:
+        if campaign.get("constellation_id") not in all_constellation_ids:
             continue
 
         sys_id = campaign.get("solar_system_id")
         struct_id = campaign.get("structure_id")
         struct_data = structure_by_id.get(struct_id, {})
+
+        is_lawn = sys_id in LAWN_SYSTEM_IDS
 
         enriched_campaign = {
             **campaign,
@@ -252,6 +338,7 @@ def api_campaigns():
             "vulnerable_start_time": struct_data.get("vulnerable_start_time"),
             "vulnerable_end_time": struct_data.get("vulnerable_end_time"),
             "structure_type_id": struct_data.get("structure_type_id"),
+            "is_lawn": is_lawn,
         }
         enriched.append(enriched_campaign)
 
@@ -268,24 +355,16 @@ def api_zkill(system_id):
 @app.route("/api/zkill/feed")
 def api_zkill_feed():
     """Get enriched kill feed for the region."""
-    all_system_ids = set()
+    # Build LAWN system ID set for in_lawn flag
     system_names = {}
     for cdata in CONSTELLATION_DATA.values():
         for sys_id, sys_info in cdata["systems"].items():
-            all_system_ids.add(sys_id)
             system_names[sys_id] = sys_info["name"]
+    for sys_id, info in NEIGHBOR_SYSTEMS.items():
+        system_names[sys_id] = info["name"]
 
     # Fetch recent kills from zKillboard for the whole region
-    region_id = None
-    for cdata in CONSTELLATION_DATA.values():
-        region_id = cdata.get("region_id")
-        if region_id:
-            break
-
-    if not region_id:
-        return jsonify([])
-
-    raw_kills = esi_client.get_zkill_region(region_id)
+    raw_kills = esi_client.get_zkill_region(REGION_ID)
 
     # Enrich up to 20 kills with ESI killmail data
     feed = []
@@ -380,7 +459,7 @@ def api_zkill_feed():
             "time": km.get("killmail_time", ""),
             "system_id": solar_system_id,
             "system_name": sys_name,
-            "in_lawn": solar_system_id in all_system_ids,
+            "in_lawn": solar_system_id in LAWN_SYSTEM_IDS,
             "victim": {
                 "character_name": victim_name,
                 "corporation_name": victim_corp,
@@ -409,23 +488,30 @@ def api_history_adm():
 @app.route("/api/status")
 def api_status():
     """Health check / status endpoint."""
-    total_systems = sum(len(c["systems"]) for c in CONSTELLATION_DATA.values())
+    tke_systems = sum(len(c["systems"]) for c in CONSTELLATION_DATA.values())
+    lawn_systems = len(LAWN_SYSTEM_IDS)
+    neighbor_systems = len(NEIGHBOR_SYSTEMS)
     return jsonify({
         "status": "online",
         "constellations_monitored": len(CONSTELLATION_DATA),
-        "systems_monitored": total_systems,
+        "systems_monitored": len(ALL_MONITORED_IDS),
+        "lawn_systems": lawn_systems,
+        "tke_systems": tke_systems,
+        "neighbor_systems": neighbor_systems,
         "constellation_names": [c["name"] for c in CONSTELLATION_DATA.values()],
     })
 
 
 # ============ Startup ============
 
-# Load constellation data at module import time (works with gunicorn)
-resolve_constellations()
+# Load all systems at module import time (works with gunicorn)
+resolve_all_systems()
 db.init()
 
 if __name__ == "__main__":
+    lawn_names = [c['name'] for c in CONSTELLATION_DATA.values() if c.get('is_lawn')]
     print(f"\n[*] Dashboard starting at http://localhost:{FLASK_PORT}")
     print(f"[*] LAWN Intel Dashboard - Kalevala Expanse")
-    print(f"[*] Monitoring: {', '.join(c['name'] for c in CONSTELLATION_DATA.values())}\n")
+    print(f"[*] LAWN constellations: {', '.join(lawn_names)}")
+    print(f"[*] Monitoring {len(ALL_MONITORED_IDS)} systems total\n")
     app.run(host=FLASK_HOST, port=FLASK_PORT, debug=FLASK_DEBUG)

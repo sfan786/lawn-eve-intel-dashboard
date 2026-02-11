@@ -6,7 +6,7 @@ Handles all data fetching from ESI and zKillboard.
 import time
 import requests
 from typing import Optional
-from config import ESI_BASE, ESI_DATASOURCE, CACHE_TTL, ZKILL_BASE, ZKILL_RECENT_HOURS
+from config import ESI_BASE, ESI_DATASOURCE, CACHE_TTL, ZKILL_BASE, ZKILL_RECENT_HOURS, REGION_ID
 
 # Simple in-memory cache
 _cache = {}
@@ -65,6 +65,43 @@ def get_constellation_info(constellation_id: int) -> dict:
         return cached
     
     data = esi_get(f"/universe/constellations/{constellation_id}/")
+    _set_cache(cache_key, data)
+    return data
+
+
+def get_region_info(region_id: int) -> dict:
+    """Get region details: name, constellation IDs."""
+    cache_key = f"region_{region_id}"
+    cached = _get_cached(cache_key, "region_info")
+    if cached:
+        return cached
+
+    data = esi_get(f"/universe/regions/{region_id}/")
+    _set_cache(cache_key, data)
+    return data
+
+
+def post_universe_ids(names: list) -> dict:
+    """Bulk-resolve names to IDs via POST /universe/ids/.
+    Returns dict with 'systems', 'constellations', etc. lists.
+    """
+    if not names:
+        return {}
+    cache_key = f"universe_ids_{','.join(sorted(names))}"
+    cached = _get_cached(cache_key, "region_info")
+    if cached:
+        return cached
+
+    url = f"{ESI_BASE}/universe/ids/"
+    headers = {
+        "Accept": "application/json",
+        "Content-Type": "application/json",
+        "User-Agent": "AstrumMechanica-IntelDash/1.0 (contact: in-game)"
+    }
+    params = {"datasource": ESI_DATASOURCE}
+    resp = requests.post(url, json=names, headers=headers, params=params, timeout=15)
+    resp.raise_for_status()
+    data = resp.json()
     _set_cache(cache_key, data)
     return data
 
