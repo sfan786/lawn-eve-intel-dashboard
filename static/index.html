@@ -692,22 +692,25 @@
             const vbWidth = isSubway ? 1180 : 1220;
             const vbHeight = isSubway ? 1130 : 790;
 
+            // Build name<->ID mappings from ALL constellations + neighbors
             const nameToId = {};
+            const idToName = {};
+            const lawnConstellationIds = new Set((config && config.lawn_constellation_ids || []).map(String));
+            const lawnSystemIds = new Set();
             if (config && config.constellations) {
-                Object.values(config.constellations).forEach(c => {
+                Object.entries(config.constellations).forEach(([cid, c]) => {
+                    const isLawn = c.is_lawn || lawnConstellationIds.has(String(cid));
                     Object.values(c.systems).forEach(sys => {
                         nameToId[sys.name] = String(sys.system_id);
+                        idToName[String(sys.system_id)] = sys.name;
+                        if (isLawn) lawnSystemIds.add(String(sys.system_id));
                     });
                 });
             }
-
-            // Build reverse mapping for campaign display
-            const idToName = {};
-            if (config && config.constellations) {
-                Object.values(config.constellations).forEach(c => {
-                    Object.values(c.systems).forEach(sys => {
-                        idToName[String(sys.system_id)] = sys.name;
-                    });
+            if (config && config.neighbor_systems) {
+                Object.values(config.neighbor_systems).forEach(sys => {
+                    nameToId[sys.name] = String(sys.system_id);
+                    idToName[String(sys.system_id)] = sys.name;
                 });
             }
 
@@ -764,6 +767,8 @@
             }
 
             function needsCriticalGrinding(name) {
+                const layout = activeLayout[name];
+                if (!layout || !layout.lawn) return false;  // LAWN only
                 const sysId = nameToId[name];
                 if (!sysId) return false;
                 const sov = sovereignty[sysId] || {};
@@ -772,6 +777,8 @@
             }
 
             function needsCautionGrinding(name) {
+                const layout = activeLayout[name];
+                if (!layout || !layout.lawn) return false;  // LAWN only
                 const sysId = nameToId[name];
                 if (!sysId) return false;
                 const sov = sovereignty[sysId] || {};
@@ -820,16 +827,20 @@
                 let ty = (layout.y + (isSubway ? 10 : 20)) * sy + rect.top - 10;
                 if (tx + 210 > window.innerWidth) tx -= 230;
 
+                // Get region name for neighbor systems
+                const neighborInfo = config && config.neighbor_systems && sysId ? config.neighbor_systems[sysId] : null;
+
                 setTooltip({
                     x: tx, y: ty, name,
-                    holder: layout.constellation === "neighbor" ? (layout.holder || layout.note || "Unknown") : (sov.alliance_name || "Unknown"),
+                    holder: sov.alliance_name || (layout.constellation === "neighbor" ? (layout.holder || layout.note || "Unknown") : "Unknown"),
                     corp: sov.corporation_name || "",
                     adm: sov.adm || 0,
                     pvp: (act.ship_kills || 0) + (act.pod_kills || 0),
                     npc: act.npc_kills || 0,
                     jumps: act.jumps || 0,
                     isNeighbor: layout.constellation === "neighbor",
-                    note: layout.note || null,
+                    isLawn: !!layout.lawn,
+                    note: layout.note || (neighborInfo ? neighborInfo.region_name : null),
                     vulnerable_start_time: sov.vulnerable_start_time || null,
                     vulnerable_end_time: sov.vulnerable_end_time || null,
                 });
@@ -1099,75 +1110,71 @@
                             <div className="map-tooltip-name" style={{ color: tooltip.isNeighbor ? '#ffaa00' : '#00ff88' }}>{tooltip.name}</div>
                             <div className="map-tooltip-row"><span className="map-tooltip-label">Holder</span><span>{tooltip.holder}</span></div>
                             {tooltip.corp && <div className="map-tooltip-row"><span className="map-tooltip-label">Corp</span><span>{tooltip.corp}</span></div>}
-                            {!tooltip.isNeighbor && (
-                                <>
-                                    <div className="map-tooltip-row">
-                                        <span className="map-tooltip-label">ADM</span>
-                                        <span style={{ color: tooltip.adm > 0 ? getAdmColor(tooltip.adm) : '#3a5060' }}>
-                                            {tooltip.adm > 0 ? tooltip.adm.toFixed(1) : '—'}
-                                        </span>
+                            <div className="map-tooltip-row">
+                                <span className="map-tooltip-label">ADM</span>
+                                <span style={{ color: tooltip.adm > 0 ? getAdmColor(tooltip.adm) : '#3a5060' }}>
+                                    {tooltip.adm > 0 ? tooltip.adm.toFixed(1) : '—'}
+                                </span>
+                            </div>
+                            {/* Grinding warnings — LAWN only */}
+                            {tooltip.isLawn && tooltip.adm > 0 && tooltip.adm < 4 && (
+                                <div style={{
+                                    fontSize: 10,
+                                    color: tooltip.adm < 2 ? '#ff3355' : '#ffaa00',
+                                    marginTop: 4,
+                                    fontStyle: 'italic'
+                                }}>
+                                    {tooltip.adm < 2 ? '⚠ Critical - Needs immediate grinding' : '⚠ Below safe threshold (4.0)'}
+                                </div>
+                            )}
+                            {/* Campaign status (if reffed) */}
+                            {isReffed(tooltip.name) && (() => {
+                                const sysId = nameToId[tooltip.name];
+                                if (!sysId) return null;
+                                const campaign = campaigns.find(c => String(c.solar_system_id) === sysId);
+                                if (!campaign) return null;
+
+                                const phase = getCampaignPhase(campaign);
+                                const isNodesActive = phase.phase === "nodes";
+
+                                return (
+                                    <div style={{
+                                        fontSize: 11,
+                                        color: isNodesActive ? '#ff3355' : '#ffaa00',
+                                        marginTop: 8,
+                                        paddingTop: 8,
+                                        fontWeight: 'bold',
+                                        borderTop: `1px solid ${isNodesActive ? '#ff335533' : '#ffaa0033'}`
+                                    }}>
+                                        {isNodesActive ? (
+                                            <>
+                                                ⚠ NODES ACTIVE — {((campaign.attackers_score||0)*100).toFixed(0)}% vs {((campaign.defender_score||0)*100).toFixed(0)}%
+                                            </>
+                                        ) : (
+                                            <>
+                                                ⚠ REINFORCED — Nodes in {formatCountdown(phase.nodesSpawnTime)}
+                                            </>
+                                        )}
                                     </div>
-                                    {tooltip.adm > 0 && tooltip.adm < 4 && (
-                                        <div style={{
-                                            fontSize: 10,
-                                            color: tooltip.adm < 2 ? '#ff3355' : '#ffaa00',
-                                            marginTop: 4,
-                                            fontStyle: 'italic'
-                                        }}>
-                                            {tooltip.adm < 2 ? '⚠ Critical - Needs immediate grinding' : '⚠ Below safe threshold (4.0)'}
-                                        </div>
-                                    )}
-                                    {/* Campaign status (if reffed) */}
-                                    {isReffed(tooltip.name) && (() => {
-                                        const sysId = nameToId[tooltip.name];
-                                        if (!sysId) return null;
-                                        const campaign = campaigns.find(c => String(c.solar_system_id) === sysId);
-                                        if (!campaign) return null;
-
-                                        const phase = getCampaignPhase(campaign);
-                                        const isNodesActive = phase.phase === "nodes";
-                                        const vulnWindow = formatVulnWindow(campaign.vulnerable_start_time, campaign.vulnerable_end_time);
-
-                                        return (
-                                            <div style={{
-                                                fontSize: 11,
-                                                color: isNodesActive ? '#ff3355' : '#ffaa00',
-                                                marginTop: 8,
-                                                paddingTop: 8,
-                                                fontWeight: 'bold',
-                                                borderTop: `1px solid ${isNodesActive ? '#ff335533' : '#ffaa0033'}`
-                                            }}>
-                                                {isNodesActive ? (
-                                                    <>
-                                                        ⚠ NODES ACTIVE — {((campaign.attackers_score||0)*100).toFixed(0)}% vs {((campaign.defender_score||0)*100).toFixed(0)}%
-                                                    </>
-                                                ) : (
-                                                    <>
-                                                        ⚠ REINFORCED — Nodes in {formatCountdown(phase.nodesSpawnTime)}
-                                                    </>
-                                                )}
-                                            </div>
-                                        );
-                                    })()}
-                                    <div className="map-tooltip-row"><span className="map-tooltip-label">PVP kills</span><span style={{ color: tooltip.pvp > 0 ? '#ff3355' : '#3a5060' }}>{tooltip.pvp}</span></div>
-                                    <div className="map-tooltip-row"><span className="map-tooltip-label">NPC kills</span><span style={{ color: '#00d4ff' }}>{tooltip.npc}</span></div>
-                                    <div className="map-tooltip-row"><span className="map-tooltip-label">Jumps</span><span style={{ color: '#ffaa00' }}>{tooltip.jumps}</span></div>
-                                    {/* Vulnerability window (for systems with sov structures) */}
-                                    {tooltip.vulnerable_start_time && tooltip.vulnerable_end_time && (
-                                        <div style={{
-                                            fontSize: 10,
-                                            color: '#6a8090',
-                                            marginTop: 6,
-                                            paddingTop: 6,
-                                            borderTop: '1px solid rgba(106,128,144,0.2)',
-                                            fontFamily: 'Share Tech Mono, monospace'
-                                        }}>
-                                            Vuln Window: <span style={{ color: '#00d4ff' }}>
-                                                {formatVulnWindow(tooltip.vulnerable_start_time, tooltip.vulnerable_end_time)}
-                                            </span>
-                                        </div>
-                                    )}
-                                </>
+                                );
+                            })()}
+                            <div className="map-tooltip-row"><span className="map-tooltip-label">PVP kills</span><span style={{ color: tooltip.pvp > 0 ? '#ff3355' : '#3a5060' }}>{tooltip.pvp}</span></div>
+                            <div className="map-tooltip-row"><span className="map-tooltip-label">NPC kills</span><span style={{ color: '#00d4ff' }}>{tooltip.npc}</span></div>
+                            <div className="map-tooltip-row"><span className="map-tooltip-label">Jumps</span><span style={{ color: '#ffaa00' }}>{tooltip.jumps}</span></div>
+                            {/* Vulnerability window (for systems with sov structures) */}
+                            {tooltip.vulnerable_start_time && tooltip.vulnerable_end_time && (
+                                <div style={{
+                                    fontSize: 10,
+                                    color: '#6a8090',
+                                    marginTop: 6,
+                                    paddingTop: 6,
+                                    borderTop: '1px solid rgba(106,128,144,0.2)',
+                                    fontFamily: 'Share Tech Mono, monospace'
+                                }}>
+                                    Vuln Window: <span style={{ color: '#00d4ff' }}>
+                                        {formatVulnWindow(tooltip.vulnerable_start_time, tooltip.vulnerable_end_time)}
+                                    </span>
+                                </div>
                             )}
                             {tooltip.note && <div style={{ marginTop: 4, color: '#6a8090', fontStyle: 'italic', fontSize: 10 }}>{tooltip.note}</div>}
                         </div>
@@ -1229,7 +1236,7 @@
             return (<div className="activity-bar"><div className={`activity-bar-fill ${type}`} style={{ width: `${pct}%` }} /></div>);
         }
 
-        function SystemTable({ systems, sovereignty, activity, selectedSystem, onSelectSystem }) {
+        function SystemTable({ systems, sovereignty, activity, selectedSystem, onSelectSystem, lawnSystemIds }) {
             const sorted = [...systems].sort((a, b) => {
                 const sovA = sovereignty[a.system_id] || {}, sovB = sovereignty[b.system_id] || {};
                 const actA = activity[a.system_id] || {}, actB = activity[b.system_id] || {};
@@ -1261,7 +1268,7 @@
                                 <td><span className={`sov-holder ${sc}`}>{sov.alliance_name || "—"}</span></td>
                                 <td className="stat-num" style={{ color: adm > 0 ? getAdmColor(adm) : 'var(--text-muted)' }}>{adm > 0 ? adm.toFixed(1) : "—"}</td>
                                 <td>
-                                    {adm > 0 && adm < 2 && (
+                                    {lawnSystemIds && lawnSystemIds.has(String(sys.system_id)) && adm > 0 && adm < 2 && (
                                         <span style={{
                                             background: '#ff335530',
                                             border: '1px solid #ff3355',
@@ -1274,7 +1281,7 @@
                                             ⚠ CRITICAL
                                         </span>
                                     )}
-                                    {adm >= 2 && adm < 4 && (
+                                    {lawnSystemIds && lawnSystemIds.has(String(sys.system_id)) && adm >= 2 && adm < 4 && (
                                         <span style={{
                                             background: '#ffaa0020',
                                             border: '1px solid #ffaa00',
@@ -1438,11 +1445,14 @@
 
         function AdmTrends({ admHistory, config, sovereignty }) {
             const lawnSystems = [];
+            const lawnConstIds = new Set((config && config.lawn_constellation_ids || []).map(String));
             if (config && config.constellations) {
-                Object.values(config.constellations).forEach(c => {
-                    Object.values(c.systems).forEach(sys => {
-                        lawnSystems.push({ system_id: sys.system_id, name: sys.name });
-                    });
+                Object.entries(config.constellations).forEach(([cid, c]) => {
+                    if (c.is_lawn || lawnConstIds.has(String(cid))) {
+                        Object.values(c.systems).forEach(sys => {
+                            lawnSystems.push({ system_id: sys.system_id, name: sys.name });
+                        });
+                    }
                 });
             }
 
@@ -1551,6 +1561,7 @@
                         const eventLabel = eventTypeLabels[c.event_type] || "SOV HUB";
                         const vulnWindow = formatVulnWindow(c.vulnerable_start_time, c.vulnerable_end_time);
                         const isNodesActive = phase.phase === "nodes";
+                        const isCampaignLawn = c.is_lawn !== undefined ? c.is_lawn : true;
 
                         return (
                             <div key={i} className="campaign-alert" style={{
@@ -1568,6 +1579,18 @@
                                         <span className="campaign-detail" style={{ fontWeight: 'bold' }}>
                                             {c.system_name}
                                         </span>
+                                        {!isCampaignLawn && (
+                                            <span style={{
+                                                fontSize: 9,
+                                                color: '#6a8090',
+                                                background: 'rgba(106,128,144,0.1)',
+                                                padding: '1px 5px',
+                                                borderRadius: 2,
+                                                border: '1px solid rgba(106,128,144,0.3)',
+                                                fontFamily: 'Orbitron, sans-serif',
+                                                letterSpacing: 1,
+                                            }}>REGIONAL</span>
+                                        )}
                                         <span style={{
                                             fontSize: 10,
                                             color: isNodesActive ? '#ff3355' : '#ffaa00',
@@ -1674,7 +1697,7 @@
             const [error, setError] = useState(null);
             const [refreshing, setRefreshing] = useState(false);
             const [lastUpdate, setLastUpdate] = useState(null);
-            const [activeConst, setActiveConst] = useState("all");
+            const [activeConst, setActiveConst] = useState("lawn");
             const [selectedSystem, setSelectedSystem] = useState(null);
             const timer = useRef(null);
 
@@ -1707,9 +1730,18 @@
 
             const consts = config.constellations;
             const cids = Object.keys(consts);
+            const lawnCids = cids.filter(c => consts[c].is_lawn);
+            const lawnSysIdSet = new Set();
+            lawnCids.forEach(c => Object.values(consts[c].systems).forEach(s => lawnSysIdSet.add(String(s.system_id))));
+
             let visible = [];
-            if (activeConst === "all") { cids.forEach(c => Object.values(consts[c].systems).forEach(s => visible.push(s))); }
-            else { const c = consts[activeConst]; if (c) visible = Object.values(c.systems); }
+            if (activeConst === "lawn") {
+                lawnCids.forEach(c => Object.values(consts[c].systems).forEach(s => visible.push(s)));
+            } else if (activeConst === "all") {
+                cids.forEach(c => Object.values(consts[c].systems).forEach(s => visible.push(s)));
+            } else {
+                const c = consts[activeConst]; if (c) visible = Object.values(c.systems);
+            }
 
             const totPVP = visible.reduce((s, v) => { const a = activity[v.system_id]||{}; return s + (a.ship_kills||0) + (a.pod_kills||0); }, 0);
             const totNPC = visible.reduce((s, v) => s + ((activity[v.system_id]||{}).npc_kills||0), 0);
@@ -1717,7 +1749,7 @@
             const hostile = visible.filter(s => { const sv = sovereignty[s.system_id]; return sv && sv.alliance_name && !sv.is_friendly; }).length;
             const criticalSystems = visible.filter(s => {
                 const sov = sovereignty[s.system_id];
-                return sov && sov.adm > 0 && sov.adm < 2;
+                return lawnSysIdSet.has(String(s.system_id)) && sov && sov.adm > 0 && sov.adm < 2;
             }).length;
 
             return (
@@ -1752,10 +1784,11 @@
                         <KillFeed kills={killFeed}/>
                         <div className="panel panel-wide"><CornerBrackets/><div className="panel-header"><span className="panel-title">System Status</span><span className="panel-badge">{visible.length} systems</span></div>
                             <div className="const-tabs">
-                                <button className={`const-tab ${activeConst==='all'?'active':''}`} onClick={() => setActiveConst('all')}>ALL</button>
-                                {cids.map(c => <button key={c} className={`const-tab ${activeConst===c?'active':''}`} onClick={() => setActiveConst(c)}>{consts[c].name}</button>)}
+                                <button className={`const-tab ${activeConst==='lawn'?'active':''}`} onClick={() => setActiveConst('lawn')} style={activeConst==='lawn' ? {borderColor:'var(--green-dim)',color:'var(--green)'} : {}}>LAWN</button>
+                                <button className={`const-tab ${activeConst==='all'?'active':''}`} onClick={() => setActiveConst('all')}>ALL TKE</button>
+                                {cids.map(c => <button key={c} className={`const-tab ${activeConst===c?'active':''}`} onClick={() => setActiveConst(c)} style={consts[c].is_lawn ? {borderLeftColor:'var(--green-dim)',borderLeftWidth:2} : {}}>{consts[c].name}</button>)}
                             </div>
-                            <SystemTable systems={visible} sovereignty={sovereignty} activity={activity} selectedSystem={selectedSystem} onSelectSystem={setSelectedSystem}/>
+                            <SystemTable systems={visible} sovereignty={sovereignty} activity={activity} selectedSystem={selectedSystem} onSelectSystem={setSelectedSystem} lawnSystemIds={lawnSysIdSet}/>
                         </div>
                         <AdmTrends admHistory={admHistory} config={config} sovereignty={sovereignty} />
                     </div>
