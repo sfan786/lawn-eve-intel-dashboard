@@ -587,20 +587,16 @@ def api_status():
 
 # ============ Startup ============
 
-import os
-
-# When Flask debug mode is on, Werkzeug's reloader spawns a child process
-# (WERKZEUG_RUN_MAIN=true). Skip the heavy ESI loading in the parent process
-# to avoid fetching all system data twice on startup.
-if os.environ.get('WERKZEUG_RUN_MAIN') == 'true' or not FLASK_DEBUG:
-    resolve_all_systems()
-    db.init()
+# Load all systems at module import time (works with gunicorn and Flask dev server).
+# In debug mode, Werkzeug's reloader will cause this to run twice — but with
+# parallel fetches the second load hits the ESI cache and is near-instant.
+resolve_all_systems()
+db.init()
 
 if __name__ == "__main__":
-    if ALL_MONITORED_IDS:
-        lawn_names = [c['name'] for c in CONSTELLATION_DATA.values() if c.get('is_lawn')]
-        print(f"\n[*] Dashboard starting at http://localhost:{FLASK_PORT}")
-        print(f"[*] LAWN Intel Dashboard - Kalevala Expanse")
-        print(f"[*] LAWN constellations: {', '.join(lawn_names)}")
-        print(f"[*] Monitoring {len(ALL_MONITORED_IDS)} systems total\n")
+    lawn_names = [c['name'] for c in CONSTELLATION_DATA.values() if c.get('is_lawn')]
+    print(f"\n[*] Dashboard starting at http://localhost:{FLASK_PORT}")
+    print(f"[*] LAWN Intel Dashboard - Kalevala Expanse")
+    print(f"[*] LAWN constellations: {', '.join(lawn_names)}")
+    print(f"[*] Monitoring {len(ALL_MONITORED_IDS)} systems total\n")
     app.run(host=FLASK_HOST, port=FLASK_PORT, debug=FLASK_DEBUG)
