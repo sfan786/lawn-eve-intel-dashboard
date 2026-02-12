@@ -53,3 +53,6 @@ intel.db-shm
 *.tar.gz
 *.pem
 *.key
+
+.gemini/
+gha-creds-*.json
