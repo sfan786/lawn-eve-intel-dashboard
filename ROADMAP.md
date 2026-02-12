@@ -10,6 +10,8 @@ Prioritized by tactical value for LAWN's current situation: brand new sov in Kal
 - [x] **Sov campaign tracking** — reinforced/nodes phases, countdown timers, progress bars
 - [x] **Kill feed** — zKillboard integration with LAWN/regional tagging
 - [x] **Vulnerability windows** — ADM-based vuln duration calculation per system
+- [x] **Alliance activity summary** — LAWN-wide kills/NPC/jumps totals (always visible regardless of tab selection)
+- [x] **Enhanced data timestamp** — full date/time display for ESI data freshness indicator
 
 ---
 
