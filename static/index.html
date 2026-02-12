@@ -1771,6 +1771,12 @@
                 return lawnSysIdSet.has(String(s.system_id)) && sov && sov.adm > 0 && sov.adm < 2;
             }).length;
 
+            // Alliance-wide activity (LAWN systems only, always visible)
+            const lawnSystems = Object.values(consts).filter(c => c.is_lawn).flatMap(c => Object.values(c.systems));
+            const lawnPVP = lawnSystems.reduce((s, v) => { const a = activity[v.system_id]||{}; return s + (a.ship_kills||0) + (a.pod_kills||0); }, 0);
+            const lawnNPC = lawnSystems.reduce((s, v) => s + ((activity[v.system_id]||{}).npc_kills||0), 0);
+            const lawnJumps = lawnSystems.reduce((s, v) => s + ((activity[v.system_id]||{}).jumps||0), 0);
+
             return (
                 <div>
                     <div className="header">
@@ -1780,7 +1786,7 @@
                         </div>
                         <div className="status-bar">
                             <span><span className="status-dot"/>ONLINE</span>
-                            {lastUpdate && <span>UPDATED {lastUpdate.toLocaleTimeString()}</span>}
+                            {lastUpdate && <span>ESI DATA: {lastUpdate.toLocaleString('en-US', {month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit'})}</span>}
                             <button className={`refresh-btn ${refreshing?'refreshing':''}`} onClick={() => fetchData(false)} disabled={refreshing}>{refreshing ? "REFRESHING..." : "↻ REFRESH"}</button>
                         </div>
                     </div>
@@ -1805,6 +1811,14 @@
 
                                     return <SummaryCard label="Campaigns" value={valueStr} type={type}/>;
                                 })()}
+                            </div>
+                        </div>
+                        <div className="panel panel-wide"><CornerBrackets/><div className="panel-header"><span className="panel-title">LAWN Alliance Activity</span><span className="panel-badge">15 systems · Last hour</span></div>
+                            <div className="summary-row">
+                                <SummaryCard label="Alliance PVP" value={lawnPVP} type={lawnPVP>15?"danger":lawnPVP>5?"warn":"safe"}/>
+                                <SummaryCard label="Alliance NPC" value={lawnNPC.toLocaleString()}/>
+                                <SummaryCard label="Alliance Jumps" value={lawnJumps.toLocaleString()} type={lawnJumps>300?"warn":"default"}/>
+                                <SummaryCard label="Avg Activity" value={lawnSystems.length > 0 ? Math.round((lawnPVP + lawnNPC/10 + lawnJumps/20) / lawnSystems.length) : 0}/>
                             </div>
                         </div>
                         <CampaignAlerts campaigns={campaigns} config={config}/>
