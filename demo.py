@@ -371,13 +371,19 @@ def get_mock_campaigns():
     """Generate mock campaign data — including one non-LAWN regional campaign."""
     now = datetime.utcnow()
 
-    reffed_time = now - timedelta(hours=12)
+    # Real ESI: start_time is when nodes spawn. 
+    # Scores default to 0.4/0.6 for Sov Hubs even when reinforced.
+    
+    # Reinforced structure (nodes in future)
+    reffed_time = now + timedelta(hours=28) 
+    
+    # Active nodes (nodes spawned in the past)
+    nodes_time = now - timedelta(hours=2)
+
     vuln_start = now.replace(hour=16, minute=0, second=0, microsecond=0)
     if vuln_start < now:
         vuln_start += timedelta(days=1)
     vuln_end = vuln_start + timedelta(hours=6, minutes=30)
-
-    nodes_time = now - timedelta(hours=50)
 
     return [
         {
@@ -389,8 +395,8 @@ def get_mock_campaigns():
             "structure_id": 1051234567890,
             "structure_type_id": 32876,
             "start_time": reffed_time.isoformat() + "Z",
-            "attackers_score": 0.0,
-            "defender_score": 0.0,
+            "attackers_score": 0.4,
+            "defender_score": 0.6,
             "vulnerable_start_time": vuln_start.isoformat() + "Z",
             "vulnerable_end_time": vuln_end.isoformat() + "Z",
             "is_lawn": True,
