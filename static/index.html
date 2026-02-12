@@ -1,17 +1,20 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>LAWN Intel — Kalevala Expanse</title>
-    
+
     <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js"></script>
-    
+
     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700;900&family=Share+Tech+Mono&family=Rajdhani:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    
+    <link
+        href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700;900&family=Share+Tech+Mono&family=Rajdhani:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet">
+
     <style>
         :root {
             --bg-deep: #060a0f;
@@ -33,7 +36,11 @@
             --text-muted: #3a5060;
         }
 
-        * { margin: 0; padding: 0; box-sizing: border-box; }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
 
         body {
             background: var(--bg-deep);
@@ -46,145 +53,746 @@
         body::after {
             content: '';
             position: fixed;
-            top: 0; left: 0; right: 0; bottom: 0;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
             background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0, 212, 255, 0.01) 2px, rgba(0, 212, 255, 0.01) 4px);
             pointer-events: none;
             z-index: 9999;
         }
 
-        .corner-bracket { position: absolute; width: 12px; height: 12px; border-color: var(--cyan-dim); border-style: solid; }
-        .corner-bracket.tl { top: -1px; left: -1px; border-width: 1px 0 0 1px; }
-        .corner-bracket.tr { top: -1px; right: -1px; border-width: 1px 1px 0 0; }
-        .corner-bracket.bl { bottom: -1px; left: -1px; border-width: 0 0 1px 1px; }
-        .corner-bracket.br { bottom: -1px; right: -1px; border-width: 0 1px 1px 0; }
+        .corner-bracket {
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            border-color: var(--cyan-dim);
+            border-style: solid;
+        }
+
+        .corner-bracket.tl {
+            top: -1px;
+            left: -1px;
+            border-width: 1px 0 0 1px;
+        }
+
+        .corner-bracket.tr {
+            top: -1px;
+            right: -1px;
+            border-width: 1px 1px 0 0;
+        }
+
+        .corner-bracket.bl {
+            bottom: -1px;
+            left: -1px;
+            border-width: 0 0 1px 1px;
+        }
+
+        .corner-bracket.br {
+            bottom: -1px;
+            right: -1px;
+            border-width: 0 1px 1px 0;
+        }
 
         .header {
             padding: 20px 30px 12px;
             border-bottom: 1px solid var(--border-dim);
-            background: linear-gradient(180deg, rgba(0,212,255,0.04) 0%, transparent 100%);
-            display: flex; align-items: flex-end; justify-content: space-between; gap: 20px;
+            background: linear-gradient(180deg, rgba(0, 212, 255, 0.04) 0%, transparent 100%);
+            display: flex;
+            align-items: flex-end;
+            justify-content: space-between;
+            gap: 20px;
         }
-        .header-left { display: flex; align-items: flex-end; gap: 20px; }
-        .logo-text { font-family: 'Orbitron', sans-serif; font-weight: 900; font-size: 20px; letter-spacing: 6px; color: var(--cyan); text-shadow: 0 0 20px rgba(0,212,255,0.3); line-height: 1; }
-        .logo-sub { font-family: 'Share Tech Mono', monospace; font-size: 11px; color: var(--text-secondary); letter-spacing: 2px; padding-bottom: 2px; }
-        .status-bar { display: flex; align-items: center; gap: 20px; font-family: 'Share Tech Mono', monospace; font-size: 11px; color: var(--text-secondary); }
-        .status-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); box-shadow: 0 0 8px var(--green); display: inline-block; margin-right: 6px; animation: pulse-dot 2s infinite; }
-        @keyframes pulse-dot { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
-        @keyframes pulse-reffed { 0%, 100% { opacity: 0.3; } 50% { opacity: 0.8; } }
 
-        .dashboard { padding: 20px 30px; display: grid; grid-template-columns: 1fr 1fr; gap: 16px; max-width: 1600px; margin: 0 auto; }
-        .panel { background: var(--bg-panel); border: 1px solid var(--border-dim); position: relative; padding: 16px; transition: border-color 0.3s; }
-        .panel:hover { border-color: var(--border-active); }
-        .panel-wide { grid-column: 1 / -1; }
-        .panel-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; padding-bottom: 8px; border-bottom: 1px solid var(--border-dim); }
-        .panel-title { font-family: 'Orbitron', sans-serif; font-size: 11px; font-weight: 500; letter-spacing: 3px; color: var(--cyan); text-transform: uppercase; }
-        .panel-badge { font-family: 'Share Tech Mono', monospace; font-size: 10px; color: var(--text-muted); background: rgba(0,212,255,0.05); padding: 2px 8px; border: 1px solid var(--border-dim); }
+        .header-left {
+            display: flex;
+            align-items: flex-end;
+            gap: 20px;
+        }
 
-        .summary-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; }
-        .summary-card { background: rgba(0,212,255,0.03); border: 1px solid var(--border-dim); padding: 14px 16px; text-align: center; position: relative; }
-        .summary-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; background: var(--cyan-dim); }
-        .summary-label { font-family: 'Share Tech Mono', monospace; font-size: 9px; letter-spacing: 2px; color: var(--text-muted); text-transform: uppercase; margin-bottom: 6px; }
-        .summary-value { font-family: 'Orbitron', sans-serif; font-size: 28px; font-weight: 700; color: var(--cyan); text-shadow: 0 0 15px rgba(0,212,255,0.2); line-height: 1; }
-        .summary-value.warn { color: var(--amber); text-shadow: 0 0 15px rgba(255,170,0,0.2); }
-        .summary-value.danger { color: var(--red); text-shadow: 0 0 15px rgba(255,51,85,0.2); }
-        .summary-value.safe { color: var(--green); text-shadow: 0 0 15px rgba(0,255,136,0.2); }
+        .logo-text {
+            font-family: 'Orbitron', sans-serif;
+            font-weight: 900;
+            font-size: 20px;
+            letter-spacing: 6px;
+            color: var(--cyan);
+            text-shadow: 0 0 20px rgba(0, 212, 255, 0.3);
+            line-height: 1;
+        }
 
-        .sys-table { width: 100%; border-collapse: collapse; font-family: 'Share Tech Mono', monospace; font-size: 12px; }
-        .sys-table thead th { text-align: left; padding: 6px 10px; color: var(--text-muted); font-weight: 400; font-size: 10px; letter-spacing: 1px; text-transform: uppercase; border-bottom: 1px solid var(--border-dim); }
-        .sys-table tbody tr { border-bottom: 1px solid rgba(26, 42, 58, 0.4); transition: background 0.15s; cursor: pointer; }
-        .sys-table tbody tr:hover { background: var(--bg-panel-hover); }
-        .sys-table tbody tr.selected { background: rgba(0,212,255,0.06); border-left: 2px solid var(--cyan); }
-        .sys-table td { padding: 8px 10px; white-space: nowrap; }
-        .sys-name { color: var(--text-primary); font-weight: 600; }
-        .sys-name.friendly { color: var(--green); }
-        .sys-name.hostile { color: var(--red); }
-        .sys-name.neutral { color: var(--amber); }
-        .sec-status { font-size: 11px; opacity: 0.7; }
-        .stat-num { text-align: right; font-variant-numeric: tabular-nums; }
-        .stat-num.high { color: var(--red); }
-        .stat-num.medium { color: var(--amber); }
-        .stat-num.low { color: var(--text-secondary); }
-        .stat-num.none { color: var(--text-muted); }
-        .sov-holder { font-size: 11px; }
-        .sov-holder.friendly { color: var(--green); }
-        .sov-holder.hostile { color: var(--red); }
-        .sov-holder.neutral { color: var(--amber); }
+        .logo-sub {
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 11px;
+            color: var(--text-secondary);
+            letter-spacing: 2px;
+            padding-bottom: 2px;
+        }
 
-        .activity-bar-container { display: flex; align-items: center; gap: 6px; }
-        .activity-bar { height: 4px; background: var(--border-dim); flex: 1; position: relative; overflow: hidden; }
-        .activity-bar-fill { height: 100%; transition: width 0.5s ease; }
-        .activity-bar-fill.npc { background: var(--cyan); }
-        .activity-bar-fill.pvp { background: var(--red); }
-        .activity-bar-fill.jumps { background: var(--amber); }
+        .status-bar {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 11px;
+            color: var(--text-secondary);
+        }
 
-        .campaign-alert { background: rgba(255,51,85,0.05); border: 1px solid var(--red-dim); padding: 12px 16px; margin-bottom: 8px; display: flex; align-items: center; gap: 12px; animation: alert-flash 3s infinite; }
-        @keyframes alert-flash { 0%, 100% { border-color: var(--red-dim); } 50% { border-color: var(--red); } }
-        .campaign-type { font-family: 'Orbitron', sans-serif; font-size: 10px; color: var(--red); letter-spacing: 2px; text-transform: uppercase; white-space: nowrap; }
-        .campaign-detail { font-family: 'Share Tech Mono', monospace; font-size: 12px; color: var(--text-primary); }
+        .status-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--green);
+            box-shadow: 0 0 8px var(--green);
+            display: inline-block;
+            margin-right: 6px;
+            animation: pulse-dot 2s infinite;
+        }
 
-        .const-tabs { display: flex; gap: 2px; margin-bottom: 14px; }
-        .const-tab { font-family: 'Orbitron', sans-serif; font-size: 10px; letter-spacing: 2px; padding: 6px 16px; background: transparent; border: 1px solid var(--border-dim); color: var(--text-secondary); cursor: pointer; transition: all 0.2s; }
-        .const-tab:hover { border-color: var(--border-active); color: var(--text-primary); }
-        .const-tab.active { background: rgba(0,212,255,0.08); border-color: var(--cyan-dim); color: var(--cyan); }
+        @keyframes pulse-dot {
 
-        .loading { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 60vh; gap: 20px; }
-        .loading-spinner { width: 40px; height: 40px; border: 2px solid var(--border-dim); border-top-color: var(--cyan); border-radius: 50%; animation: spin 1s linear infinite; }
-        @keyframes spin { to { transform: rotate(360deg); } }
-        .loading-text { font-family: 'Share Tech Mono', monospace; font-size: 12px; color: var(--text-muted); letter-spacing: 2px; }
-        .error-panel { background: rgba(255,51,85,0.05); border: 1px solid var(--red-dim); padding: 20px; text-align: center; margin: 30px; }
-        .error-panel h3 { font-family: 'Orbitron', sans-serif; color: var(--red); font-size: 13px; letter-spacing: 3px; margin-bottom: 8px; }
-        .error-panel p { font-family: 'Share Tech Mono', monospace; font-size: 12px; color: var(--text-secondary); }
+            0%,
+            100% {
+                opacity: 1;
+            }
 
-        .refresh-btn { font-family: 'Share Tech Mono', monospace; font-size: 10px; letter-spacing: 1px; padding: 4px 12px; background: transparent; border: 1px solid var(--border-dim); color: var(--text-secondary); cursor: pointer; transition: all 0.2s; }
-        .refresh-btn:hover { border-color: var(--cyan-dim); color: var(--cyan); }
+            50% {
+                opacity: 0.4;
+            }
+        }
+
+        @keyframes pulse-reffed {
+
+            0%,
+            100% {
+                opacity: 0.3;
+            }
+
+            50% {
+                opacity: 0.8;
+            }
+        }
+
+        .dashboard {
+            padding: 20px 30px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+
+        .panel {
+            background: var(--bg-panel);
+            border: 1px solid var(--border-dim);
+            position: relative;
+            padding: 16px;
+            transition: border-color 0.3s;
+        }
+
+        .panel:hover {
+            border-color: var(--border-active);
+        }
+
+        .panel-wide {
+            grid-column: 1 / -1;
+        }
+
+        .panel-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 14px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid var(--border-dim);
+        }
+
+        .panel-title {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 11px;
+            font-weight: 500;
+            letter-spacing: 3px;
+            color: var(--cyan);
+            text-transform: uppercase;
+        }
+
+        .panel-badge {
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 10px;
+            color: var(--text-muted);
+            background: rgba(0, 212, 255, 0.05);
+            padding: 2px 8px;
+            border: 1px solid var(--border-dim);
+        }
+
+        .summary-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 12px;
+        }
+
+        .summary-card {
+            background: rgba(0, 212, 255, 0.03);
+            border: 1px solid var(--border-dim);
+            padding: 14px 16px;
+            text-align: center;
+            position: relative;
+        }
+
+        .summary-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: var(--cyan-dim);
+        }
+
+        .summary-label {
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 9px;
+            letter-spacing: 2px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            margin-bottom: 6px;
+        }
+
+        .summary-value {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--cyan);
+            text-shadow: 0 0 15px rgba(0, 212, 255, 0.2);
+            line-height: 1;
+        }
+
+        .summary-value.warn {
+            color: var(--amber);
+            text-shadow: 0 0 15px rgba(255, 170, 0, 0.2);
+        }
+
+        .summary-value.danger {
+            color: var(--red);
+            text-shadow: 0 0 15px rgba(255, 51, 85, 0.2);
+        }
+
+        .summary-value.safe {
+            color: var(--green);
+            text-shadow: 0 0 15px rgba(0, 255, 136, 0.2);
+        }
+
+        .sys-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 12px;
+        }
+
+        .sys-table thead th {
+            text-align: left;
+            padding: 6px 10px;
+            color: var(--text-muted);
+            font-weight: 400;
+            font-size: 10px;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            border-bottom: 1px solid var(--border-dim);
+        }
+
+        .sys-table tbody tr {
+            border-bottom: 1px solid rgba(26, 42, 58, 0.4);
+            transition: background 0.15s;
+            cursor: pointer;
+        }
+
+        .sys-table tbody tr:hover {
+            background: var(--bg-panel-hover);
+        }
+
+        .sys-table tbody tr.selected {
+            background: rgba(0, 212, 255, 0.06);
+            border-left: 2px solid var(--cyan);
+        }
+
+        .sys-table td {
+            padding: 8px 10px;
+            white-space: nowrap;
+        }
+
+        .sys-name {
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+
+        .sys-name.friendly {
+            color: var(--green);
+        }
+
+        .sys-name.hostile {
+            color: var(--red);
+        }
+
+        .sys-name.neutral {
+            color: var(--amber);
+        }
+
+        .sec-status {
+            font-size: 11px;
+            opacity: 0.7;
+        }
+
+        .stat-num {
+            text-align: right;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .stat-num.high {
+            color: var(--red);
+        }
+
+        .stat-num.medium {
+            color: var(--amber);
+        }
+
+        .stat-num.low {
+            color: var(--text-secondary);
+        }
+
+        .stat-num.none {
+            color: var(--text-muted);
+        }
+
+        .sov-holder {
+            font-size: 11px;
+        }
+
+        .sov-holder.friendly {
+            color: var(--green);
+        }
+
+        .sov-holder.hostile {
+            color: var(--red);
+        }
+
+        .sov-holder.neutral {
+            color: var(--amber);
+        }
+
+        .activity-bar-container {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .activity-bar {
+            height: 4px;
+            background: var(--border-dim);
+            flex: 1;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .activity-bar-fill {
+            height: 100%;
+            transition: width 0.5s ease;
+        }
+
+        .activity-bar-fill.npc {
+            background: var(--cyan);
+        }
+
+        .activity-bar-fill.pvp {
+            background: var(--red);
+        }
+
+        .activity-bar-fill.jumps {
+            background: var(--amber);
+        }
+
+        .campaign-alert {
+            background: rgba(255, 51, 85, 0.05);
+            border: 1px solid var(--red-dim);
+            padding: 12px 16px;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            animation: alert-flash 3s infinite;
+        }
+
+        @keyframes alert-flash {
+
+            0%,
+            100% {
+                border-color: var(--red-dim);
+            }
+
+            50% {
+                border-color: var(--red);
+            }
+        }
+
+        .campaign-type {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 10px;
+            color: var(--red);
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            white-space: nowrap;
+        }
+
+        .campaign-detail {
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 12px;
+            color: var(--text-primary);
+        }
+
+        .const-tabs {
+            display: flex;
+            gap: 2px;
+            margin-bottom: 14px;
+        }
+
+        .const-tab {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 10px;
+            letter-spacing: 2px;
+            padding: 6px 16px;
+            background: transparent;
+            border: 1px solid var(--border-dim);
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .const-tab:hover {
+            border-color: var(--border-active);
+            color: var(--text-primary);
+        }
+
+        .const-tab.active {
+            background: rgba(0, 212, 255, 0.08);
+            border-color: var(--cyan-dim);
+            color: var(--cyan);
+        }
+
+        .loading {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 60vh;
+            gap: 20px;
+        }
+
+        .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 2px solid var(--border-dim);
+            border-top-color: var(--cyan);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .loading-text {
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 12px;
+            color: var(--text-muted);
+            letter-spacing: 2px;
+        }
+
+        .error-panel {
+            background: rgba(255, 51, 85, 0.05);
+            border: 1px solid var(--red-dim);
+            padding: 20px;
+            text-align: center;
+            margin: 30px;
+        }
+
+        .error-panel h3 {
+            font-family: 'Orbitron', sans-serif;
+            color: var(--red);
+            font-size: 13px;
+            letter-spacing: 3px;
+            margin-bottom: 8px;
+        }
+
+        .error-panel p {
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .refresh-btn {
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 10px;
+            letter-spacing: 1px;
+            padding: 4px 12px;
+            background: transparent;
+            border: 1px solid var(--border-dim);
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .refresh-btn:hover {
+            border-color: var(--cyan-dim);
+            color: var(--cyan);
+        }
 
         /* ============ MAP MODE TOGGLE ============ */
-        .map-mode-toggle { display: flex; gap: 0; font-family: 'Orbitron', sans-serif; font-size: 9px; letter-spacing: 1px; }
-        .map-mode-btn { padding: 4px 12px; background: transparent; border: 1px solid var(--border-dim); color: var(--text-muted); cursor: pointer; transition: all 0.2s; text-transform: uppercase; }
-        .map-mode-btn:first-child { border-radius: 3px 0 0 3px; }
-        .map-mode-btn:last-child { border-radius: 0 3px 3px 0; border-left: none; }
-        .map-mode-btn.active { background: rgba(0,212,255,0.1); border-color: var(--cyan-dim); color: var(--cyan); }
-        .map-mode-btn:hover:not(.active) { border-color: var(--border-active); color: var(--text-secondary); }
+        .map-mode-toggle {
+            display: flex;
+            gap: 0;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 9px;
+            letter-spacing: 1px;
+        }
+
+        .map-mode-btn {
+            padding: 4px 12px;
+            background: transparent;
+            border: 1px solid var(--border-dim);
+            color: var(--text-muted);
+            cursor: pointer;
+            transition: all 0.2s;
+            text-transform: uppercase;
+        }
+
+        .map-mode-btn:first-child {
+            border-radius: 3px 0 0 3px;
+        }
+
+        .map-mode-btn:last-child {
+            border-radius: 0 3px 3px 0;
+            border-left: none;
+        }
+
+        .map-mode-btn.active {
+            background: rgba(0, 212, 255, 0.1);
+            border-color: var(--cyan-dim);
+            color: var(--cyan);
+        }
+
+        .map-mode-btn:hover:not(.active) {
+            border-color: var(--border-active);
+            color: var(--text-secondary);
+        }
 
         /* ============ CONSTELLATION MAP ============ */
-        .map-container { width: 100%; background: rgba(0,5,10,0.6); border: 1px solid var(--border-dim); position: relative; overflow: hidden; }
-        .map-container svg { display: block; width: 100%; height: auto; }
-        .map-legend { display: flex; gap: 20px; margin-top: 10px; font-family: 'Share Tech Mono', monospace; font-size: 10px; color: var(--text-muted); flex-wrap: wrap; }
-        .map-legend-item { display: flex; align-items: center; gap: 6px; }
-        .map-legend-dot { width: 8px; height: 8px; border-radius: 1px; }
-        .map-tooltip { position: fixed; background: var(--bg-deep); border: 1px solid var(--border-active); padding: 10px 14px; font-family: 'Share Tech Mono', monospace; font-size: 11px; color: var(--text-primary); pointer-events: none; z-index: 10000; min-width: 180px; opacity: 0; transition: opacity 0.15s; }
-        .map-tooltip.visible { opacity: 1; }
-        .map-tooltip-name { font-family: 'Orbitron', sans-serif; font-size: 12px; letter-spacing: 2px; margin-bottom: 6px; }
-        .map-tooltip-row { display: flex; justify-content: space-between; gap: 16px; padding: 2px 0; }
-        .map-tooltip-label { color: var(--text-muted); }
+        .map-container {
+            width: 100%;
+            background: rgba(0, 5, 10, 0.6);
+            border: 1px solid var(--border-dim);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .map-container svg {
+            display: block;
+            width: 100%;
+            height: auto;
+        }
+
+        .map-legend {
+            display: flex;
+            gap: 20px;
+            margin-top: 10px;
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 10px;
+            color: var(--text-muted);
+            flex-wrap: wrap;
+        }
+
+        .map-legend-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .map-legend-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 1px;
+        }
+
+        .map-tooltip {
+            position: fixed;
+            background: var(--bg-deep);
+            border: 1px solid var(--border-active);
+            padding: 10px 14px;
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 11px;
+            color: var(--text-primary);
+            pointer-events: none;
+            z-index: 10000;
+            min-width: 180px;
+            opacity: 0;
+            transition: opacity 0.15s;
+        }
+
+        .map-tooltip.visible {
+            opacity: 1;
+        }
+
+        .map-tooltip-name {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 12px;
+            letter-spacing: 2px;
+            margin-bottom: 6px;
+        }
+
+        .map-tooltip-row {
+            display: flex;
+            justify-content: space-between;
+            gap: 16px;
+            padding: 2px 0;
+        }
+
+        .map-tooltip-label {
+            color: var(--text-muted);
+        }
 
         /* ============ KILL FEED ============ */
-        .kill-feed { max-height: 480px; overflow-y: auto; scrollbar-width: thin; scrollbar-color: var(--border-dim) transparent; }
-        .kill-feed::-webkit-scrollbar { width: 4px; }
-        .kill-feed::-webkit-scrollbar-thumb { background: var(--border-dim); }
-        .kill-entry { display: grid; grid-template-columns: 52px 1fr auto; gap: 10px; padding: 8px 10px; border-bottom: 1px solid rgba(26, 42, 58, 0.4); transition: background 0.15s; align-items: center; }
-        .kill-entry:hover { background: var(--bg-panel-hover); }
-        .kill-entry.in-lawn { border-left: 2px solid var(--red); }
-        .kill-time { font-family: 'Share Tech Mono', monospace; font-size: 10px; color: var(--text-muted); text-align: center; line-height: 1.3; }
-        .kill-details { min-width: 0; }
-        .kill-ship { font-family: 'Share Tech Mono', monospace; font-size: 12px; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .kill-parties { font-family: 'Rajdhani', sans-serif; font-size: 11px; color: var(--text-secondary); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .kill-system { font-family: 'Share Tech Mono', monospace; font-size: 10px; padding: 1px 5px; border-radius: 2px; white-space: nowrap; }
-        .kill-system.lawn { background: rgba(255,51,85,0.12); color: var(--red); border: 1px solid rgba(255,51,85,0.3); }
-        .kill-system.region { background: rgba(0,212,255,0.06); color: var(--text-muted); border: 1px solid var(--border-dim); }
-        .kill-value { font-family: 'Share Tech Mono', monospace; font-size: 11px; text-align: right; white-space: nowrap; }
-        .kill-value.high { color: var(--amber); }
-        .kill-value.medium { color: var(--text-secondary); }
-        .kill-value.low { color: var(--text-muted); }
-        .kill-npc-tag { font-size: 9px; color: var(--text-muted); background: rgba(106,128,144,0.1); border: 1px solid var(--border-dim); padding: 0 4px; border-radius: 2px; margin-left: 4px; }
+        .kill-feed {
+            max-height: 480px;
+            overflow-y: auto;
+            scrollbar-width: thin;
+            scrollbar-color: var(--border-dim) transparent;
+        }
+
+        .kill-feed::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        .kill-feed::-webkit-scrollbar-thumb {
+            background: var(--border-dim);
+        }
+
+        .kill-entry {
+            display: grid;
+            grid-template-columns: 52px 1fr auto;
+            gap: 10px;
+            padding: 8px 10px;
+            border-bottom: 1px solid rgba(26, 42, 58, 0.4);
+            transition: background 0.15s;
+            align-items: center;
+        }
+
+        .kill-entry:hover {
+            background: var(--bg-panel-hover);
+        }
+
+        .kill-entry.in-lawn {
+            border-left: 2px solid var(--red);
+        }
+
+        .kill-time {
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 10px;
+            color: var(--text-muted);
+            text-align: center;
+            line-height: 1.3;
+        }
+
+        .kill-details {
+            min-width: 0;
+        }
+
+        .kill-ship {
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 12px;
+            color: var(--text-primary);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .kill-parties {
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 11px;
+            color: var(--text-secondary);
+            margin-top: 2px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .kill-system {
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 10px;
+            padding: 1px 5px;
+            border-radius: 2px;
+            white-space: nowrap;
+        }
+
+        .kill-system.lawn {
+            background: rgba(255, 51, 85, 0.12);
+            color: var(--red);
+            border: 1px solid rgba(255, 51, 85, 0.3);
+        }
+
+        .kill-system.region {
+            background: rgba(0, 212, 255, 0.06);
+            color: var(--text-muted);
+            border: 1px solid var(--border-dim);
+        }
+
+        .kill-value {
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 11px;
+            text-align: right;
+            white-space: nowrap;
+        }
+
+        .kill-value.high {
+            color: var(--amber);
+        }
+
+        .kill-value.medium {
+            color: var(--text-secondary);
+        }
+
+        .kill-value.low {
+            color: var(--text-muted);
+        }
+
+        .kill-npc-tag {
+            font-size: 9px;
+            color: var(--text-muted);
+            background: rgba(106, 128, 144, 0.1);
+            border: 1px solid var(--border-dim);
+            padding: 0 4px;
+            border-radius: 2px;
+            margin-left: 4px;
+        }
 
         @media (max-width: 900px) {
-            .dashboard { grid-template-columns: 1fr; padding: 12px; }
-            .header { flex-direction: column; align-items: flex-start; gap: 10px; padding: 16px; }
-            .panel-wide { grid-column: 1; }
+            .dashboard {
+                grid-template-columns: 1fr;
+                padding: 12px;
+            }
+
+            .header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+                padding: 16px;
+            }
+
+            .panel-wide {
+                grid-column: 1;
+            }
         }
     </style>
 </head>
+
 <body>
     <div id="root"></div>
 
@@ -204,119 +812,119 @@
 
         const MAP_LAYOUT = {
             // ===== LAWN 6-CBBM (center-top) — EMPHASIZED =====
-            "UDVW-O":  { x: 480, y: 58, constellation: "6-CBBM", lawn: true },
-            "UJXC-B":  { x: 570, y: 48, constellation: "6-CBBM", lawn: true },
-            "F48K-D":  { x: 650, y: 52, constellation: "6-CBBM", lawn: true },
-            "1-KCSA":  { x: 575, y: 90, constellation: "6-CBBM", lawn: true },
-            "XTJ-5Q":  { x: 590, y: 132, constellation: "6-CBBM", lawn: true },
-            "JT2I-7":  { x: 480, y: 132, constellation: "6-CBBM", lawn: true },
-            "N-JK02":  { x: 585, y: 172, constellation: "6-CBBM", lawn: true },
+            "UDVW-O": { x: 480, y: 58, constellation: "6-CBBM", lawn: true },
+            "UJXC-B": { x: 570, y: 48, constellation: "6-CBBM", lawn: true },
+            "F48K-D": { x: 650, y: 52, constellation: "6-CBBM", lawn: true },
+            "1-KCSA": { x: 575, y: 90, constellation: "6-CBBM", lawn: true },
+            "XTJ-5Q": { x: 590, y: 132, constellation: "6-CBBM", lawn: true },
+            "JT2I-7": { x: 480, y: 132, constellation: "6-CBBM", lawn: true },
+            "N-JK02": { x: 585, y: 172, constellation: "6-CBBM", lawn: true },
 
             // ===== LAWN 2Q-8WA (top-right) — EMPHASIZED =====
-            "FB5U-I":  { x: 768, y: 55, constellation: "2Q-8WA", lawn: true },
-            "BZ-BCK":  { x: 845, y: 55, constellation: "2Q-8WA", lawn: true },
-            "J-OAH2":  { x: 855, y: 18, constellation: "2Q-8WA", lawn: true },
-            "O5-YNW":  { x: 925, y: 55, constellation: "2Q-8WA", lawn: true },
-            "86L-9F":  { x: 955, y: 18, constellation: "2Q-8WA", lawn: true },
-            "5-VFC6":  { x: 818, y: 110, constellation: "2Q-8WA", lawn: true },
-            "IUU3-L":  { x: 1025, y: 55, constellation: "2Q-8WA", lawn: true },
-            "S-LHPJ":  { x: 1085, y: 18, constellation: "2Q-8WA", lawn: true },
+            "FB5U-I": { x: 768, y: 55, constellation: "2Q-8WA", lawn: true },
+            "BZ-BCK": { x: 845, y: 55, constellation: "2Q-8WA", lawn: true },
+            "J-OAH2": { x: 855, y: 18, constellation: "2Q-8WA", lawn: true },
+            "O5-YNW": { x: 925, y: 55, constellation: "2Q-8WA", lawn: true },
+            "86L-9F": { x: 955, y: 18, constellation: "2Q-8WA", lawn: true },
+            "5-VFC6": { x: 818, y: 110, constellation: "2Q-8WA", lawn: true },
+            "IUU3-L": { x: 1025, y: 55, constellation: "2Q-8WA", lawn: true },
+            "S-LHPJ": { x: 1085, y: 18, constellation: "2Q-8WA", lawn: true },
 
             // ===== S4S-SD (below LAWN, center) =====
-            "LE-67X":  { x: 530, y: 192, constellation: "S4S-SD" },
-            "L-GY1B":  { x: 635, y: 205, constellation: "S4S-SD" },
-            "74-DRC":  { x: 590, y: 278, constellation: "S4S-SD" },
-            "0S1-GI":  { x: 725, y: 325, constellation: "S4S-SD" },
-            "M3-H2Y":  { x: 795, y: 285, constellation: "S4S-SD" },
-            "O31W-6":  { x: 842, y: 355, constellation: "S4S-SD" },
-            "B1UE-J":  { x: 935, y: 318, constellation: "S4S-SD" },
+            "LE-67X": { x: 530, y: 192, constellation: "S4S-SD" },
+            "L-GY1B": { x: 635, y: 205, constellation: "S4S-SD" },
+            "74-DRC": { x: 590, y: 278, constellation: "S4S-SD" },
+            "0S1-GI": { x: 725, y: 325, constellation: "S4S-SD" },
+            "M3-H2Y": { x: 795, y: 285, constellation: "S4S-SD" },
+            "O31W-6": { x: 842, y: 355, constellation: "S4S-SD" },
+            "B1UE-J": { x: 935, y: 318, constellation: "S4S-SD" },
 
             // ===== 3NA-Z1 (left of center) =====
-            "EPCD-D":  { x: 358, y: 192, constellation: "3NA-Z1" },
-            "L-TLFU":  { x: 422, y: 212, constellation: "3NA-Z1" },
-            "BM-VYZ":  { x: 500, y: 212, constellation: "3NA-Z1" },
-            "MN9P-A":  { x: 485, y: 265, constellation: "3NA-Z1" },
-            "RAI-0E":  { x: 402, y: 265, constellation: "3NA-Z1" },
-            "TA9T-P":  { x: 318, y: 270, constellation: "3NA-Z1" },
-            "Q-GICU":  { x: 248, y: 295, constellation: "3NA-Z1" },
+            "EPCD-D": { x: 358, y: 192, constellation: "3NA-Z1" },
+            "L-TLFU": { x: 422, y: 212, constellation: "3NA-Z1" },
+            "BM-VYZ": { x: 500, y: 212, constellation: "3NA-Z1" },
+            "MN9P-A": { x: 485, y: 265, constellation: "3NA-Z1" },
+            "RAI-0E": { x: 402, y: 265, constellation: "3NA-Z1" },
+            "TA9T-P": { x: 318, y: 270, constellation: "3NA-Z1" },
+            "Q-GICU": { x: 248, y: 295, constellation: "3NA-Z1" },
 
             // ===== 78-6RI (far right) =====
-            "6V-D0E":  { x: 1125, y: 132, constellation: "78-6RI" },
-            "LS3-HP":  { x: 1108, y: 172, constellation: "78-6RI" },
-            "QX-4HO":  { x: 1088, y: 215, constellation: "78-6RI" },
-            "BVRQ-O":  { x: 1058, y: 258, constellation: "78-6RI" },
-            "SH6X-F":  { x: 972, y: 258, constellation: "78-6RI" },
-            "FBH-JN":  { x: 1042, y: 292, constellation: "78-6RI" },
+            "6V-D0E": { x: 1125, y: 132, constellation: "78-6RI" },
+            "LS3-HP": { x: 1108, y: 172, constellation: "78-6RI" },
+            "QX-4HO": { x: 1088, y: 215, constellation: "78-6RI" },
+            "BVRQ-O": { x: 1058, y: 258, constellation: "78-6RI" },
+            "SH6X-F": { x: 972, y: 258, constellation: "78-6RI" },
+            "FBH-JN": { x: 1042, y: 292, constellation: "78-6RI" },
 
             // ===== U-HSM3 (south-center) =====
-            "HPV-RJ":  { x: 735, y: 435, constellation: "U-HSM3" },
-            "C3J0-O":  { x: 832, y: 450, constellation: "U-HSM3" },
-            "WNM-V0":  { x: 700, y: 505, constellation: "U-HSM3" },
-            "6FS-CZ":  { x: 618, y: 505, constellation: "U-HSM3" },
-            "H7S-5I":  { x: 505, y: 525, constellation: "U-HSM3" },
-            "GSO-SR":  { x: 675, y: 538, constellation: "U-HSM3" },
-            "G-KCFT":  { x: 848, y: 492, constellation: "U-HSM3" },
-            "B3ZU-H":  { x: 772, y: 542, constellation: "U-HSM3" },
+            "HPV-RJ": { x: 735, y: 435, constellation: "U-HSM3" },
+            "C3J0-O": { x: 832, y: 450, constellation: "U-HSM3" },
+            "WNM-V0": { x: 700, y: 505, constellation: "U-HSM3" },
+            "6FS-CZ": { x: 618, y: 505, constellation: "U-HSM3" },
+            "H7S-5I": { x: 505, y: 525, constellation: "U-HSM3" },
+            "GSO-SR": { x: 675, y: 538, constellation: "U-HSM3" },
+            "G-KCFT": { x: 848, y: 492, constellation: "U-HSM3" },
+            "B3ZU-H": { x: 772, y: 542, constellation: "U-HSM3" },
 
             // ===== 2O-VY7 (far south) =====
-            "A-YB15":  { x: 672, y: 608, constellation: "2O-VY7" },
-            "SG-3HY":  { x: 822, y: 608, constellation: "2O-VY7" },
-            "QZX-L9":  { x: 792, y: 655, constellation: "2O-VY7" },
-            "D-6PKO":  { x: 732, y: 688, constellation: "2O-VY7" },
-            "AU2V-J":  { x: 635, y: 688, constellation: "2O-VY7" },
-            "SY-0AM":  { x: 722, y: 738, constellation: "2O-VY7" },
+            "A-YB15": { x: 672, y: 608, constellation: "2O-VY7" },
+            "SG-3HY": { x: 822, y: 608, constellation: "2O-VY7" },
+            "QZX-L9": { x: 792, y: 655, constellation: "2O-VY7" },
+            "D-6PKO": { x: 732, y: 688, constellation: "2O-VY7" },
+            "AU2V-J": { x: 635, y: 688, constellation: "2O-VY7" },
+            "SY-0AM": { x: 722, y: 738, constellation: "2O-VY7" },
 
             // ===== 8UD2-J (far left) =====
-            "G4-QU6":  { x: 178, y: 338, constellation: "8UD2-J" },
-            "V2-GZS":  { x: 148, y: 378, constellation: "8UD2-J" },
-            "42G-OB":  { x: 98, y: 378, constellation: "8UD2-J" },
-            "1S-SU1":  { x: 25, y: 368, constellation: "8UD2-J" },
-            "LEM-I1":  { x: 45, y: 415, constellation: "8UD2-J" },
-            "HD-HOZ":  { x: 145, y: 422, constellation: "8UD2-J" },
-            "ND-GL4":  { x: 145, y: 468, constellation: "8UD2-J" },
+            "G4-QU6": { x: 178, y: 338, constellation: "8UD2-J" },
+            "V2-GZS": { x: 148, y: 378, constellation: "8UD2-J" },
+            "42G-OB": { x: 98, y: 378, constellation: "8UD2-J" },
+            "1S-SU1": { x: 25, y: 368, constellation: "8UD2-J" },
+            "LEM-I1": { x: 45, y: 415, constellation: "8UD2-J" },
+            "HD-HOZ": { x: 145, y: 422, constellation: "8UD2-J" },
+            "ND-GL4": { x: 145, y: 468, constellation: "8UD2-J" },
 
             // ===== XPG-HE (south-west) =====
-            "K95-9I":  { x: 182, y: 522, constellation: "XPG-HE" },
-            "M-75WN":  { x: 242, y: 542, constellation: "XPG-HE" },
-            "9-0QB7":  { x: 415, y: 542, constellation: "XPG-HE" },
-            "PNFW-O":  { x: 278, y: 578, constellation: "XPG-HE" },
-            "K76A-3":  { x: 348, y: 562, constellation: "XPG-HE" },
-            "HVGR-R":  { x: 238, y: 655, constellation: "XPG-HE" },
+            "K95-9I": { x: 182, y: 522, constellation: "XPG-HE" },
+            "M-75WN": { x: 242, y: 542, constellation: "XPG-HE" },
+            "9-0QB7": { x: 415, y: 542, constellation: "XPG-HE" },
+            "PNFW-O": { x: 278, y: 578, constellation: "XPG-HE" },
+            "K76A-3": { x: 348, y: 562, constellation: "XPG-HE" },
+            "HVGR-R": { x: 238, y: 655, constellation: "XPG-HE" },
 
             // ===== P-B2NE (center-west) =====
-            "R1O-GN":  { x: 315, y: 365, constellation: "P-B2NE" },
-            "RQOO-U":  { x: 400, y: 358, constellation: "P-B2NE" },
-            "I2D3-5":  { x: 378, y: 402, constellation: "P-B2NE" },
-            "BGMZ-0":  { x: 318, y: 408, constellation: "P-B2NE" },
-            "GQ-7SP":  { x: 258, y: 438, constellation: "P-B2NE" },
-            "FZX-PU":  { x: 368, y: 455, constellation: "P-B2NE" },
-            "O9K-FT":  { x: 288, y: 478, constellation: "P-B2NE" },
+            "R1O-GN": { x: 315, y: 365, constellation: "P-B2NE" },
+            "RQOO-U": { x: 400, y: 358, constellation: "P-B2NE" },
+            "I2D3-5": { x: 378, y: 402, constellation: "P-B2NE" },
+            "BGMZ-0": { x: 318, y: 408, constellation: "P-B2NE" },
+            "GQ-7SP": { x: 258, y: 438, constellation: "P-B2NE" },
+            "FZX-PU": { x: 368, y: 455, constellation: "P-B2NE" },
+            "O9K-FT": { x: 288, y: 478, constellation: "P-B2NE" },
 
             // ===== NEIGHBOR: Vale of the Silent (top-left) =====
-            "PX5-LR":  { x: 275, y: 8,  constellation: "neighbor", note: "Vale of the Silent" },
-            "A3-RQ3":  { x: 258, y: 48, constellation: "neighbor", note: "Vale of the Silent" },
-            "9-GBPD":  { x: 262, y: 100, constellation: "neighbor", note: "Vale of the Silent" },
-            "LS-JEP":  { x: 358, y: 72, constellation: "neighbor", note: "Vale of the Silent" },
+            "PX5-LR": { x: 275, y: 8, constellation: "neighbor", note: "Vale of the Silent" },
+            "A3-RQ3": { x: 258, y: 48, constellation: "neighbor", note: "Vale of the Silent" },
+            "9-GBPD": { x: 262, y: 100, constellation: "neighbor", note: "Vale of the Silent" },
+            "LS-JEP": { x: 358, y: 72, constellation: "neighbor", note: "Vale of the Silent" },
 
             // ===== NEIGHBOR: Geminate (far left) =====
-            "9-KWXC":  { x: 72, y: 38, constellation: "neighbor", note: "Geminate" },
-            "HJO-84":  { x: 48, y: 115, constellation: "neighbor", note: "Geminate" },
-            "P-E9GN":  { x: 138, y: 112, constellation: "neighbor", note: "Geminate" },
-            "4D9-66":  { x: 42, y: 162, constellation: "neighbor", note: "Geminate" },
-            "L-TOFR":  { x: 132, y: 160, constellation: "neighbor", note: "Geminate" },
-            "Q-TBHW":  { x: 42, y: 250, constellation: "neighbor", note: "Geminate" },
-            "9P4O-F":  { x: 42, y: 335, constellation: "neighbor", note: "Geminate" },
+            "9-KWXC": { x: 72, y: 38, constellation: "neighbor", note: "Geminate" },
+            "HJO-84": { x: 48, y: 115, constellation: "neighbor", note: "Geminate" },
+            "P-E9GN": { x: 138, y: 112, constellation: "neighbor", note: "Geminate" },
+            "4D9-66": { x: 42, y: 162, constellation: "neighbor", note: "Geminate" },
+            "L-TOFR": { x: 132, y: 160, constellation: "neighbor", note: "Geminate" },
+            "Q-TBHW": { x: 42, y: 250, constellation: "neighbor", note: "Geminate" },
+            "9P4O-F": { x: 42, y: 335, constellation: "neighbor", note: "Geminate" },
 
             // ===== NEIGHBOR: Etherium Reach (scattered south/east) =====
-            "AID-9T":  { x: 712, y: 192, constellation: "neighbor", note: "Etherium Reach" },
-            "TZ-74M":  { x: 478, y: 462, constellation: "neighbor", note: "Etherium Reach" },
-            "FB-MPY":  { x: 578, y: 608, constellation: "neighbor", note: "Etherium Reach" },
-            "J7M-3W":  { x: 838, y: 738, constellation: "neighbor", note: "Etherium Reach" },
+            "AID-9T": { x: 712, y: 192, constellation: "neighbor", note: "Etherium Reach" },
+            "TZ-74M": { x: 478, y: 462, constellation: "neighbor", note: "Etherium Reach" },
+            "FB-MPY": { x: 578, y: 608, constellation: "neighbor", note: "Etherium Reach" },
+            "J7M-3W": { x: 838, y: 738, constellation: "neighbor", note: "Etherium Reach" },
 
             // ===== NEIGHBOR: Malpais (right border) =====
-            "V3P-AZ":  { x: 1062, y: 368, constellation: "neighbor", note: "Malpais" },
-            "7-YHRX":  { x: 995, y: 438, constellation: "neighbor", note: "Malpais" },
-            "Z-EKCY":  { x: 885, y: 655, constellation: "neighbor", note: "Malpais" },
+            "V3P-AZ": { x: 1062, y: 368, constellation: "neighbor", note: "Malpais" },
+            "7-YHRX": { x: 995, y: 438, constellation: "neighbor", note: "Malpais" },
+            "Z-EKCY": { x: 885, y: 655, constellation: "neighbor", note: "Malpais" },
         };
 
         // ============ Subway Map Layout — abstract metro-style (same systems, new positions) ============
@@ -324,120 +932,120 @@
         // TKE systems: compact clusters (35px spacing)
         // Neighbor systems: minimal, at edges
         const MAP_LAYOUT_SUBWAY = {
-            // ===== LAWN 6-CBBM (Green Line, left wing) =====
-            "UDVW-O":  { x: 300, y: 20,   constellation: "6-CBBM", lawn: true },
-            "UJXC-B":  { x: 400, y: 120,  constellation: "6-CBBM", lawn: true },
-            "F48K-D":  { x: 600, y: 120,  constellation: "6-CBBM", lawn: true },
-            "1-KCSA":  { x: 500, y: 220,  constellation: "6-CBBM", lawn: true },
-            "XTJ-5Q":  { x: 500, y: 320,  constellation: "6-CBBM", lawn: true },
-            "JT2I-7":  { x: 400, y: 320,  constellation: "6-CBBM", lawn: true },
-            "N-JK02":  { x: 600, y: 420,  constellation: "6-CBBM", lawn: true },
+            // ===== LAWN 6-CBBM (Green Line, left wing) — UNCHANGED =====
+            "UDVW-O": { x: 300, y: 20, constellation: "6-CBBM", lawn: true },
+            "UJXC-B": { x: 400, y: 120, constellation: "6-CBBM", lawn: true },
+            "F48K-D": { x: 600, y: 120, constellation: "6-CBBM", lawn: true },
+            "1-KCSA": { x: 500, y: 220, constellation: "6-CBBM", lawn: true },
+            "XTJ-5Q": { x: 500, y: 320, constellation: "6-CBBM", lawn: true },
+            "JT2I-7": { x: 400, y: 320, constellation: "6-CBBM", lawn: true },
+            "N-JK02": { x: 600, y: 420, constellation: "6-CBBM", lawn: true },
 
-            // ===== LAWN 2Q-8WA (Green Line, right wing) =====
-            "FB5U-I":  { x: 700, y: 120,  constellation: "2Q-8WA", lawn: true },
-            "BZ-BCK":  { x: 850, y: 120,  constellation: "2Q-8WA", lawn: true },
-            "J-OAH2":  { x: 850, y: 20,   constellation: "2Q-8WA", lawn: true },
-            "O5-YNW":  { x: 1000, y: 120, constellation: "2Q-8WA", lawn: true },
-            "86L-9F":  { x: 1000, y: 20,  constellation: "2Q-8WA", lawn: true },
-            "5-VFC6":  { x: 750, y: 220,  constellation: "2Q-8WA", lawn: true },
-            "IUU3-L":  { x: 1100, y: 120, constellation: "2Q-8WA", lawn: true },
-            "S-LHPJ":  { x: 1100, y: 20,  constellation: "2Q-8WA", lawn: true },
+            // ===== LAWN 2Q-8WA (Green Line, right wing) — UNCHANGED =====
+            "FB5U-I": { x: 700, y: 120, constellation: "2Q-8WA", lawn: true },
+            "BZ-BCK": { x: 850, y: 120, constellation: "2Q-8WA", lawn: true },
+            "J-OAH2": { x: 850, y: 20, constellation: "2Q-8WA", lawn: true },
+            "O5-YNW": { x: 1000, y: 120, constellation: "2Q-8WA", lawn: true },
+            "86L-9F": { x: 1000, y: 20, constellation: "2Q-8WA", lawn: true },
+            "5-VFC6": { x: 750, y: 220, constellation: "2Q-8WA", lawn: true },
+            "IUU3-L": { x: 1100, y: 120, constellation: "2Q-8WA", lawn: true },
+            "S-LHPJ": { x: 1100, y: 20, constellation: "2Q-8WA", lawn: true },
 
-            // ===== S4S-SD (south from N-JK02, spread right into void) =====
-            "L-GY1B":  { x: 600, y: 490,  constellation: "S4S-SD" },
-            "LE-67X":  { x: 540, y: 490,  constellation: "S4S-SD" },
-            "74-DRC":  { x: 680, y: 550,  constellation: "S4S-SD" },
-            "0S1-GI":  { x: 770, y: 610,  constellation: "S4S-SD" },
-            "M3-H2Y":  { x: 850, y: 610,  constellation: "S4S-SD" },
-            "O31W-6":  { x: 830, y: 680,  constellation: "S4S-SD" },
-            "B1UE-J":  { x: 910, y: 740,  constellation: "S4S-SD" },
+            // ===== S4S-SD (Shifted down +35px) =====
+            "L-GY1B": { x: 600, y: 500, constellation: "S4S-SD" },
+            "LE-67X": { x: 530, y: 500, constellation: "S4S-SD" },
+            "74-DRC": { x: 670, y: 535, constellation: "S4S-SD" },
+            "0S1-GI": { x: 730, y: 535, constellation: "S4S-SD" },
+            "M3-H2Y": { x: 790, y: 535, constellation: "S4S-SD" },
+            "O31W-6": { x: 730, y: 595, constellation: "S4S-SD" },
+            "B1UE-J": { x: 850, y: 535, constellation: "S4S-SD" },
 
-            // ===== 3NA-Z1 (west from 74-DRC, spread up-left) =====
-            "MN9P-A":  { x: 470, y: 600,  constellation: "3NA-Z1" },
-            "BM-VYZ":  { x: 420, y: 575,  constellation: "3NA-Z1" },
-            "L-TLFU":  { x: 420, y: 625,  constellation: "3NA-Z1" },
-            "EPCD-D":  { x: 370, y: 625,  constellation: "3NA-Z1" },
-            "RAI-0E":  { x: 420, y: 675,  constellation: "3NA-Z1" },
-            "TA9T-P":  { x: 370, y: 725,  constellation: "3NA-Z1" },
-            "Q-GICU":  { x: 320, y: 775,  constellation: "3NA-Z1" },
+            // ===== 78-6RI (Shifted down +35px) =====
+            "FBH-JN": { x: 910, y: 535, constellation: "78-6RI" },
+            "SH6X-F": { x: 910, y: 495, constellation: "78-6RI" },
+            "BVRQ-O": { x: 970, y: 535, constellation: "78-6RI" },
+            "QX-4HO": { x: 1030, y: 535, constellation: "78-6RI" },
+            "LS3-HP": { x: 1090, y: 535, constellation: "78-6RI" },
+            "6V-D0E": { x: 1150, y: 535, constellation: "78-6RI" },
 
-            // ===== 78-6RI (east from B1UE-J) =====
-            "FBH-JN":  { x: 890, y: 780,  constellation: "78-6RI" },
-            "SH6X-F":  { x: 890, y: 825,  constellation: "78-6RI" },
-            "BVRQ-O":  { x: 940, y: 780,  constellation: "78-6RI" },
-            "QX-4HO":  { x: 990, y: 780,  constellation: "78-6RI" },
-            "LS3-HP":  { x: 1040, y: 780, constellation: "78-6RI" },
-            "6V-D0E":  { x: 1090, y: 780, constellation: "78-6RI" },
+            // ===== 3NA-Z1 (Shifted down +35px) =====
+            "MN9P-A": { x: 610, y: 585, constellation: "3NA-Z1" },
+            "BM-VYZ": { x: 550, y: 585, constellation: "3NA-Z1" },
+            "L-TLFU": { x: 550, y: 625, constellation: "3NA-Z1" },
+            "EPCD-D": { x: 490, y: 625, constellation: "3NA-Z1" },
+            "RAI-0E": { x: 610, y: 645, constellation: "3NA-Z1" },
+            "TA9T-P": { x: 550, y: 675, constellation: "3NA-Z1" },
+            "Q-GICU": { x: 490, y: 675, constellation: "3NA-Z1" },
 
-            // ===== U-HSM3 (south from O31W-6) =====
-            "C3J0-O":  { x: 730, y: 755,  constellation: "U-HSM3" },
-            "WNM-V0":  { x: 730, y: 810,  constellation: "U-HSM3" },
-            "HPV-RJ":  { x: 680, y: 810,  constellation: "U-HSM3" },
-            "G-KCFT":  { x: 785, y: 810,  constellation: "U-HSM3" },
-            "6FS-CZ":  { x: 680, y: 860,  constellation: "U-HSM3" },
-            "H7S-5I":  { x: 630, y: 910,  constellation: "U-HSM3" },
-            "GSO-SR":  { x: 730, y: 860,  constellation: "U-HSM3" },
-            "B3ZU-H":  { x: 785, y: 860,  constellation: "U-HSM3" },
+            // ===== U-HSM3 (Shifted down +35px) =====
+            "C3J0-O": { x: 730, y: 655, constellation: "U-HSM3" },
+            "WNM-V0": { x: 730, y: 715, constellation: "U-HSM3" },
+            "HPV-RJ": { x: 670, y: 715, constellation: "U-HSM3" },
+            "G-KCFT": { x: 790, y: 715, constellation: "U-HSM3" },
+            "6FS-CZ": { x: 670, y: 775, constellation: "U-HSM3" },
+            "H7S-5I": { x: 610, y: 775, constellation: "U-HSM3" },
+            "GSO-SR": { x: 730, y: 775, constellation: "U-HSM3" },
+            "B3ZU-H": { x: 790, y: 775, constellation: "U-HSM3" },
 
-            // ===== 2O-VY7 (far south from G-KCFT) =====
-            "SG-3HY":  { x: 890, y: 860,  constellation: "2O-VY7" },
-            "A-YB15":  { x: 845, y: 910,  constellation: "2O-VY7" },
-            "QZX-L9":  { x: 940, y: 910,  constellation: "2O-VY7" },
-            "D-6PKO":  { x: 890, y: 960,  constellation: "2O-VY7" },
-            "AU2V-J":  { x: 845, y: 960,  constellation: "2O-VY7" },
-            "SY-0AM":  { x: 890, y: 1010, constellation: "2O-VY7" },
+            // ===== 2O-VY7 (Shifted down +35px) =====
+            "SG-3HY": { x: 850, y: 715, constellation: "2O-VY7" },
+            "A-YB15": { x: 910, y: 715, constellation: "2O-VY7" },
+            "QZX-L9": { x: 850, y: 775, constellation: "2O-VY7" },
+            "D-6PKO": { x: 910, y: 775, constellation: "2O-VY7" },
+            "AU2V-J": { x: 970, y: 775, constellation: "2O-VY7" },
+            "SY-0AM": { x: 910, y: 835, constellation: "2O-VY7" },
 
-            // ===== 8UD2-J (far west from Q-GICU) =====
-            "G4-QU6":  { x: 300, y: 820,  constellation: "8UD2-J" },
-            "V2-GZS":  { x: 250, y: 820,  constellation: "8UD2-J" },
-            "42G-OB":  { x: 200, y: 820,  constellation: "8UD2-J" },
-            "1S-SU1":  { x: 150, y: 870,  constellation: "8UD2-J" },
-            "LEM-I1":  { x: 200, y: 870,  constellation: "8UD2-J" },
-            "HD-HOZ":  { x: 250, y: 870,  constellation: "8UD2-J" },
-            "ND-GL4":  { x: 250, y: 920,  constellation: "8UD2-J" },
+            // ===== 8UD2-J (Shifted down +35px) =====
+            "G4-QU6": { x: 430, y: 675, constellation: "8UD2-J" },
+            "V2-GZS": { x: 370, y: 675, constellation: "8UD2-J" },
+            "42G-OB": { x: 310, y: 675, constellation: "8UD2-J" },
+            "1S-SU1": { x: 250, y: 675, constellation: "8UD2-J" },
+            "LEM-I1": { x: 310, y: 735, constellation: "8UD2-J" },
+            "HD-HOZ": { x: 370, y: 735, constellation: "8UD2-J" },
+            "ND-GL4": { x: 370, y: 795, constellation: "8UD2-J" },
 
-            // ===== XPG-HE (south from ND-GL4) =====
-            "K95-9I":  { x: 320, y: 970,  constellation: "XPG-HE" },
-            "M-75WN":  { x: 370, y: 970,  constellation: "XPG-HE" },
-            "9-0QB7":  { x: 420, y: 970,  constellation: "XPG-HE" },
-            "HVGR-R":  { x: 370, y: 1020, constellation: "XPG-HE" },
-            "PNFW-O":  { x: 320, y: 1020, constellation: "XPG-HE" },
-            "K76A-3":  { x: 270, y: 1020, constellation: "XPG-HE" },
+            // ===== P-B2NE (Shifted down +35px) =====
+            "R1O-GN": { x: 490, y: 735, constellation: "P-B2NE" },
+            "RQOO-U": { x: 550, y: 735, constellation: "P-B2NE" },
+            "I2D3-5": { x: 550, y: 795, constellation: "P-B2NE" },
+            "BGMZ-0": { x: 490, y: 795, constellation: "P-B2NE" },
+            "GQ-7SP": { x: 550, y: 855, constellation: "P-B2NE" },
+            "FZX-PU": { x: 610, y: 855, constellation: "P-B2NE" },
+            "O9K-FT": { x: 550, y: 915, constellation: "P-B2NE" },
 
-            // ===== P-B2NE (south from Q-GICU, shifted right to avoid XPG-HE overlap) =====
-            "R1O-GN":  { x: 510, y: 870,  constellation: "P-B2NE" },
-            "RQOO-U":  { x: 560, y: 870,  constellation: "P-B2NE" },
-            "I2D3-5":  { x: 535, y: 920,  constellation: "P-B2NE" },
-            "BGMZ-0":  { x: 485, y: 920,  constellation: "P-B2NE" },
-            "GQ-7SP":  { x: 485, y: 970,  constellation: "P-B2NE" },
-            "FZX-PU":  { x: 535, y: 970,  constellation: "P-B2NE" },
-            "O9K-FT":  { x: 510, y: 1020, constellation: "P-B2NE" },
+            // ===== XPG-HE (Shifted down +35px) =====
+            "K95-9I": { x: 370, y: 855, constellation: "XPG-HE" },
+            "M-75WN": { x: 430, y: 855, constellation: "XPG-HE" },
+            "9-0QB7": { x: 490, y: 855, constellation: "XPG-HE" },
+            "HVGR-R": { x: 430, y: 915, constellation: "XPG-HE" },
+            "PNFW-O": { x: 370, y: 915, constellation: "XPG-HE" },
+            "K76A-3": { x: 310, y: 915, constellation: "XPG-HE" },
 
-            // ===== NEIGHBOR: Vale of the Silent =====
-            "LS-JEP":  { x: 170, y: 55,   constellation: "neighbor", note: "Vale of the Silent" },
-            "A3-RQ3":  { x: 120, y: 55,   constellation: "neighbor", note: "Vale of the Silent" },
-            "9-GBPD":  { x: 120, y: 105,  constellation: "neighbor", note: "Vale of the Silent" },
-            "PX5-LR":  { x: 70,  y: 20,   constellation: "neighbor", note: "Vale of the Silent" },
+            // ===== NEIGHBOR: Vale of the Silent (Unchanged) =====
+            "LS-JEP": { x: 170, y: 55, constellation: "neighbor", note: "Vale of the Silent" },
+            "A3-RQ3": { x: 120, y: 55, constellation: "neighbor", note: "Vale of the Silent" },
+            "9-GBPD": { x: 120, y: 105, constellation: "neighbor", note: "Vale of the Silent" },
+            "PX5-LR": { x: 70, y: 20, constellation: "neighbor", note: "Vale of the Silent" },
 
-            // ===== NEIGHBOR: Geminate =====
-            "9-KWXC":  { x: 80, y: 70,    constellation: "neighbor", note: "Geminate" },
-            "P-E9GN":  { x: 80, y: 140,   constellation: "neighbor", note: "Geminate" },
-            "HJO-84":  { x: 30, y: 140,   constellation: "neighbor", note: "Geminate" },
-            "4D9-66":  { x: 30, y: 210,   constellation: "neighbor", note: "Geminate" },
-            "L-TOFR":  { x: 80, y: 210,   constellation: "neighbor", note: "Geminate" },
-            "Q-TBHW":  { x: 80, y: 360,   constellation: "neighbor", note: "Geminate" },
-            "9P4O-F":  { x: 80, y: 530,   constellation: "neighbor", note: "Geminate" },
+            // ===== NEIGHBOR: Geminate (Shifted down +35px) =====
+            "9-KWXC": { x: 100, y: 385, constellation: "neighbor", note: "Geminate" },
+            "P-E9GN": { x: 100, y: 445, constellation: "neighbor", note: "Geminate" },
+            "HJO-84": { x: 50, y: 445, constellation: "neighbor", note: "Geminate" },
+            "4D9-66": { x: 50, y: 505, constellation: "neighbor", note: "Geminate" },
+            "L-TOFR": { x: 100, y: 505, constellation: "neighbor", note: "Geminate" },
+            "Q-TBHW": { x: 100, y: 575, constellation: "neighbor", note: "Geminate" },
+            "9P4O-F": { x: 180, y: 675, constellation: "neighbor", note: "Geminate" },
 
-            // ===== NEIGHBOR: Etherium Reach =====
-            "AID-9T":  { x: 730, y: 460,  constellation: "neighbor", note: "Etherium Reach" },
-            "TZ-74M":  { x: 540, y: 1060, constellation: "neighbor", note: "Etherium Reach" },
-            "FB-MPY":  { x: 800, y: 950,  constellation: "neighbor", note: "Etherium Reach" },
-            "J7M-3W":  { x: 920, y: 1050, constellation: "neighbor", note: "Etherium Reach" },
+            // ===== NEIGHBOR: Etherium Reach (Shifted down +35px) =====
+            "AID-9T": { x: 670, y: 500, constellation: "neighbor", note: "Etherium Reach" },
+            "TZ-74M": { x: 670, y: 855, constellation: "neighbor", note: "Etherium Reach" },
+            "FB-MPY": { x: 970, y: 715, constellation: "neighbor", note: "Etherium Reach" },
+            "J7M-3W": { x: 970, y: 835, constellation: "neighbor", note: "Etherium Reach" },
 
-            // ===== NEIGHBOR: Malpais =====
-            "V3P-AZ":  { x: 975, y: 700,  constellation: "neighbor", note: "Malpais" },
-            "7-YHRX":  { x: 930, y: 640,  constellation: "neighbor", note: "Malpais" },
-            "Z-EKCY":  { x: 970, y: 950,  constellation: "neighbor", note: "Malpais" },
+            // ===== NEIGHBOR: Malpais (Shifted down +35px) =====
+            "V3P-AZ": { x: 910, y: 595, constellation: "neighbor", note: "Malpais" },
+            "7-YHRX": { x: 790, y: 595, constellation: "neighbor", note: "Malpais" },
+            "Z-EKCY": { x: 850, y: 835, constellation: "neighbor", note: "Malpais" },
         };
 
         // Gate connections — ALL verified from ESI /universe/stargates/ endpoint
@@ -623,7 +1231,7 @@
         function getCampaignPhase(campaign) {
             const now = new Date();
             const startTime = new Date(campaign.start_time);
-            
+
             // ESI start_time in /sovereignty/campaigns/ is the node spawn time.
             // If now >= startTime, nodes are out. 
             // Note: attackers/defender scores can be non-zero (0.4/0.6) during reinforcement,
@@ -687,9 +1295,9 @@
 
             const isSubway = mapMode === "subway";
             const activeLayout = isSubway ? MAP_LAYOUT_SUBWAY : MAP_LAYOUT;
-            const activeViewBox = isSubway ? "-10 -30 1180 1130" : "-40 -20 1220 790";
+            const activeViewBox = isSubway ? "-10 -30 1180 1000" : "-40 -20 1220 790";
             const vbWidth = isSubway ? 1180 : 1220;
-            const vbHeight = isSubway ? 1130 : 790;
+            const vbHeight = isSubway ? 1000 : 790;
 
             // Build name<->ID mappings from ALL constellations + neighbors
             const nameToId = {};
@@ -792,9 +1400,9 @@
                     // Traditional mode - original styles
                     const styles = {
                         internal: { stroke: "#1a3040", width: 1.5, dash: "none", opacity: 0.8 },
-                        cross:    { stroke: "#00d4ff", width: 1.2, dash: "6 3", opacity: 0.8 },
-                        regional: { stroke: "#cc44aa", width: 1,   dash: "8 4", opacity: 0.8 },
-                        neighbor: { stroke: "#1a2030", width: 1,   dash: "none", opacity: 0.5 },
+                        cross: { stroke: "#00d4ff", width: 1.2, dash: "6 3", opacity: 0.8 },
+                        regional: { stroke: "#cc44aa", width: 1, dash: "8 4", opacity: 0.8 },
+                        neighbor: { stroke: "#1a2030", width: 1, dash: "none", opacity: 0.5 },
                     };
                     return styles[type] || styles.internal;
                 }
@@ -804,12 +1412,12 @@
                 const bothLawn = fromLawn && toLawn;
 
                 if (bothLawn && type === "internal") return { stroke: "#00ff88", width: 3, dash: "none", opacity: 1.0, cap: "round" };
-                if (bothLawn && type === "cross")    return { stroke: "#00d4ff", width: 2.5, dash: "8 4", opacity: 1.0, cap: "round" };
+                if (bothLawn && type === "cross") return { stroke: "#00d4ff", width: 2.5, dash: "8 4", opacity: 1.0, cap: "round" };
                 if ((fromLawn || toLawn) && !bothLawn) return { stroke: "#ffaa00", width: 2.5, dash: "6 4", opacity: 0.9, cap: "round" };
 
                 if (type === "neighbor") return { stroke: "#252535", width: 0.8, dash: "none", opacity: 0.4 };
-                if (type === "regional") return { stroke: "#774466", width: 1,   dash: "6 4", opacity: 0.5 };
-                if (type === "cross")    return { stroke: "#3a6070", width: 1.2, dash: "4 3", opacity: 0.6 };
+                if (type === "regional") return { stroke: "#774466", width: 1, dash: "6 4", opacity: 0.5 };
+                if (type === "cross") return { stroke: "#3a6070", width: 1.2, dash: "4 3", opacity: 0.6 };
                 return { stroke: "#1e3040", width: 1.2, dash: "none", opacity: 0.65 };
             }
 
@@ -869,10 +1477,10 @@
                                 <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
                                     <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#0a1520" strokeWidth="0.5" />
                                 </pattern>
-                                <filter id="glow-r"><feGaussianBlur stdDeviation="4" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
-                                <filter id="glow-c"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
-                                <filter id="glow-amber"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
-                                <filter id="glow-green"><feGaussianBlur stdDeviation="5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+                                <filter id="glow-r"><feGaussianBlur stdDeviation="4" result="b" /><feMerge><feMergeNode in="b" /><feMergeNode in="SourceGraphic" /></feMerge></filter>
+                                <filter id="glow-c"><feGaussianBlur stdDeviation="3" result="b" /><feMerge><feMergeNode in="b" /><feMergeNode in="SourceGraphic" /></feMerge></filter>
+                                <filter id="glow-amber"><feGaussianBlur stdDeviation="3" result="b" /><feMerge><feMergeNode in="b" /><feMergeNode in="SourceGraphic" /></feMerge></filter>
+                                <filter id="glow-green"><feGaussianBlur stdDeviation="5" result="b" /><feMerge><feMergeNode in="b" /><feMergeNode in="SourceGraphic" /></feMerge></filter>
                             </defs>
                             <rect x={isSubway ? -10 : -40} y={isSubway ? -30 : -20} width={vbWidth} height={vbHeight} fill="#030608" />
                             <rect x={isSubway ? -10 : -40} y={isSubway ? -10 : -20} width={vbWidth} height={vbHeight} fill="url(#grid)" />
@@ -1147,7 +1755,7 @@
                                     }}>
                                         {isNodesActive ? (
                                             <>
-                                                ⚠ NODES ACTIVE — {((campaign.attackers_score||0)*100).toFixed(0)}% vs {((campaign.defender_score||0)*100).toFixed(0)}%
+                                                ⚠ NODES ACTIVE — {((campaign.attackers_score || 0) * 100).toFixed(0)}% vs {((campaign.defender_score || 0) * 100).toFixed(0)}%
                                             </>
                                         ) : (
                                             <>
@@ -1227,7 +1835,7 @@
         // ============ Other Components ============
 
         function CornerBrackets() {
-            return (<><div className="corner-bracket tl"/><div className="corner-bracket tr"/><div className="corner-bracket bl"/><div className="corner-bracket br"/></>);
+            return (<><div className="corner-bracket tl" /><div className="corner-bracket tr" /><div className="corner-bracket bl" /><div className="corner-bracket br" /></>);
         }
 
         function SummaryCard({ label, value, type = "default" }) {
@@ -1255,58 +1863,58 @@
 
             return (
                 <table className="sys-table"><thead><tr>
-                    <th>System</th><th>Sec</th><th>Sov Holder</th><th style={{textAlign:'right'}}>ADM</th><th>Status</th><th style={{textAlign:'right'}}>PVP</th><th style={{textAlign:'right'}}>Pods</th><th>NPC Kills</th><th>Traffic</th><th style={{textAlign:'right'}}>Jumps</th>
+                    <th>System</th><th>Sec</th><th>Sov Holder</th><th style={{ textAlign: 'right' }}>ADM</th><th>Status</th><th style={{ textAlign: 'right' }}>PVP</th><th style={{ textAlign: 'right' }}>Pods</th><th>NPC Kills</th><th>Traffic</th><th style={{ textAlign: 'right' }}>Jumps</th>
                 </tr></thead><tbody>
-                    {sorted.map(sys => {
-                        const sov = sovereignty[sys.system_id] || {};
-                        const act = activity[sys.system_id] || {};
-                        const pvp = act.ship_kills || 0, pods = act.pod_kills || 0, npc = act.npc_kills || 0, jumps = act.jumps || 0;
-                        const adm = sov.adm || 0;
-                        const sc = sov.is_friendly ? "friendly" : sov.alliance_name ? "hostile" : "neutral";
-                        const isSel = String(sys.system_id) === String(selectedSystem);
-                        return (
-                            <tr key={sys.system_id} className={isSel ? 'selected' : ''} onClick={() => onSelectSystem(String(sys.system_id))}>
-                                <td><span className={`sys-name ${sc}`}>{sys.name}</span></td>
-                                <td className="sec-status">{sys.security_status}</td>
-                                <td><span className={`sov-holder ${sc}`}>{sov.alliance_name || "—"}</span></td>
-                                <td className="stat-num" style={{ color: adm > 0 ? getAdmColor(adm) : 'var(--text-muted)' }}>{adm > 0 ? adm.toFixed(1) : "—"}</td>
-                                <td>
-                                    {lawnSystemIds && lawnSystemIds.has(String(sys.system_id)) && adm > 0 && adm < 2 && (
-                                        <span style={{
-                                            background: '#ff335530',
-                                            border: '1px solid #ff3355',
-                                            color: '#ff3355',
-                                            padding: '2px 6px',
-                                            borderRadius: 3,
-                                            fontSize: 9,
-                                            fontWeight: 'bold'
-                                        }}>
-                                            ⚠ CRITICAL
-                                        </span>
-                                    )}
-                                    {lawnSystemIds && lawnSystemIds.has(String(sys.system_id)) && adm >= 2 && adm < 4 && (
-                                        <span style={{
-                                            background: '#ffaa0020',
-                                            border: '1px solid #ffaa00',
-                                            color: '#ffaa00',
-                                            padding: '2px 6px',
-                                            borderRadius: 3,
-                                            fontSize: 9,
-                                            fontWeight: 'bold'
-                                        }}>
-                                            ⚠ GRIND
-                                        </span>
-                                    )}
-                                </td>
-                                <td className={`stat-num ${classifyKills(pvp)}`}>{pvp}</td>
-                                <td className={`stat-num ${classifyKills(pods, [2,5])}`}>{pods}</td>
-                                <td><div className="activity-bar-container"><ActivityBar value={npc} max={maxNPC} type="npc"/><span className={`stat-num ${classifyKills(npc,[100,500])}`} style={{fontSize:'11px',minWidth:'36px',textAlign:'right'}}>{npc}</span></div></td>
-                                <td><div className="activity-bar-container"><ActivityBar value={jumps} max={maxJumps} type="jumps"/></div></td>
-                                <td className={`stat-num ${classifyKills(jumps,[20,100])}`}>{jumps}</td>
-                            </tr>
-                        );
-                    })}
-                </tbody></table>
+                        {sorted.map(sys => {
+                            const sov = sovereignty[sys.system_id] || {};
+                            const act = activity[sys.system_id] || {};
+                            const pvp = act.ship_kills || 0, pods = act.pod_kills || 0, npc = act.npc_kills || 0, jumps = act.jumps || 0;
+                            const adm = sov.adm || 0;
+                            const sc = sov.is_friendly ? "friendly" : sov.alliance_name ? "hostile" : "neutral";
+                            const isSel = String(sys.system_id) === String(selectedSystem);
+                            return (
+                                <tr key={sys.system_id} className={isSel ? 'selected' : ''} onClick={() => onSelectSystem(String(sys.system_id))}>
+                                    <td><span className={`sys-name ${sc}`}>{sys.name}</span></td>
+                                    <td className="sec-status">{sys.security_status}</td>
+                                    <td><span className={`sov-holder ${sc}`}>{sov.alliance_name || "—"}</span></td>
+                                    <td className="stat-num" style={{ color: adm > 0 ? getAdmColor(adm) : 'var(--text-muted)' }}>{adm > 0 ? adm.toFixed(1) : "—"}</td>
+                                    <td>
+                                        {lawnSystemIds && lawnSystemIds.has(String(sys.system_id)) && adm > 0 && adm < 2 && (
+                                            <span style={{
+                                                background: '#ff335530',
+                                                border: '1px solid #ff3355',
+                                                color: '#ff3355',
+                                                padding: '2px 6px',
+                                                borderRadius: 3,
+                                                fontSize: 9,
+                                                fontWeight: 'bold'
+                                            }}>
+                                                ⚠ CRITICAL
+                                            </span>
+                                        )}
+                                        {lawnSystemIds && lawnSystemIds.has(String(sys.system_id)) && adm >= 2 && adm < 4 && (
+                                            <span style={{
+                                                background: '#ffaa0020',
+                                                border: '1px solid #ffaa00',
+                                                color: '#ffaa00',
+                                                padding: '2px 6px',
+                                                borderRadius: 3,
+                                                fontSize: 9,
+                                                fontWeight: 'bold'
+                                            }}>
+                                                ⚠ GRIND
+                                            </span>
+                                        )}
+                                    </td>
+                                    <td className={`stat-num ${classifyKills(pvp)}`}>{pvp}</td>
+                                    <td className={`stat-num ${classifyKills(pods, [2, 5])}`}>{pods}</td>
+                                    <td><div className="activity-bar-container"><ActivityBar value={npc} max={maxNPC} type="npc" /><span className={`stat-num ${classifyKills(npc, [100, 500])}`} style={{ fontSize: '11px', minWidth: '36px', textAlign: 'right' }}>{npc}</span></div></td>
+                                    <td><div className="activity-bar-container"><ActivityBar value={jumps} max={maxJumps} type="jumps" /></div></td>
+                                    <td className={`stat-num ${classifyKills(jumps, [20, 100])}`}>{jumps}</td>
+                                </tr>
+                            );
+                        })}
+                    </tbody></table>
             );
         }
 
@@ -1331,7 +1939,7 @@
             if (!kills || kills.length === 0) {
                 return (
                     <div className="panel panel-wide">
-                        <CornerBrackets/>
+                        <CornerBrackets />
                         <div className="panel-header">
                             <span className="panel-title">Kill Feed</span>
                             <span className="panel-badge">Kalevala Expanse</span>
@@ -1347,7 +1955,7 @@
 
             return (
                 <div className="panel panel-wide">
-                    <CornerBrackets/>
+                    <CornerBrackets />
                     <div className="panel-header">
                         <span className="panel-title">Kill Feed</span>
                         <span className="panel-badge">
@@ -1470,7 +2078,7 @@
 
             return (
                 <div className="panel panel-wide">
-                    <CornerBrackets/>
+                    <CornerBrackets />
                     <div className="panel-header">
                         <span className="panel-title">ADM Trends</span>
                         <span className="panel-badge">7 day history</span>
@@ -1520,7 +2128,7 @@
                                                         width: 4, height: 4, borderRadius: '50%',
                                                         background: currentAdm < 2 ? '#ff3355' : '#ffaa00',
                                                         boxShadow: `0 0 4px ${currentAdm < 2 ? '#ff3355' : '#ffaa00'}`
-                                                    }}/>
+                                                    }} />
                                                     <span style={{ fontSize: 9, color: currentAdm < 2 ? '#ff3355' : '#ffaa00', opacity: 0.8 }}>
                                                         {currentAdm < 2 ? 'CRIT' : 'LOW'}
                                                     </span>
@@ -1580,15 +2188,15 @@
             // 2. Strategic Importance (Gateways/Cross-constellation) = +500
             // 3. Current ADM (lower is better) = (6.0 - ADM) * 10
             // 4. Trend (dropping is bad) = if dropping, +50
-            
+
             const strategicSystems = new Set(["UDVW-O", "N-JK02", "F48K-D", "FB5U-I"]); // Gateways & Bridges
-            
+
             const plannedSystems = lawnSystems.map(sys => {
                 const sysId = sys.system_id;
                 const sov = sovereignty[sysId] || {};
                 const adm = sov.adm || 0;
                 const histData = admHistory && admHistory[sysId] ? admHistory[sysId].history : [];
-                
+
                 // Calculate trend (24h change)
                 let change24h = 0;
                 if (histData.length >= 2) {
@@ -1604,14 +2212,14 @@
                 }
 
                 let score = 0;
-                
+
                 // Base importance
                 if (adm > 0 && adm < 2.0) score += 1000;
                 else if (adm >= 2.0 && adm < 4.0) score += 200;
-                
+
                 // Strategic bonus
                 if (strategicSystems.has(sys.name)) score += 500;
-                
+
                 // ADM factor (lower ADM = higher score)
                 if (adm > 0) score += (6.0 - adm) * 50;
 
@@ -1637,15 +2245,15 @@
 
             return (
                 <div className="panel panel-wide" style={{ borderColor: 'var(--amber-dim)' }}>
-                    <CornerBrackets/>
+                    <CornerBrackets />
                     <div className="panel-header">
                         <span className="panel-title" style={{ color: 'var(--amber)' }}>⚠ Daily Grinding Targets</span>
                         <span className="panel-badge">Top Priorities</span>
                     </div>
-                    <div style={{ 
-                        display: 'grid', 
-                        gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', 
-                        gap: 10 
+                    <div style={{
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+                        gap: 10
                     }}>
                         {targets.map((sys, i) => (
                             <div key={sys.system_id} style={{
@@ -1658,15 +2266,15 @@
                                 position: 'relative'
                             }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                    <span style={{ 
-                                        fontFamily: 'Orbitron, sans-serif', 
-                                        fontWeight: 'bold', 
-                                        color: sys.adm < 2.0 ? 'var(--red)' : 'var(--text-primary)' 
+                                    <span style={{
+                                        fontFamily: 'Orbitron, sans-serif',
+                                        fontWeight: 'bold',
+                                        color: sys.adm < 2.0 ? 'var(--red)' : 'var(--text-primary)'
                                     }}>
                                         {sys.name}
                                     </span>
-                                    <span style={{ 
-                                        fontFamily: 'Share Tech Mono, monospace', 
+                                    <span style={{
+                                        fontFamily: 'Share Tech Mono, monospace',
                                         color: getAdmColor(sys.adm),
                                         fontWeight: 'bold'
                                     }}>
@@ -1681,11 +2289,11 @@
                                         <span style={{ color: 'var(--red)' }}>DROPPING ({sys.change24h.toFixed(1)})</span>
                                     )}
                                 </div>
-                                <div style={{ 
-                                    fontSize: 9, 
-                                    color: 'var(--text-muted)', 
+                                <div style={{
+                                    fontSize: 9,
+                                    color: 'var(--text-muted)',
                                     fontStyle: 'italic',
-                                    marginTop: 4 
+                                    marginTop: 4
                                 }}>
                                     {sys.adm < 2.0 ? "CRITICAL VULNERABILITY" : "Raise to 4.0+"}
                                 </div>
@@ -1733,7 +2341,7 @@
 
             return (
                 <div className="panel panel-wide">
-                    <CornerBrackets/>
+                    <CornerBrackets />
                     <div className="panel-header">
                         <span className="panel-title">⚠ Sovereignty Campaigns</span>
                         <div className="panel-badge">
@@ -1822,10 +2430,10 @@
                                                 fontFamily: 'Share Tech Mono, monospace'
                                             }}>
                                                 <span style={{ color: '#ff3355' }}>
-                                                    Attackers: {((c.attackers_score||0)*100).toFixed(0)}%
+                                                    Attackers: {((c.attackers_score || 0) * 100).toFixed(0)}%
                                                 </span>
                                                 <span style={{ color: '#00ff88' }}>
-                                                    Defenders: {((c.defender_score||0)*100).toFixed(0)}%
+                                                    Defenders: {((c.defender_score || 0) * 100).toFixed(0)}%
                                                 </span>
                                             </div>
                                             <div style={{
@@ -1836,15 +2444,15 @@
                                                 display: 'flex'
                                             }}>
                                                 <div style={{
-                                                    width: `${(c.attackers_score||0)*100}%`,
+                                                    width: `${(c.attackers_score || 0) * 100}%`,
                                                     background: '#ff3355',
                                                     transition: 'width 0.5s ease'
-                                                }}/>
+                                                }} />
                                                 <div style={{
-                                                    width: `${(c.defender_score||0)*100}%`,
+                                                    width: `${(c.defender_score || 0) * 100}%`,
                                                     background: '#00ff88',
                                                     transition: 'width 0.5s ease'
-                                                }}/>
+                                                }} />
                                             </div>
                                         </div>
                                     )}
@@ -1898,8 +2506,8 @@
                     ]);
                     setConfig(cfg); setSovereignty(sov); setActivity(act); setCampaigns(camp);
                     // Fetch kill feed and ADM history separately — don't block main data load
-                    fetch("/api/zkill/feed").then(r => r.json()).then(setKillFeed).catch(() => {});
-                    fetch("/api/history/adm").then(r => r.json()).then(setAdmHistory).catch(() => {});
+                    fetch("/api/zkill/feed").then(r => r.json()).then(setKillFeed).catch(() => { });
+                    fetch("/api/history/adm").then(r => r.json()).then(setAdmHistory).catch(() => { });
                     setLastUpdate(new Date()); setError(null);
                 } catch (err) { if (init) setError(err.message); }
                 finally { setLoading(false); setRefreshing(false); }
@@ -1911,7 +2519,7 @@
                 return () => clearInterval(timer.current);
             }, [fetchData]);
 
-            if (loading) return (<div className="loading"><div className="loading-spinner"/><div className="loading-text">CONNECTING TO ESI...</div></div>);
+            if (loading) return (<div className="loading"><div className="loading-spinner" /><div className="loading-text">CONNECTING TO ESI...</div></div>);
             if (error || !config || !config.constellations) return (<div className="error-panel"><h3>{error ? "CONNECTION FAILED" : "NO DATA"}</h3><p>{error || "Check config.py"}</p></div>);
 
             const consts = config.constellations;
@@ -1929,9 +2537,9 @@
                 const c = consts[activeConst]; if (c) visible = Object.values(c.systems);
             }
 
-            const totPVP = visible.reduce((s, v) => { const a = activity[v.system_id]||{}; return s + (a.ship_kills||0) + (a.pod_kills||0); }, 0);
-            const totNPC = visible.reduce((s, v) => s + ((activity[v.system_id]||{}).npc_kills||0), 0);
-            const totJ = visible.reduce((s, v) => s + ((activity[v.system_id]||{}).jumps||0), 0);
+            const totPVP = visible.reduce((s, v) => { const a = activity[v.system_id] || {}; return s + (a.ship_kills || 0) + (a.pod_kills || 0); }, 0);
+            const totNPC = visible.reduce((s, v) => s + ((activity[v.system_id] || {}).npc_kills || 0), 0);
+            const totJ = visible.reduce((s, v) => s + ((activity[v.system_id] || {}).jumps || 0), 0);
             const hostile = visible.filter(s => { const sv = sovereignty[s.system_id]; return sv && sv.alliance_name && !sv.is_friendly; }).length;
             const criticalSystems = visible.filter(s => {
                 const sov = sovereignty[s.system_id];
@@ -1940,32 +2548,32 @@
 
             // Alliance-wide activity (LAWN systems only, always visible)
             const lawnSystems = Object.values(consts).filter(c => c.is_lawn).flatMap(c => Object.values(c.systems));
-            const lawnPVP = lawnSystems.reduce((s, v) => { const a = activity[v.system_id]||{}; return s + (a.ship_kills||0) + (a.pod_kills||0); }, 0);
-            const lawnNPC = lawnSystems.reduce((s, v) => s + ((activity[v.system_id]||{}).npc_kills||0), 0);
-            const lawnJumps = lawnSystems.reduce((s, v) => s + ((activity[v.system_id]||{}).jumps||0), 0);
+            const lawnPVP = lawnSystems.reduce((s, v) => { const a = activity[v.system_id] || {}; return s + (a.ship_kills || 0) + (a.pod_kills || 0); }, 0);
+            const lawnNPC = lawnSystems.reduce((s, v) => s + ((activity[v.system_id] || {}).npc_kills || 0), 0);
+            const lawnJumps = lawnSystems.reduce((s, v) => s + ((activity[v.system_id] || {}).jumps || 0), 0);
 
             return (
                 <div>
                     <div className="header">
                         <div className="header-left">
                             <img src="/static/logo.png" alt="" style={{ height: 40, marginRight: 12, display: 'block' }} onError={(e) => { e.target.style.display = 'none'; }} />
-                            <div><div className="logo-text">GET OFF MY LAWN</div><div className="logo-sub" style={{marginTop:'4px'}}>KALEVALA EXPANSE — INTEL DASHBOARD</div></div>
+                            <div><div className="logo-text">GET OFF MY LAWN</div><div className="logo-sub" style={{ marginTop: '4px' }}>KALEVALA EXPANSE — INTEL DASHBOARD</div></div>
                         </div>
                         <div className="status-bar">
-                            <span><span className="status-dot"/>ONLINE</span>
-                            {lastUpdate && <span>ESI DATA: {lastUpdate.toLocaleString('en-US', {month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit'})}</span>}
-                            <button className={`refresh-btn ${refreshing?'refreshing':''}`} onClick={() => fetchData(false)} disabled={refreshing}>{refreshing ? "REFRESHING..." : "↻ REFRESH"}</button>
+                            <span><span className="status-dot" />ONLINE</span>
+                            {lastUpdate && <span>ESI DATA: {lastUpdate.toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span>}
+                            <button className={`refresh-btn ${refreshing ? 'refreshing' : ''}`} onClick={() => fetchData(false)} disabled={refreshing}>{refreshing ? "REFRESHING..." : "↻ REFRESH"}</button>
                         </div>
                     </div>
                     <div className="dashboard">
-                        <div className="panel panel-wide"><CornerBrackets/><div className="panel-header"><span className="panel-title">Situation Overview</span><span className="panel-badge">Last hour</span></div>
+                        <div className="panel panel-wide"><CornerBrackets /><div className="panel-header"><span className="panel-title">Situation Overview</span><span className="panel-badge">Last hour</span></div>
                             <div className="summary-row">
-                                <SummaryCard label="Systems" value={visible.length}/>
-                                <SummaryCard label="PVP Kills" value={totPVP} type={totPVP>10?"danger":totPVP>0?"warn":"safe"}/>
-                                <SummaryCard label="NPC Kills" value={totNPC.toLocaleString()}/>
-                                <SummaryCard label="Jumps" value={totJ.toLocaleString()} type={totJ>200?"warn":"default"}/>
-                                <SummaryCard label="Critical ADM" value={criticalSystems} type={criticalSystems > 3 ? "danger" : criticalSystems > 0 ? "warn" : "safe"}/>
-                                <SummaryCard label="Hostile Sov" value={hostile} type={hostile>0?"danger":"safe"}/>
+                                <SummaryCard label="Systems" value={visible.length} />
+                                <SummaryCard label="PVP Kills" value={totPVP} type={totPVP > 10 ? "danger" : totPVP > 0 ? "warn" : "safe"} />
+                                <SummaryCard label="NPC Kills" value={totNPC.toLocaleString()} />
+                                <SummaryCard label="Jumps" value={totJ.toLocaleString()} type={totJ > 200 ? "warn" : "default"} />
+                                <SummaryCard label="Critical ADM" value={criticalSystems} type={criticalSystems > 3 ? "danger" : criticalSystems > 0 ? "warn" : "safe"} />
+                                <SummaryCard label="Hostile Sov" value={hostile} type={hostile > 0 ? "danger" : "safe"} />
                                 {(() => {
                                     const activeCount = campaigns.filter(c => getCampaignPhase(c).phase === 'nodes').length;
                                     const reffedCount = campaigns.filter(c => getCampaignPhase(c).phase === 'reinforced').length;
@@ -1973,34 +2581,34 @@
                                     let label = "Campaigns";
                                     if (activeCount > 0) type = "danger";
                                     else if (reffedCount > 0) type = "warn";
-                                    
+
                                     const valueStr = activeCount > 0 ? `${activeCount} (+${reffedCount})` : reffedCount;
 
-                                    return <SummaryCard label="Campaigns" value={valueStr} type={type}/>;
+                                    return <SummaryCard label="Campaigns" value={valueStr} type={type} />;
                                 })()}
                             </div>
                         </div>
-                        <div className="panel panel-wide"><CornerBrackets/><div className="panel-header"><span className="panel-title">LAWN Alliance Activity</span><span className="panel-badge">15 systems · Last hour</span></div>
+                        <div className="panel panel-wide"><CornerBrackets /><div className="panel-header"><span className="panel-title">LAWN Alliance Activity</span><span className="panel-badge">15 systems · Last hour</span></div>
                             <div className="summary-row">
-                                <SummaryCard label="Alliance PVP" value={lawnPVP} type={lawnPVP>15?"danger":lawnPVP>5?"warn":"safe"}/>
-                                <SummaryCard label="Alliance NPC" value={lawnNPC.toLocaleString()}/>
-                                <SummaryCard label="Alliance Jumps" value={lawnJumps.toLocaleString()} type={lawnJumps>300?"warn":"default"}/>
-                                <SummaryCard label="Avg Activity" value={lawnSystems.length > 0 ? Math.round((lawnPVP + lawnNPC/10 + lawnJumps/20) / lawnSystems.length) : 0}/>
+                                <SummaryCard label="Alliance PVP" value={lawnPVP} type={lawnPVP > 15 ? "danger" : lawnPVP > 5 ? "warn" : "safe"} />
+                                <SummaryCard label="Alliance NPC" value={lawnNPC.toLocaleString()} />
+                                <SummaryCard label="Alliance Jumps" value={lawnJumps.toLocaleString()} type={lawnJumps > 300 ? "warn" : "default"} />
+                                <SummaryCard label="Avg Activity" value={lawnSystems.length > 0 ? Math.round((lawnPVP + lawnNPC / 10 + lawnJumps / 20) / lawnSystems.length) : 0} />
                             </div>
                         </div>
                         <GrindingPlan config={config} sovereignty={sovereignty} activity={activity} admHistory={admHistory} />
-                        <CampaignAlerts campaigns={campaigns} config={config}/>
-                        <div className="panel panel-wide"><CornerBrackets/><div className="panel-header"><span className="panel-title">Constellation Map</span><span className="panel-badge">69 systems + 18 neighbors</span></div>
-                            <ConstellationMap config={config} sovereignty={sovereignty} activity={activity} campaigns={campaigns} selectedSystem={selectedSystem} onSelectSystem={setSelectedSystem}/>
+                        <CampaignAlerts campaigns={campaigns} config={config} />
+                        <div className="panel panel-wide"><CornerBrackets /><div className="panel-header"><span className="panel-title">Constellation Map</span><span className="panel-badge">69 systems + 18 neighbors</span></div>
+                            <ConstellationMap config={config} sovereignty={sovereignty} activity={activity} campaigns={campaigns} selectedSystem={selectedSystem} onSelectSystem={setSelectedSystem} />
                         </div>
-                        <KillFeed kills={killFeed}/>
-                        <div className="panel panel-wide"><CornerBrackets/><div className="panel-header"><span className="panel-title">System Status</span><span className="panel-badge">{visible.length} systems</span></div>
+                        <KillFeed kills={killFeed} />
+                        <div className="panel panel-wide"><CornerBrackets /><div className="panel-header"><span className="panel-title">System Status</span><span className="panel-badge">{visible.length} systems</span></div>
                             <div className="const-tabs">
-                                <button className={`const-tab ${activeConst==='lawn'?'active':''}`} onClick={() => setActiveConst('lawn')} style={activeConst==='lawn' ? {borderColor:'var(--green-dim)',color:'var(--green)'} : {}}>LAWN</button>
-                                <button className={`const-tab ${activeConst==='all'?'active':''}`} onClick={() => setActiveConst('all')}>ALL TKE</button>
-                                {cids.map(c => <button key={c} className={`const-tab ${activeConst===c?'active':''}`} onClick={() => setActiveConst(c)} style={consts[c].is_lawn ? {borderLeftColor:'var(--green-dim)',borderLeftWidth:2} : {}}>{consts[c].name}</button>)}
+                                <button className={`const-tab ${activeConst === 'lawn' ? 'active' : ''}`} onClick={() => setActiveConst('lawn')} style={activeConst === 'lawn' ? { borderColor: 'var(--green-dim)', color: 'var(--green)' } : {}}>LAWN</button>
+                                <button className={`const-tab ${activeConst === 'all' ? 'active' : ''}`} onClick={() => setActiveConst('all')}>ALL TKE</button>
+                                {cids.map(c => <button key={c} className={`const-tab ${activeConst === c ? 'active' : ''}`} onClick={() => setActiveConst(c)} style={consts[c].is_lawn ? { borderLeftColor: 'var(--green-dim)', borderLeftWidth: 2 } : {}}>{consts[c].name}</button>)}
                             </div>
-                            <SystemTable systems={visible} sovereignty={sovereignty} activity={activity} selectedSystem={selectedSystem} onSelectSystem={setSelectedSystem} lawnSystemIds={lawnSysIdSet}/>
+                            <SystemTable systems={visible} sovereignty={sovereignty} activity={activity} selectedSystem={selectedSystem} onSelectSystem={setSelectedSystem} lawnSystemIds={lawnSysIdSet} />
                         </div>
                         <AdmTrends admHistory={admHistory} config={config} sovereignty={sovereignty} />
                     </div>
@@ -2008,7 +2616,8 @@
             );
         }
 
-        ReactDOM.render(<App/>, document.getElementById("root"));
+        ReactDOM.render(<App />, document.getElementById("root"));
     </script>
 </body>
+
 </html>
