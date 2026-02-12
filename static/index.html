@@ -623,17 +623,16 @@
         function getCampaignPhase(campaign) {
             const now = new Date();
             const startTime = new Date(campaign.start_time);
-            const elapsedHours = (now - startTime) / (1000 * 60 * 60);
-
-            // EVE sov: 48-hour reff timer before nodes spawn
-            // Scores only increase during active node capture event
-            const hasActiveScores = (campaign.attackers_score > 0 || campaign.defender_score > 0);
-            const isNodesActive = elapsedHours >= 48 || hasActiveScores;
+            
+            // ESI start_time in /sovereignty/campaigns/ is the node spawn time.
+            // If now >= startTime, nodes are out. 
+            // Note: attackers/defender scores can be non-zero (0.4/0.6) during reinforcement,
+            // so we cannot rely on (score > 0) to detect active nodes.
+            const isNodesActive = (now >= startTime);
 
             return {
                 phase: isNodesActive ? "nodes" : "reinforced",
-                elapsedHours,
-                nodesSpawnTime: new Date(startTime.getTime() + 48 * 60 * 60 * 1000),
+                nodesSpawnTime: startTime,
             };
         }
 
@@ -1182,6 +1181,10 @@
 
                     <div className="map-legend">
                         <div className="map-legend-item">
+                            <div style={{ width: 8, height: 8, background: 'transparent', border: '2.5px dashed #ff3355', borderRadius: '50%' }} />
+                            <span>Nodes Active</span>
+                        </div>
+                        <div className="map-legend-item">
                             <div style={{ width: 8, height: 8, background: 'transparent', border: '2px dashed #ffaa00', borderRadius: '50%' }} />
                             <span>Reffed (active timer)</span>
                         </div>
@@ -1541,6 +1544,18 @@
         function CampaignAlerts({ campaigns }) {
             if (!campaigns || campaigns.length === 0) return null;
 
+            // Enrich campaigns with phase info and sort (nodes first)
+            const enrichedCampaigns = campaigns.map(c => ({
+                ...c,
+                phaseInfo: getCampaignPhase(c)
+            })).sort((a, b) => {
+                if (a.phaseInfo.phase === b.phaseInfo.phase) return 0;
+                return a.phaseInfo.phase === 'nodes' ? -1 : 1;
+            });
+
+            const activeCount = enrichedCampaigns.filter(c => c.phaseInfo.phase === 'nodes').length;
+            const reffedCount = enrichedCampaigns.filter(c => c.phaseInfo.phase === 'reinforced').length;
+
             // Event type labels (post-Equinox: Sov Hub replaces TCU/IHUB)
             const eventTypeLabels = {
                 "tcu_defense": "SOV HUB",
@@ -1553,11 +1568,14 @@
                 <div className="panel panel-wide">
                     <CornerBrackets/>
                     <div className="panel-header">
-                        <span className="panel-title">⚠ Active Campaigns</span>
-                        <span className="panel-badge">{campaigns.length} active</span>
+                        <span className="panel-title">⚠ Sovereignty Campaigns</span>
+                        <div className="panel-badge">
+                            {activeCount > 0 && <span style={{ color: '#ff3355', marginRight: 8 }}>{activeCount} ACTIVE</span>}
+                            {reffedCount > 0 && <span style={{ color: '#ffaa00' }}>{reffedCount} REINFORCED</span>}
+                        </div>
                     </div>
-                    {campaigns.map((c, i) => {
-                        const phase = getCampaignPhase(c);
+                    {enrichedCampaigns.map((c, i) => {
+                        const phase = c.phaseInfo;
                         const eventLabel = eventTypeLabels[c.event_type] || "SOV HUB";
                         const vulnWindow = formatVulnWindow(c.vulnerable_start_time, c.vulnerable_end_time);
                         const isNodesActive = phase.phase === "nodes";
@@ -1566,7 +1584,8 @@
                         return (
                             <div key={i} className="campaign-alert" style={{
                                 borderColor: isNodesActive ? "#ff3355" : "#ffaa00",
-                                background: isNodesActive ? "rgba(255,51,85,0.08)" : "rgba(255,170,0,0.05)"
+                                background: isNodesActive ? "rgba(255,51,85,0.08)" : "rgba(255,170,0,0.05)",
+                                marginBottom: i === enrichedCampaigns.length - 1 ? 0 : 8
                             }}>
                                 <div style={{ flex: 1 }}>
                                     {/* Header with structure type and system name */}
@@ -1774,7 +1793,18 @@
                                 <SummaryCard label="Jumps" value={totJ.toLocaleString()} type={totJ>200?"warn":"default"}/>
                                 <SummaryCard label="Critical ADM" value={criticalSystems} type={criticalSystems > 3 ? "danger" : criticalSystems > 0 ? "warn" : "safe"}/>
                                 <SummaryCard label="Hostile Sov" value={hostile} type={hostile>0?"danger":"safe"}/>
-                                <SummaryCard label="Campaigns" value={campaigns.length} type={campaigns.length>0?"danger":"safe"}/>
+                                {(() => {
+                                    const activeCount = campaigns.filter(c => getCampaignPhase(c).phase === 'nodes').length;
+                                    const reffedCount = campaigns.filter(c => getCampaignPhase(c).phase === 'reinforced').length;
+                                    let type = "safe";
+                                    let label = "Campaigns";
+                                    if (activeCount > 0) type = "danger";
+                                    else if (reffedCount > 0) type = "warn";
+                                    
+                                    const valueStr = activeCount > 0 ? `${activeCount} (+${reffedCount})` : reffedCount;
+
+                                    return <SummaryCard label="Campaigns" value={valueStr} type={type}/>;
+                                })()}
                             </div>
                         </div>
                         <CampaignAlerts campaigns={campaigns} config={config}/>
