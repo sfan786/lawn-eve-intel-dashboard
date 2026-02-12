@@ -35,9 +35,13 @@ ALL_MONITORED_IDS = set()  # All ~87 system IDs (TKE + neighbors)
 
 def resolve_all_systems():
     """Load all TKE constellations + neighbor systems from ESI."""
+    from concurrent.futures import ThreadPoolExecutor, as_completed
+    import time as _time
+
     global CONSTELLATION_DATA, NEIGHBOR_SYSTEMS
     global LAWN_CONSTELLATION_IDS_SET, LAWN_SYSTEM_IDS, ALL_MONITORED_IDS
 
+    t_start = _time.monotonic()
     LAWN_CONSTELLATION_IDS_SET = set(LAWN_CONSTELLATION_IDS)
 
     # 1. Get all constellation IDs for The Kalevala Expanse
@@ -51,71 +55,149 @@ def resolve_all_systems():
         print(f"  [*] Falling back to LAWN constellations only")
         tke_constellation_ids = LAWN_CONSTELLATION_IDS
 
-    # 2. Resolve all TKE constellations
+    # 2. Fetch all constellation info in parallel
     print(f"[*] Resolving {len(tke_constellation_ids)} TKE constellations...")
-    for cid in tke_constellation_ids:
-        try:
-            info = esi_client.get_constellation_info(cid)
-            systems = {}
-            for sys_id in info.get("systems", []):
-                sys_info = esi_client.get_system_info(sys_id)
+    constellation_infos = {}  # cid -> info dict
+    with ThreadPoolExecutor(max_workers=10) as pool:
+        future_to_cid = {
+            pool.submit(esi_client.get_constellation_info, cid): cid
+            for cid in tke_constellation_ids
+        }
+        for future in as_completed(future_to_cid):
+            cid = future_to_cid[future]
+            try:
+                constellation_infos[cid] = future.result()
+            except Exception as e:
+                print(f"  [!] Error loading constellation {cid}: {e}")
+
+    # 3. Collect all system IDs, then fetch all system info in parallel
+    all_system_ids = []
+    for cid, info in constellation_infos.items():
+        for sys_id in info.get("systems", []):
+            all_system_ids.append((cid, sys_id))
+
+    print(f"[*] Resolving {len(all_system_ids)} TKE systems...")
+    system_infos = {}  # sys_id -> info dict
+    with ThreadPoolExecutor(max_workers=20) as pool:
+        future_to_sid = {
+            pool.submit(esi_client.get_system_info, sys_id): sys_id
+            for _, sys_id in all_system_ids
+        }
+        for future in as_completed(future_to_sid):
+            sys_id = future_to_sid[future]
+            try:
+                system_infos[sys_id] = future.result()
+            except Exception as e:
+                print(f"  [!] Error loading system {sys_id}: {e}")
+
+    # 4. Build CONSTELLATION_DATA from fetched results
+    for cid, info in constellation_infos.items():
+        systems = {}
+        for sys_id in info.get("systems", []):
+            if sys_id in system_infos:
+                si = system_infos[sys_id]
                 systems[sys_id] = {
-                    "name": sys_info.get("name", str(sys_id)),
-                    "security_status": round(sys_info.get("security_status", 0), 2),
+                    "name": si.get("name", str(sys_id)),
+                    "security_status": round(si.get("security_status", 0), 2),
                     "system_id": sys_id,
                 }
 
-            is_lawn = cid in LAWN_CONSTELLATION_IDS_SET
-            CONSTELLATION_DATA[cid] = {
-                "constellation_id": cid,
-                "name": info.get("name", str(cid)),
-                "region_id": info.get("region_id"),
-                "systems": systems,
-                "is_lawn": is_lawn,
-            }
-            tag = "LAWN" if is_lawn else "TKE"
-            print(f"  [+] {info.get('name')} (ID: {cid}) -> {len(systems)} systems [{tag}]")
-        except Exception as e:
-            print(f"  [!] Error loading constellation {cid}: {e}")
+        is_lawn = cid in LAWN_CONSTELLATION_IDS_SET
+        CONSTELLATION_DATA[cid] = {
+            "constellation_id": cid,
+            "name": info.get("name", str(cid)),
+            "region_id": info.get("region_id"),
+            "systems": systems,
+            "is_lawn": is_lawn,
+        }
+        tag = "LAWN" if is_lawn else "TKE"
+        print(f"  [+] {info.get('name')} (ID: {cid}) -> {len(systems)} systems [{tag}]")
 
     # Build LAWN system ID set
     for cid, cdata in CONSTELLATION_DATA.items():
         if cdata.get("is_lawn"):
             LAWN_SYSTEM_IDS.update(cdata["systems"].keys())
 
-    # 3. Resolve neighbor systems via POST /universe/ids/
+    # 5. Resolve neighbor systems via POST /universe/ids/
     print(f"[*] Resolving {len(NEIGHBOR_SYSTEM_NAMES)} neighbor systems...")
     try:
         id_result = esi_client.post_universe_ids(NEIGHBOR_SYSTEM_NAMES)
         resolved_systems = id_result.get("systems", [])
         print(f"  [+] Resolved {len(resolved_systems)} / {len(NEIGHBOR_SYSTEM_NAMES)} names")
 
-        for entry in resolved_systems:
-            sys_id = entry["id"]
-            sys_name = entry["name"]
-            try:
-                sys_info = esi_client.get_system_info(sys_id)
-                # Get region name via constellation
-                const_id = sys_info.get("constellation_id")
-                region_name = "Unknown"
-                if const_id:
-                    const_info = esi_client.get_constellation_info(const_id)
-                    region_id = const_info.get("region_id")
-                    if region_id:
-                        try:
-                            reg_info = esi_client.get_region_info(region_id)
-                            region_name = reg_info.get("name", "Unknown")
-                        except Exception:
-                            pass
+        # Fetch all neighbor system info in parallel
+        neighbor_entries = {entry["id"]: entry["name"] for entry in resolved_systems}
+        neighbor_sys_infos = {}
+        with ThreadPoolExecutor(max_workers=10) as pool:
+            future_to_sid = {
+                pool.submit(esi_client.get_system_info, sid): sid
+                for sid in neighbor_entries
+            }
+            for future in as_completed(future_to_sid):
+                sid = future_to_sid[future]
+                try:
+                    neighbor_sys_infos[sid] = future.result()
+                except Exception as e:
+                    print(f"  [!] Error loading neighbor {neighbor_entries[sid]}: {e}")
 
-                NEIGHBOR_SYSTEMS[sys_id] = {
-                    "name": sys_name,
-                    "system_id": sys_id,
-                    "security_status": round(sys_info.get("security_status", 0), 2),
-                    "region_name": region_name,
-                }
-            except Exception as e:
-                print(f"  [!] Error loading neighbor {sys_name}: {e}")
+        # Fetch unique constellation infos for region name resolution (parallel)
+        neighbor_const_ids = set()
+        for si in neighbor_sys_infos.values():
+            cid = si.get("constellation_id")
+            if cid:
+                neighbor_const_ids.add(cid)
+
+        neighbor_const_infos = {}
+        with ThreadPoolExecutor(max_workers=10) as pool:
+            future_to_cid = {
+                pool.submit(esi_client.get_constellation_info, cid): cid
+                for cid in neighbor_const_ids
+            }
+            for future in as_completed(future_to_cid):
+                cid = future_to_cid[future]
+                try:
+                    neighbor_const_infos[cid] = future.result()
+                except Exception:
+                    pass
+
+        # Fetch unique region infos (parallel)
+        neighbor_region_ids = set()
+        for ci in neighbor_const_infos.values():
+            rid = ci.get("region_id")
+            if rid:
+                neighbor_region_ids.add(rid)
+
+        neighbor_region_infos = {}
+        with ThreadPoolExecutor(max_workers=10) as pool:
+            future_to_rid = {
+                pool.submit(esi_client.get_region_info, rid): rid
+                for rid in neighbor_region_ids
+            }
+            for future in as_completed(future_to_rid):
+                rid = future_to_rid[future]
+                try:
+                    neighbor_region_infos[rid] = future.result()
+                except Exception:
+                    pass
+
+        # Assemble neighbor data
+        for sys_id, sys_name in neighbor_entries.items():
+            si = neighbor_sys_infos.get(sys_id)
+            if not si:
+                continue
+            region_name = "Unknown"
+            const_id = si.get("constellation_id")
+            if const_id and const_id in neighbor_const_infos:
+                rid = neighbor_const_infos[const_id].get("region_id")
+                if rid and rid in neighbor_region_infos:
+                    region_name = neighbor_region_infos[rid].get("name", "Unknown")
+
+            NEIGHBOR_SYSTEMS[sys_id] = {
+                "name": sys_name,
+                "system_id": sys_id,
+                "security_status": round(si.get("security_status", 0), 2),
+                "region_name": region_name,
+            }
     except Exception as e:
         print(f"  [!] Failed to resolve neighbor names: {e}")
 
@@ -127,9 +209,10 @@ def resolve_all_systems():
     tke_count = sum(len(c["systems"]) for c in CONSTELLATION_DATA.values())
     lawn_count = len(LAWN_SYSTEM_IDS)
     neighbor_count = len(NEIGHBOR_SYSTEMS)
+    elapsed = _time.monotonic() - t_start
     print(f"[*] Total: {len(CONSTELLATION_DATA)} constellations, "
           f"{lawn_count} LAWN + {tke_count - lawn_count} TKE + {neighbor_count} neighbor "
-          f"= {len(ALL_MONITORED_IDS)} systems")
+          f"= {len(ALL_MONITORED_IDS)} systems ({elapsed:.1f}s)")
 
 
 def _lookup_system_name(sys_id):
@@ -504,14 +587,20 @@ def api_status():
 
 # ============ Startup ============
 
-# Load all systems at module import time (works with gunicorn)
-resolve_all_systems()
-db.init()
+import os
+
+# When Flask debug mode is on, Werkzeug's reloader spawns a child process
+# (WERKZEUG_RUN_MAIN=true). Skip the heavy ESI loading in the parent process
+# to avoid fetching all system data twice on startup.
+if os.environ.get('WERKZEUG_RUN_MAIN') == 'true' or not FLASK_DEBUG:
+    resolve_all_systems()
+    db.init()
 
 if __name__ == "__main__":
-    lawn_names = [c['name'] for c in CONSTELLATION_DATA.values() if c.get('is_lawn')]
-    print(f"\n[*] Dashboard starting at http://localhost:{FLASK_PORT}")
-    print(f"[*] LAWN Intel Dashboard - Kalevala Expanse")
-    print(f"[*] LAWN constellations: {', '.join(lawn_names)}")
-    print(f"[*] Monitoring {len(ALL_MONITORED_IDS)} systems total\n")
+    if ALL_MONITORED_IDS:
+        lawn_names = [c['name'] for c in CONSTELLATION_DATA.values() if c.get('is_lawn')]
+        print(f"\n[*] Dashboard starting at http://localhost:{FLASK_PORT}")
+        print(f"[*] LAWN Intel Dashboard - Kalevala Expanse")
+        print(f"[*] LAWN constellations: {', '.join(lawn_names)}")
+        print(f"[*] Monitoring {len(ALL_MONITORED_IDS)} systems total\n")
     app.run(host=FLASK_HOST, port=FLASK_PORT, debug=FLASK_DEBUG)
