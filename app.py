@@ -12,7 +12,8 @@ from flask import Flask, jsonify, request, send_from_directory
 from config import (
     FLASK_HOST, FLASK_PORT, FLASK_DEBUG,
     LAWN_CONSTELLATION_IDS, FRIENDLY_ALLIANCES,
-    FRIENDLY_CORPORATIONS, REGION_ID, NEIGHBOR_SYSTEM_NAMES
+    FRIENDLY_CORPORATIONS, REGION_ID, NEIGHBOR_SYSTEM_NAMES,
+    TIMER_PASSWORD
 )
 import esi_client
 import db
@@ -598,7 +599,7 @@ def api_get_timers():
 def api_check_auth():
     """Verify timer password."""
     password = request.json.get("password")
-    if password == config.TIMER_PASSWORD:
+    if password == TIMER_PASSWORD:
         return jsonify({"status": "ok"})
     return jsonify({"error": "Invalid password"}), 401
 
