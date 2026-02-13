@@ -2525,9 +2525,35 @@
                 setShowForm(false);
             };
 
+            function parseDuration(input) {
+                if (!input) return null;
+                const regex = /(\d+)\s*([dhms])/g;
+                let totalMs = 0;
+                let match;
+                while ((match = regex.exec(input)) !== null) {
+                    const value = parseInt(match[1]);
+                    const unit = match[2];
+                    if (unit === 'd') totalMs += value * 86400000;
+                    else if (unit === 'h') totalMs += value * 3600000;
+                    else if (unit === 'm') totalMs += value * 60000;
+                    else if (unit === 's') totalMs += value * 1000;
+                }
+                return totalMs > 0 ? totalMs : null;
+            }
+
             const handleAdd = async () => {
                 if (!newTimer.system_name || !newTimer.timestamp) return;
-                const isoTimestamp = new Date(newTimer.timestamp).toISOString();
+
+                // Check if input is a duration string (contains d, h, m, s)
+                let isoTimestamp = newTimer.timestamp;
+                const durationMs = parseDuration(newTimer.timestamp);
+
+                if (durationMs) {
+                    isoTimestamp = new Date(Date.now() + durationMs).toISOString();
+                } else if (!newTimer.timestamp.includes("-")) {
+                    // Fallback check: if it's not a valid date string and parseDuration failed
+                    // We assume user might be entering something invalid
+                }
 
                 const res = await fetch("/api/timers", {
                     method: "POST",
@@ -2611,7 +2637,13 @@
                                     <option>Shield</option>
                                     <option>Anchoring</option>
                                 </select>
-                                <input type="datetime-local" value={newTimer.timestamp} onChange={e => setNewTimer({ ...newTimer, timestamp: e.target.value })} style={inputStyle} />
+                                <input
+                                    type="text"
+                                    placeholder="Duration (e.g. 1d 4h 30m)"
+                                    value={newTimer.timestamp}
+                                    onChange={e => setNewTimer({ ...newTimer, timestamp: e.target.value })}
+                                    style={inputStyle}
+                                />
                                 <input placeholder="Notes" value={newTimer.notes} onChange={e => setNewTimer({ ...newTimer, notes: e.target.value })} style={inputStyle} />
                             </div>
                             <button onClick={handleAdd} style={{
