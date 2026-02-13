@@ -609,7 +609,7 @@ def api_add_timer():
     """Add a new custom timer."""
     # Check Auth
     auth_header = request.headers.get("X-Timer-Auth")
-    if auth_header != config.TIMER_PASSWORD:
+    if auth_header != TIMER_PASSWORD:
         return jsonify({"error": "Unauthorized"}), 401
 
     data = request.json
@@ -632,7 +632,7 @@ def api_delete_timer(timer_id):
     """Delete a custom timer."""
     # Check Auth
     auth_header = request.headers.get("X-Timer-Auth")
-    if auth_header != config.TIMER_PASSWORD:
+    if auth_header != TIMER_PASSWORD:
         return jsonify({"error": "Unauthorized"}), 401
 
     db.delete_timer(timer_id)
