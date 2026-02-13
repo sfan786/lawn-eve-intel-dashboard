@@ -52,6 +52,19 @@ def init():
 
         CREATE INDEX IF NOT EXISTS idx_activity_system_time
             ON activity_snapshots(system_id, timestamp);
+
+        CREATE TABLE IF NOT EXISTS custom_timers (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            system_name TEXT NOT NULL,
+            structure_type TEXT NOT NULL,
+            owner TEXT NOT NULL,
+            event_type TEXT NOT NULL,
+            timestamp TEXT NOT NULL,
+            notes TEXT
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_timer_time
+            ON custom_timers(timestamp);
     """)
     conn.commit()
     conn.close()
@@ -186,3 +199,39 @@ def get_activity_history(system_id=None, hours=168):
         })
 
     return result
+
+
+def add_timer(system_name, structure_type, owner, event_type, timestamp, notes=None):
+    """Add a custom timer."""
+    conn = get_connection()
+    conn.execute(
+        "INSERT INTO custom_timers (system_name, structure_type, owner, event_type, timestamp, notes) "
+        "VALUES (?, ?, ?, ?, ?, ?)",
+        (system_name, structure_type, owner, event_type, timestamp, notes),
+    )
+    conn.commit()
+    conn.close()
+
+
+def get_active_timers():
+    """Get all future timers + timers from the last 24h."""
+    conn = get_connection()
+    # Keep timers visible for 24h after they expire
+    cutoff = (datetime.utcnow() - timedelta(hours=24)).strftime("%Y-%m-%dT%H:%M:%SZ")
+    
+    rows = conn.execute(
+        "SELECT id, system_name, structure_type, owner, event_type, timestamp, notes "
+        "FROM custom_timers WHERE timestamp >= ? ORDER BY timestamp ASC",
+        (cutoff,),
+    ).fetchall()
+    conn.close()
+
+    return [dict(row) for row in rows]
+
+
+def delete_timer(timer_id):
+    """Delete a custom timer."""
+    conn = get_connection()
+    conn.execute("DELETE FROM custom_timers WHERE id = ?", (timer_id,))
+    conn.commit()
+    conn.close()

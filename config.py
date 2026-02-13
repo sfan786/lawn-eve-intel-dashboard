@@ -65,3 +65,6 @@ ZKILL_RECENT_HOURS = 24  # How far back to pull kills
 FLASK_HOST = "0.0.0.0"
 FLASK_PORT = 5000
 FLASK_DEBUG = True
+
+# Timerboard Authentication
+TIMER_PASSWORD = "REDACTED"
