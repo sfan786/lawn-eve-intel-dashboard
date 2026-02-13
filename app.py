@@ -585,6 +585,59 @@ def api_status():
     })
 
 
+# ============ Custom Timers ============
+
+@app.route("/api/timers", methods=["GET"])
+def api_get_timers():
+    """Get active custom timers."""
+    timers = db.get_active_timers()
+    return jsonify(timers)
+
+
+@app.route("/api/auth/check", methods=["POST"])
+def api_check_auth():
+    """Verify timer password."""
+    password = request.json.get("password")
+    if password == config.TIMER_PASSWORD:
+        return jsonify({"status": "ok"})
+    return jsonify({"error": "Invalid password"}), 401
+
+
+@app.route("/api/timers", methods=["POST"])
+def api_add_timer():
+    """Add a new custom timer."""
+    # Check Auth
+    auth_header = request.headers.get("X-Timer-Auth")
+    if auth_header != config.TIMER_PASSWORD:
+        return jsonify({"error": "Unauthorized"}), 401
+
+    data = request.json
+    if not all(k in data for k in ("system_name", "structure_type", "owner", "event_type", "timestamp")):
+        return jsonify({"error": "Missing fields"}), 400
+    
+    db.add_timer(
+        data["system_name"],
+        data["structure_type"],
+        data["owner"],
+        data["event_type"],
+        data["timestamp"],
+        data.get("notes")
+    )
+    return jsonify({"status": "ok"})
+
+
+@app.route("/api/timers/<int:timer_id>", methods=["DELETE"])
+def api_delete_timer(timer_id):
+    """Delete a custom timer."""
+    # Check Auth
+    auth_header = request.headers.get("X-Timer-Auth")
+    if auth_header != config.TIMER_PASSWORD:
+        return jsonify({"error": "Unauthorized"}), 401
+
+    db.delete_timer(timer_id)
+    return jsonify({"status": "ok"})
+
+
 # ============ Startup ============
 
 # Load all systems at module import time (works with gunicorn and Flask dev server).
