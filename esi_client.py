@@ -328,3 +328,51 @@ def get_zkill_region(region_id: int) -> list:
     except Exception as e:
         print(f"zKill error for region {region_id}: {e}")
         return []
+
+
+def get_zkill_alliance(alliance_id: int) -> list:
+    """Get recent kills for an alliance from zKillboard."""
+    cache_key = f"zkill_alliance_{alliance_id}"
+    cached = _get_cached(cache_key, "zkill")
+    if cached:
+        return cached
+    
+    try:
+        headers = {
+            "Accept": "application/json",
+            "User-Agent": "AstrumMechanica-IntelDash/1.0"
+        }
+        # Fetching kills where alliance is attacker or victim? Usually "kills/allianceID/..." gets both
+        # To get intel on what they fly, we mostly care about their kills (attackers)
+        url = f"{ZKILL_BASE}/kills/allianceID/{alliance_id}/"
+        resp = requests.get(url, headers=headers, timeout=15)
+        resp.raise_for_status()
+        data = resp.json()
+        _set_cache(cache_key, data)
+        return data
+    except Exception as e:
+        print(f"zKill error for alliance {alliance_id}: {e}")
+        return []
+
+
+def get_zkill_corporation(corp_id: int) -> list:
+    """Get recent kills for a corporation from zKillboard."""
+    cache_key = f"zkill_corporation_{corp_id}"
+    cached = _get_cached(cache_key, "zkill")
+    if cached:
+        return cached
+    
+    try:
+        headers = {
+            "Accept": "application/json",
+            "User-Agent": "AstrumMechanica-IntelDash/1.0"
+        }
+        url = f"{ZKILL_BASE}/kills/corporationID/{corp_id}/"
+        resp = requests.get(url, headers=headers, timeout=15)
+        resp.raise_for_status()
+        data = resp.json()
+        _set_cache(cache_key, data)
+        return data
+    except Exception as e:
+        print(f"zKill error for corporation {corp_id}: {e}")
+        return []

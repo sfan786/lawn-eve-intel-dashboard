@@ -57,6 +57,13 @@ FRIENDLY_CORPORATIONS = [
     "Astrum Mechanica",
 ]
 
+# Neighbor entities to track for "Threat Profiling"
+NEIGHBOR_ENTITIES = [
+    {"name": "Deepwater Hooligans", "id": 99009927, "type": "alliance"},
+    {"name": "PUT THE FRIES IN THE BAG", "id": 99014518, "type": "alliance"},
+    {"name": "The Rejected.", "id": 99014523, "type": "alliance"},
+]
+
 # zKillboard settings
 ZKILL_BASE = "https://zkillboard.com/api"
 ZKILL_RECENT_HOURS = 24  # How far back to pull kills
