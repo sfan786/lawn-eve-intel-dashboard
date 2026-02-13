@@ -420,6 +420,70 @@
             animation: alert-flash 3s infinite;
         }
 
+        .campaign-entry-compact {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 5px 12px;
+            border: 1px solid var(--border-dim);
+            margin-bottom: 2px;
+            background: rgba(0, 5, 10, 0.3);
+            font-family: 'Share Tech Mono', monospace;
+            position: relative;
+            transition: transform 0.2s, border-color 0.2s;
+        }
+
+        .campaign-entry-compact:hover {
+            border-color: var(--border-active);
+            transform: translateX(2px);
+        }
+
+        .campaign-entry-compact.lawn {
+            border-left: 3px solid var(--amber);
+            background: rgba(255, 170, 0, 0.06);
+        }
+
+        .campaign-entry-compact.lawn.active {
+            border-left: 3px solid var(--red);
+            background: rgba(255, 51, 85, 0.1);
+            box-shadow: inset 4px 0 10px rgba(255, 51, 85, 0.05);
+            animation: alert-flash-border 2s infinite;
+        }
+
+        .campaign-badge-lawn {
+            background: var(--amber);
+            color: #000;
+            font-family: 'Orbitron', sans-serif;
+            font-weight: 800;
+            font-size: 8px;
+            padding: 1px 4px;
+            letter-spacing: 1px;
+            border-radius: 1px;
+        }
+
+        .campaign-badge-red {
+            background: var(--red);
+            color: #fff;
+            font-family: 'Orbitron', sans-serif;
+            font-weight: 800;
+            font-size: 8px;
+            padding: 1px 4px;
+            letter-spacing: 1px;
+            border-radius: 1px;
+        }
+
+        @keyframes alert-flash-border {
+
+            0%,
+            100% {
+                border-left-color: var(--red-dim);
+            }
+
+            50% {
+                border-left-color: var(--red);
+            }
+        }
+
         @keyframes alert-flash {
 
             0%,
@@ -2319,28 +2383,26 @@
         function CampaignAlerts({ campaigns }) {
             if (!campaigns || campaigns.length === 0) return null;
 
-            // Enrich campaigns with phase info and sort (nodes first)
+            // Sort: LAWN first, then by phase (nodes active first)
             const enrichedCampaigns = campaigns.map(c => ({
                 ...c,
                 phaseInfo: getCampaignPhase(c)
             })).sort((a, b) => {
-                if (a.phaseInfo.phase === b.phaseInfo.phase) return 0;
-                return a.phaseInfo.phase === 'nodes' ? -1 : 1;
+                const isLawnA = a.is_lawn !== false;
+                const isLawnB = b.is_lawn !== false;
+                if (isLawnA !== isLawnB) return isLawnA ? -1 : 1;
+
+                if (a.phaseInfo.phase !== b.phaseInfo.phase) {
+                    return a.phaseInfo.phase === 'nodes' ? -1 : 1;
+                }
+                return 0;
             });
 
             const activeCount = enrichedCampaigns.filter(c => c.phaseInfo.phase === 'nodes').length;
             const reffedCount = enrichedCampaigns.filter(c => c.phaseInfo.phase === 'reinforced').length;
 
-            // Event type labels (post-Equinox: Sov Hub replaces TCU/IHUB)
-            const eventTypeLabels = {
-                "tcu_defense": "SOV HUB",
-                "ihub_defense": "SOV HUB",
-                "station_defense": "STATION",
-                "station_freeport": "STATION",
-            };
-
             return (
-                <div className="panel panel-wide">
+                <div className="panel panel-wide" style={{ marginBottom: 16 }}>
                     <CornerBrackets />
                     <div className="panel-header">
                         <span className="panel-title">⚠ Sovereignty Campaigns</span>
@@ -2349,131 +2411,57 @@
                             {reffedCount > 0 && <span style={{ color: '#ffaa00' }}>{reffedCount} REINFORCED</span>}
                         </div>
                     </div>
-                    {enrichedCampaigns.map((c, i) => {
-                        const phase = c.phaseInfo;
-                        const eventLabel = eventTypeLabels[c.event_type] || "SOV HUB";
-                        const vulnWindow = formatVulnWindow(c.vulnerable_start_time, c.vulnerable_end_time);
-                        const isNodesActive = phase.phase === "nodes";
-                        const isCampaignLawn = c.is_lawn !== undefined ? c.is_lawn : true;
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                        {enrichedCampaigns.map((c, i) => {
+                            const phase = c.phaseInfo;
+                            const isNodesActive = phase.phase === "nodes";
+                            const isLawn = c.is_lawn !== false;
 
-                        return (
-                            <div key={i} className="campaign-alert" style={{
-                                borderColor: isNodesActive ? "#ff3355" : "#ffaa00",
-                                background: isNodesActive ? "rgba(255,51,85,0.08)" : "rgba(255,170,0,0.05)",
-                                marginBottom: i === enrichedCampaigns.length - 1 ? 0 : 8
-                            }}>
-                                <div style={{ flex: 1 }}>
-                                    {/* Header with structure type and system name */}
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 6 }}>
-                                        <span className="campaign-type" style={{
-                                            color: isNodesActive ? "#ff3355" : "#ffaa00"
-                                        }}>
-                                            {eventLabel}
-                                        </span>
-                                        <span className="campaign-detail" style={{ fontWeight: 'bold' }}>
-                                            {c.system_name}
-                                        </span>
-                                        {!isCampaignLawn && (
-                                            <span style={{
-                                                fontSize: 9,
-                                                color: '#6a8090',
-                                                background: 'rgba(106,128,144,0.1)',
-                                                padding: '1px 5px',
-                                                borderRadius: 2,
-                                                border: '1px solid rgba(106,128,144,0.3)',
-                                                fontFamily: 'Orbitron, sans-serif',
-                                                letterSpacing: 1,
-                                            }}>REGIONAL</span>
+                            return (
+                                <div key={i} className={`campaign-entry-compact ${isLawn ? 'lawn' : ''} ${isNodesActive ? 'active' : ''}`}>
+                                    <div style={{ width: 100, flexShrink: 0 }}>
+                                        {isLawn ? (
+                                            <span className={isNodesActive ? "campaign-badge-red" : "campaign-badge-lawn"}>
+                                                LAWN DEFENSE
+                                            </span>
+                                        ) : (
+                                            <span style={{ fontSize: 9, color: 'var(--text-muted)', letterSpacing: 1 }}>REGIONAL</span>
                                         )}
-                                        <span style={{
-                                            fontSize: 10,
-                                            color: isNodesActive ? '#ff3355' : '#ffaa00',
-                                            background: isNodesActive ? 'rgba(255,51,85,0.15)' : 'rgba(255,170,0,0.1)',
-                                            padding: '2px 6px',
-                                            borderRadius: 3,
-                                            fontFamily: 'Orbitron, sans-serif',
-                                            letterSpacing: 1,
-                                            animation: isNodesActive ? 'alert-flash 2s infinite' : 'none'
-                                        }}>
-                                            {isNodesActive ? 'NODES ACTIVE' : 'REFFED'}
-                                        </span>
                                     </div>
-
-                                    {/* Reinforced phase: Show timer countdown and exact time */}
-                                    {!isNodesActive && (
-                                        <div style={{
-                                            fontFamily: 'Share Tech Mono, monospace',
-                                            fontSize: 12,
-                                            color: '#c8d8e8',
-                                            marginTop: 4
-                                        }}>
-                                            Nodes spawn in: <span style={{
-                                                color: '#ffaa00',
-                                                fontWeight: 'bold'
-                                            }}>
-                                                {formatCountdown(phase.nodesSpawnTime)}
-                                            </span>
-                                            <span style={{ color: '#6a8090', marginLeft: 8, fontSize: 11 }}>
-                                                ({formatEveTime(phase.nodesSpawnTime.toISOString())})
-                                            </span>
-                                        </div>
-                                    )}
-
-                                    {/* Nodes active phase: Show progress bar */}
-                                    {isNodesActive && (
-                                        <div style={{ marginTop: 6 }}>
-                                            <div style={{
-                                                display: 'flex',
-                                                justifyContent: 'space-between',
-                                                fontSize: 11,
-                                                marginBottom: 3,
-                                                fontFamily: 'Share Tech Mono, monospace'
-                                            }}>
-                                                <span style={{ color: '#ff3355' }}>
-                                                    Attackers: {((c.attackers_score || 0) * 100).toFixed(0)}%
-                                                </span>
-                                                <span style={{ color: '#00ff88' }}>
-                                                    Defenders: {((c.defender_score || 0) * 100).toFixed(0)}%
-                                                </span>
+                                    <div style={{ width: 90, flexShrink: 0, fontSize: 13, fontWeight: 'bold', color: isLawn ? 'var(--text-primary)' : 'var(--text-secondary)' }}>
+                                        {c.system_name}
+                                    </div>
+                                    <div style={{ flex: 1, minWidth: 200 }}>
+                                        {isNodesActive ? (
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                                                <div style={{ flex: 1, height: 4, background: 'rgba(255,255,255,0.05)', borderRadius: 2, overflow: 'hidden', display: 'flex' }}>
+                                                    <div style={{ width: `${(c.attackers_score || 0) * 100}%`, background: '#ff3355' }} />
+                                                    <div style={{ width: `${(c.defender_score || 0) * 100}%`, background: '#00ff88' }} />
+                                                </div>
+                                                <div style={{ fontSize: 10, whiteSpace: 'nowrap', minWidth: 80, textAlign: 'right' }}>
+                                                    <span style={{ color: '#ff3355' }}>{((c.attackers_score || 0) * 100).toFixed(0)}%</span>
+                                                    <span style={{ color: 'var(--text-muted)', margin: '0 4px' }}>vs</span>
+                                                    <span style={{ color: '#00ff88' }}>{((c.defender_score || 0) * 100).toFixed(0)}%</span>
+                                                </div>
                                             </div>
-                                            <div style={{
-                                                height: 6,
-                                                background: 'var(--border-dim)',
-                                                borderRadius: 2,
-                                                overflow: 'hidden',
-                                                display: 'flex'
-                                            }}>
-                                                <div style={{
-                                                    width: `${(c.attackers_score || 0) * 100}%`,
-                                                    background: '#ff3355',
-                                                    transition: 'width 0.5s ease'
-                                                }} />
-                                                <div style={{
-                                                    width: `${(c.defender_score || 0) * 100}%`,
-                                                    background: '#00ff88',
-                                                    transition: 'width 0.5s ease'
-                                                }} />
+                                        ) : (
+                                            <div style={{ fontSize: 11, color: isLawn ? 'var(--text-primary)' : 'var(--text-muted)' }}>
+                                                <span style={{ opacity: 0.7 }}>Reinforced — Nodes spawn in </span>
+                                                <span style={{ color: 'var(--amber)', fontWeight: 'bold' }}>{formatCountdown(phase.nodesSpawnTime)}</span>
+                                                <span style={{ fontSize: 10, color: 'var(--text-muted)', marginLeft: 8 }}>({formatEveTime(phase.nodesSpawnTime.toISOString())})</span>
                                             </div>
-                                        </div>
-                                    )}
-
-                                    {/* Vulnerability window */}
-                                    {vulnWindow && (
+                                        )}
+                                    </div>
+                                    {isLawn && isNodesActive && (
                                         <div style={{
-                                            fontFamily: 'Share Tech Mono, monospace',
-                                            fontSize: 10,
-                                            color: '#6a8090',
-                                            marginTop: 6,
-                                            paddingTop: 6,
-                                            borderTop: '1px solid rgba(106,128,144,0.2)'
-                                        }}>
-                                            Vuln Window: <span style={{ color: '#00d4ff' }}>{vulnWindow}</span>
-                                        </div>
+                                            width: 8, height: 8, borderRadius: '50%', background: 'var(--red)',
+                                            boxShadow: '0 0 10px var(--red)', animation: 'pulse-dot 1.5s infinite'
+                                        }} />
                                     )}
                                 </div>
-                            </div>
-                        );
-                    })}
+                            );
+                        })}
+                    </div>
                 </div>
             );
         }
@@ -2597,7 +2585,6 @@
                             </div>
                         </div>
                         <GrindingPlan config={config} sovereignty={sovereignty} activity={activity} admHistory={admHistory} />
-                        <CampaignAlerts campaigns={campaigns} config={config} />
                         <div className="panel panel-wide"><CornerBrackets /><div className="panel-header"><span className="panel-title">Constellation Map</span><span className="panel-badge">69 systems + 18 neighbors</span></div>
                             <ConstellationMap config={config} sovereignty={sovereignty} activity={activity} campaigns={campaigns} selectedSystem={selectedSystem} onSelectSystem={setSelectedSystem} />
                         </div>
@@ -2610,6 +2597,7 @@
                             </div>
                             <SystemTable systems={visible} sovereignty={sovereignty} activity={activity} selectedSystem={selectedSystem} onSelectSystem={setSelectedSystem} lawnSystemIds={lawnSysIdSet} />
                         </div>
+                        <CampaignAlerts campaigns={campaigns} config={config} />
                         <AdmTrends admHistory={admHistory} config={config} sovereignty={sovereignty} />
                     </div>
                 </div>
