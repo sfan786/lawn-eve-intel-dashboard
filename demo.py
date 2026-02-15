@@ -5,6 +5,7 @@ Usage: python demo.py
 
 from datetime import datetime, timedelta, timezone
 from flask import Flask, jsonify, request, send_from_directory
+from config import UPGRADE_TYPES, SYSTEM_UPGRADES
 
 app = Flask(__name__)
 
@@ -168,6 +169,8 @@ MOCK_CONFIG = {
     "lawn_constellation_ids": LAWN_CONSTELLATION_IDS,
     "friendly_alliances": ["Get Off My Lawn"],
     "friendly_corporations": ["Astrum Mechanica"],
+    "upgrade_types": UPGRADE_TYPES,
+    "system_upgrades": SYSTEM_UPGRADES,
 }
 
 
