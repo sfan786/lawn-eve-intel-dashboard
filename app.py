@@ -13,7 +13,7 @@ from config import (
     FLASK_HOST, FLASK_PORT, FLASK_DEBUG,
     LAWN_CONSTELLATION_IDS, FRIENDLY_ALLIANCES,
     FRIENDLY_CORPORATIONS, REGION_ID, NEIGHBOR_SYSTEM_NAMES,
-    TIMER_PASSWORD, UPGRADE_TYPES, SYSTEM_UPGRADES
+    TIMER_PASSWORD, UPGRADE_TYPES, SYSTEM_UPGRADES, NEIGHBOR_ENTITIES
 )
 import esi_client
 import db
@@ -639,6 +639,99 @@ def api_delete_timer(timer_id):
 
     db.delete_timer(timer_id)
     return jsonify({"status": "ok"})
+
+
+@app.route("/api/history/activity/heatmap")
+def api_activity_heatmap():
+    """Get aggregated activity heatmap data."""
+    days = request.args.get("days", 7, type=int)
+    hours = days * 24
+    heatmap = db.get_activity_heatmap_data(hours=hours)
+    return jsonify(heatmap)
+
+
+@app.route("/api/intel/neighbors")
+def api_neighbor_intel():
+    """Analyze neighbor entities (threat profiling)."""
+    results = []
+    
+    for entity in NEIGHBOR_ENTITIES:
+        eid = entity["id"]
+        etype = entity["type"]
+        name = entity["name"]
+        
+        # 1. Fetch zKill data
+        if etype == "alliance":
+            kills = esi_client.get_zkill_alliance(eid)
+        else:
+            kills = esi_client.get_zkill_corporation(eid)
+            
+        # 2. Analyze
+        ship_counts = {}
+        hourly_activity = {h: 0 for h in range(24)}
+        total_kills = len(kills)
+        
+        # Limit to last 50 to avoid slow loading
+        recent_kills = kills[:50]
+        
+        for k in recent_kills:
+            # zKill returns { killmail_id, zkb: { hash, ... } }
+            # We need full details from ESI
+            km_id = k.get("killmail_id")
+            km_hash = k.get("zkb", {}).get("hash")
+            
+            if not km_id or not km_hash:
+                continue
+                
+            full_kill = esi_client.get_killmail(km_id, km_hash)
+            if not full_kill:
+                continue
+            
+            # Timezone (killmail_time is ISO8601, e.g. "2023-10-27T12:00:00Z")
+            try:
+                # Simple string parsing for speed (YYYY-MM-DDThh:mm:ssZ)
+                hour = int(full_kill["killmail_time"][11:13])
+                hourly_activity[hour] += 1
+            except:
+                pass
+            
+            # Ship types (we look for attackers from this entity)
+            for attacker in full_kill.get("attackers", []):
+                # Check if this attacker belongs to the target entity
+                if (etype == "alliance" and attacker.get("alliance_id") == eid) or \
+                   (etype == "corporation" and attacker.get("corporation_id") == eid):
+                    
+                    ship_type = attacker.get("ship_type_id")
+                    if ship_type:
+                        ship_counts[ship_type] = ship_counts.get(ship_type, 0) + 1
+        
+        # Resolve ship names for top 5
+        top_ships = sorted(ship_counts.items(), key=lambda x: x[1], reverse=True)[:5]
+        resolved_top_ships = []
+        for tid, count in top_ships:
+            resolved_top_ships.append({
+                "name": esi_client.get_type_name(tid),
+                "count": count
+            })
+            
+        # Calculate Threat Score (very basic)
+        # 0-10: Low, 11-50: Medium, 50+: High
+        score_val = total_kills
+        if score_val > 50: threat_level = "High"
+        elif score_val > 10: threat_level = "Medium"
+        else: threat_level = "Low"
+
+        results.append({
+            "id": eid,
+            "name": name,
+            "type": etype,
+            "threat_level": threat_level,
+            "total_kills_24h": total_kills, # zKill usually gives recent 200, assume recent
+            "top_ships": resolved_top_ships,
+            "activity_heatmap": [hourly_activity[h] for h in range(24)]
+        })
+        
+    return jsonify(results)
 
 
 # ============ Startup ============
