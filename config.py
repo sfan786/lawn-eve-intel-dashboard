@@ -57,6 +57,40 @@ FRIENDLY_CORPORATIONS = [
     "Astrum Mechanica",
 ]
 
+# ===== SOVEREIGNTY UPGRADES =====
+# iHub/Sov Hub upgrades installed in LAWN systems.
+# Manually maintained — ESI doesn't expose upgrade fittings without SSO auth.
+# Categories: military (ratting anomalies), industry (mining), strategic (exploration/infra)
+
+UPGRADE_TYPES = {
+    "mTD": {"name": "Minor Threat Detection", "category": "military"},
+    "MTD": {"name": "Major Threat Detection", "category": "military"},
+    "PA":  {"name": "Prospecting Array",      "category": "industry"},
+    "ED":  {"name": "Entrapment Device",       "category": "strategic"},
+    "PMD": {"name": "Power Monitoring Device",  "category": "strategic"},
+    "SCF": {"name": "Supercapital Facility",   "category": "strategic"},
+}
+
+# Per-system upgrades: system_name -> list of {"type": abbrev, "level": int}
+SYSTEM_UPGRADES = {
+    # 6-CBBM Constellation
+    "1-KCSA": [{"type": "mTD", "level": 1}, {"type": "MTD", "level": 3}],
+    "F48K-D": [{"type": "MTD", "level": 2}],
+    "JT2I-7": [{"type": "mTD", "level": 1}, {"type": "MTD", "level": 2}, {"type": "PMD", "level": 2}],
+    "N-JK02": [{"type": "ED", "level": 3}],
+    "UDVW-O": [{"type": "ED", "level": 1}],
+    "UJXC-B": [{"type": "mTD", "level": 1}, {"type": "MTD", "level": 3}, {"type": "ED", "level": 1}],
+    "XTJ-5Q": [{"type": "MTD", "level": 1}, {"type": "ED", "level": 1}],
+    # 2Q-8WA Constellation
+    "5-VFC6": [{"type": "mTD", "level": 3}, {"type": "MTD", "level": 3}, {"type": "PA", "level": 1}],
+    "86L-9F": [{"type": "PA", "level": 2}],
+    "BZ-BCK": [{"type": "mTD", "level": 1}, {"type": "MTD", "level": 2}],
+    "FB5U-I": [{"type": "mTD", "level": 2}, {"type": "MTD", "level": 3}],
+    "IUU3-L": [{"type": "MTD", "level": 1}],
+    "J-OAH2": [{"type": "mTD", "level": 1}, {"type": "PA", "level": 1}, {"type": "PA", "level": 2}, {"type": "PA", "level": 3}, {"type": "ED", "level": 1}, {"type": "PMD", "level": 3}],
+    "O5-YNW": [{"type": "MTD", "level": 3}],
+    "S-LHPJ": [{"type": "MTD", "level": 3}],
+}
 # Neighbor entities to track for "Threat Profiling"
 NEIGHBOR_ENTITIES = [
     {"name": "Deepwater Hooligans", "id": 99009927, "type": "alliance"},

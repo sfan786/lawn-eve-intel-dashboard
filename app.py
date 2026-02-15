@@ -13,7 +13,7 @@ from config import (
     FLASK_HOST, FLASK_PORT, FLASK_DEBUG,
     LAWN_CONSTELLATION_IDS, FRIENDLY_ALLIANCES,
     FRIENDLY_CORPORATIONS, REGION_ID, NEIGHBOR_SYSTEM_NAMES,
-    TIMER_PASSWORD, NEIGHBOR_ENTITIES
+    TIMER_PASSWORD, UPGRADE_TYPES, SYSTEM_UPGRADES, NEIGHBOR_ENTITIES
 )
 import esi_client
 import db
@@ -256,6 +256,8 @@ def api_config():
         "lawn_constellation_ids": list(LAWN_CONSTELLATION_IDS_SET),
         "friendly_alliances": FRIENDLY_ALLIANCES,
         "friendly_corporations": FRIENDLY_CORPORATIONS,
+        "upgrade_types": UPGRADE_TYPES,
+        "system_upgrades": SYSTEM_UPGRADES,
     })
 
 

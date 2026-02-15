@@ -76,6 +76,7 @@ lawn-eve-intel-dashboard/
 3. **Demo mode** — `demo.py` serves identical API routes as `app.py` but returns hardcoded mock data (no ESI calls). Always test UI changes against demo mode first
 4. **In-memory caching** — `esi_client.py` caches responses in a dict with per-category TTLs
 5. **SQLite persistence** — `db.py` snapshots ADM and activity data hourly (deduplicated). WAL mode for concurrent reads. History API serves sparkline data to frontend
+6. **Sov upgrades are manual** — ESI doesn't expose iHub upgrade fittings without SSO auth, so `config.py` has `SYSTEM_UPGRADES` (per-system upgrade list) and `UPGRADE_TYPES` (metadata/categories). Served via `/api/config` response. Update manually when upgrades change in-game
 
 ## Development
 
@@ -193,7 +194,26 @@ Updated legend shows all indicators:
 - NPC ratting - cyan ring
 - PVP danger - red dot
 - Neighbor region - dimmed
+- Upgrade category dots (mil/ind/str) - colored dots below ADM value
 - Internal/cross/regional gates - various line styles
+
+### Sovereignty Upgrades
+
+Manually maintained iHub/Sov Hub upgrade data per LAWN system, defined in `config.py`:
+
+**Upgrade Types** (6 types across 3 categories):
+- **Military** (red): mTD (Minor Threat Detection), MTD (Major Threat Detection) — increase ratting anomaly spawns
+- **Industry** (green): PA (Prospecting Array) — increase mining anomaly spawns
+- **Strategic** (cyan): ED (Entrapment Device), PMD (Power Monitoring Device), SCF (Supercapital Facility)
+
+**Where upgrades appear in the UI:**
+1. **Map nodes** — small colored dots (red=military, green=industry, cyan=strategic) below ADM value
+2. **Map tooltips** — full upgrade badge list when hovering LAWN systems
+3. **System table** — compact upgrade badges in "Upgrades" column
+4. **Grinding plan** — MIL/IND/STR coverage indicators + upgrade badges per target
+5. **Upgrades overview panel** — dedicated grid showing all 15 LAWN systems with installed upgrades, category totals, and legend
+
+**Updating upgrades**: Edit `SYSTEM_UPGRADES` dict in `config.py` when upgrades change in-game. ESI does not expose iHub fittings without SSO auth.
 
 ### Enhanced Tooltips
 
@@ -202,6 +222,7 @@ Hovering over systems shows detailed status with priority warnings:
 - ADM status warnings for systems below safe threshold
 - Active campaign status (if reffed)
 - Grinding priority (critical or caution)
+- Installed sov upgrades (LAWN systems only)
 - Activity metrics (PVP, NPC, jumps)
 - Sov holder and corporation
 
