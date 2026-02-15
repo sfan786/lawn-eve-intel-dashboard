@@ -723,6 +723,56 @@
             color: var(--text-muted);
         }
 
+        /* ============ UPGRADE BADGES ============ */
+        .upgrade-badges {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 3px;
+            margin-top: 6px;
+            padding-top: 6px;
+            border-top: 1px solid rgba(106,128,144,0.2);
+        }
+
+        .upgrade-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 2px;
+            padding: 1px 4px;
+            border-radius: 2px;
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 9px;
+            font-weight: bold;
+            letter-spacing: 0.5px;
+            white-space: nowrap;
+        }
+
+        .upgrade-badge.military {
+            background: rgba(255,51,85,0.15);
+            border: 1px solid rgba(255,51,85,0.4);
+            color: #ff6677;
+        }
+
+        .upgrade-badge.industry {
+            background: rgba(0,255,136,0.1);
+            border: 1px solid rgba(0,255,136,0.3);
+            color: #00ff88;
+        }
+
+        .upgrade-badge.strategic {
+            background: rgba(0,212,255,0.1);
+            border: 1px solid rgba(0,212,255,0.3);
+            color: #00d4ff;
+        }
+
+        .upgrade-category-label {
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 8px;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            margin-top: 4px;
+            margin-bottom: 1px;
+        }
+
         /* ============ KILL FEED ============ */
         .kill-feed {
             max-height: 480px;
@@ -1289,6 +1339,67 @@
             return { label: "No Sov", color: "#3a5060", priority: 3 };
         }
 
+        // ============ Upgrade Helper Functions ============
+
+        const UPGRADE_CATEGORY_COLORS = {
+            military: "#ff6677",
+            industry: "#00ff88",
+            strategic: "#00d4ff",
+        };
+
+        function getSystemUpgrades(systemName, config) {
+            if (!config || !config.system_upgrades) return [];
+            return config.system_upgrades[systemName] || [];
+        }
+
+        function getUpgradeTypeMeta(typeCode, config) {
+            if (!config || !config.upgrade_types || !config.upgrade_types[typeCode]) {
+                return { name: typeCode, category: "strategic" };
+            }
+            return config.upgrade_types[typeCode];
+        }
+
+        // Summarize upgrade categories for a system: {military: count, industry: count, strategic: count}
+        function getUpgradeSummary(systemName, config) {
+            const upgrades = getSystemUpgrades(systemName, config);
+            const summary = { military: 0, industry: 0, strategic: 0 };
+            upgrades.forEach(u => {
+                const meta = getUpgradeTypeMeta(u.type, config);
+                if (summary[meta.category] !== undefined) summary[meta.category]++;
+            });
+            return summary;
+        }
+
+        // Get max upgrade level per category for a system
+        function getUpgradeMaxLevels(systemName, config) {
+            const upgrades = getSystemUpgrades(systemName, config);
+            const levels = { military: 0, industry: 0, strategic: 0 };
+            upgrades.forEach(u => {
+                const meta = getUpgradeTypeMeta(u.type, config);
+                if (u.level > levels[meta.category]) levels[meta.category] = u.level;
+            });
+            return levels;
+        }
+
+        // Render compact upgrade badges (for tooltips and table)
+        function UpgradeBadges({ upgrades, config, compact }) {
+            if (!upgrades || upgrades.length === 0) return null;
+            return React.createElement('div', {
+                style: {
+                    display: 'flex', flexWrap: 'wrap', gap: compact ? 2 : 3,
+                }
+            }, upgrades.map((u, i) => {
+                const meta = getUpgradeTypeMeta(u.type, config);
+                const color = UPGRADE_CATEGORY_COLORS[meta.category] || "#6a8090";
+                return React.createElement('span', {
+                    key: i,
+                    className: `upgrade-badge ${meta.category}`,
+                    title: `${meta.name} ${u.level}`,
+                    style: compact ? { fontSize: 8, padding: '0 3px' } : {}
+                }, `${u.type} ${u.level}`);
+            }));
+        }
+
         // ============ Campaign Helper Functions ============
 
         // Campaign phase detection
@@ -1756,6 +1867,22 @@
                                                 >{admText}</text>
                                             );
                                         })()}
+                                        {/* Upgrade category dots — LAWN only */}
+                                        {isLawn && (() => {
+                                            const upSummary = getUpgradeSummary(name, config);
+                                            const cats = [];
+                                            if (upSummary.military > 0) cats.push("#ff6677");
+                                            if (upSummary.industry > 0) cats.push("#00ff88");
+                                            if (upSummary.strategic > 0) cats.push("#00d4ff");
+                                            if (cats.length === 0) return null;
+                                            const dotR = isSubway ? 1.5 : 1.2;
+                                            const dotGap = isSubway ? 4 : 3.5;
+                                            const baseX = pos.x - (cats.length - 1) * dotGap / 2;
+                                            const baseY = pos.y + (isSubway ? (adm > 0 ? 19 : 12) : (adm > 0 ? 17 : 12));
+                                            return cats.map((color, ci) => (
+                                                <circle key={ci} cx={baseX + ci * dotGap} cy={baseY} r={dotR} fill={color} opacity={0.8} />
+                                            ));
+                                        })()}
                                         {/* Gateway direction labels (subway only) */}
                                         {isGateway && name === "UDVW-O" && (
                                             <text x={pos.x - 25} y={pos.y} textAnchor="end" fontFamily="Orbitron, sans-serif" fontSize="9" fill="#ffaa00" opacity={0.85} letterSpacing="1">{'\u2192'} VALE</text>
@@ -1847,6 +1974,17 @@
                                     </span>
                                 </div>
                             )}
+                            {/* Installed sov upgrades (LAWN only) */}
+                            {tooltip.isLawn && (() => {
+                                const upgrades = getSystemUpgrades(tooltip.name, config);
+                                if (upgrades.length === 0) return null;
+                                return (
+                                    <div className="upgrade-badges">
+                                        <div style={{ width: '100%', fontSize: 8, color: '#6a8090', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 2 }}>Sov Upgrades</div>
+                                        <UpgradeBadges upgrades={upgrades} config={config} />
+                                    </div>
+                                );
+                            })()}
                             {tooltip.note && <div style={{ marginTop: 4, color: '#6a8090', fontStyle: 'italic', fontSize: 10 }}>{tooltip.note}</div>}
                         </div>
                     )}
@@ -1871,6 +2009,14 @@
                         <div className="map-legend-item"><div className="map-legend-dot" style={{ background: '#00ff88' }} /><span>LAWN Sov</span></div>
                         <div className="map-legend-item"><div className="map-legend-dot" style={{ background: 'rgba(0,212,255,0.3)', border: '1px solid rgba(0,212,255,0.2)' }} /><span>NPC ratting</span></div>
                         <div className="map-legend-item"><div className="map-legend-dot" style={{ background: '#ff3355' }} /><span>PVP danger</span></div>
+                        <div className="map-legend-item">
+                            <div style={{ display: 'flex', gap: 2, alignItems: 'center' }}>
+                                <div style={{ width: 4, height: 4, borderRadius: '50%', background: '#ff6677' }} />
+                                <div style={{ width: 4, height: 4, borderRadius: '50%', background: '#00ff88' }} />
+                                <div style={{ width: 4, height: 4, borderRadius: '50%', background: '#00d4ff' }} />
+                            </div>
+                            <span>Upgrades (mil/ind/str)</span>
+                        </div>
                         {isSubway ? (
                             <>
                                 <div className="map-legend-item">
@@ -1911,7 +2057,7 @@
             return (<div className="activity-bar"><div className={`activity-bar-fill ${type}`} style={{ width: `${pct}%` }} /></div>);
         }
 
-        function SystemTable({ systems, sovereignty, activity, selectedSystem, onSelectSystem, lawnSystemIds }) {
+        function SystemTable({ systems, sovereignty, activity, selectedSystem, onSelectSystem, lawnSystemIds, config }) {
             const sorted = [...systems].sort((a, b) => {
                 const sovA = sovereignty[a.system_id] || {}, sovB = sovereignty[b.system_id] || {};
                 const actA = activity[a.system_id] || {}, actB = activity[b.system_id] || {};
@@ -1927,7 +2073,7 @@
 
             return (
                 <table className="sys-table"><thead><tr>
-                    <th>System</th><th>Sec</th><th>Sov Holder</th><th style={{ textAlign: 'right' }}>ADM</th><th>Status</th><th style={{ textAlign: 'right' }}>PVP</th><th style={{ textAlign: 'right' }}>Pods</th><th>NPC Kills</th><th>Traffic</th><th style={{ textAlign: 'right' }}>Jumps</th>
+                    <th>System</th><th>Sec</th><th>Sov Holder</th><th style={{ textAlign: 'right' }}>ADM</th><th>Status</th><th>Upgrades</th><th style={{ textAlign: 'right' }}>PVP</th><th style={{ textAlign: 'right' }}>Pods</th><th>NPC Kills</th><th>Traffic</th><th style={{ textAlign: 'right' }}>Jumps</th>
                 </tr></thead><tbody>
                         {sorted.map(sys => {
                             const sov = sovereignty[sys.system_id] || {};
@@ -1969,6 +2115,15 @@
                                                 ⚠ GRIND
                                             </span>
                                         )}
+                                    </td>
+                                    <td>
+                                        {lawnSystemIds && lawnSystemIds.has(String(sys.system_id)) && (() => {
+                                            const upgrades = getSystemUpgrades(sys.name, config);
+                                            if (upgrades.length === 0) return (
+                                                <span style={{ fontSize: 9, color: 'var(--text-muted)' }}>—</span>
+                                            );
+                                            return <UpgradeBadges upgrades={upgrades} config={config} compact={true} />;
+                                        })()}
                                     </td>
                                     <td className={`stat-num ${classifyKills(pvp)}`}>{pvp}</td>
                                     <td className={`stat-num ${classifyKills(pods, [2, 5])}`}>{pods}</td>
@@ -2319,7 +2474,13 @@
                         gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
                         gap: 10
                     }}>
-                        {targets.map((sys, i) => (
+                        {targets.map((sys, i) => {
+                            const upgrades = getSystemUpgrades(sys.name, config);
+                            const summary = getUpgradeSummary(sys.name, config);
+                            const hasMilitary = summary.military > 0;
+                            const hasIndustry = summary.industry > 0;
+                            const hasStrategic = summary.strategic > 0;
+                            return (
                             <div key={sys.system_id} style={{
                                 background: 'rgba(255,170,0,0.05)',
                                 border: '1px solid rgba(255,170,0,0.2)',
@@ -2345,7 +2506,7 @@
                                         {sys.adm.toFixed(1)}
                                     </span>
                                 </div>
-                                <div style={{ display: 'flex', gap: 6, fontSize: 10, color: 'var(--text-secondary)' }}>
+                                <div style={{ display: 'flex', gap: 6, fontSize: 10, color: 'var(--text-secondary)', flexWrap: 'wrap' }}>
                                     {sys.isStrategic && (
                                         <span style={{ color: 'var(--cyan)', border: '1px solid rgba(0,212,255,0.3)', padding: '0 4px', borderRadius: 2 }}>STRATEGIC</span>
                                     )}
@@ -2353,11 +2514,22 @@
                                         <span style={{ color: 'var(--red)' }}>DROPPING ({sys.change24h.toFixed(1)})</span>
                                     )}
                                 </div>
+                                {/* Upgrade index coverage */}
+                                <div style={{ display: 'flex', gap: 4, marginTop: 2 }}>
+                                    <span style={{ fontSize: 8, padding: '0 3px', borderRadius: 2, background: hasMilitary ? 'rgba(255,102,119,0.15)' : 'rgba(255,51,85,0.05)', border: `1px solid ${hasMilitary ? 'rgba(255,102,119,0.4)' : 'rgba(255,51,85,0.15)'}`, color: hasMilitary ? '#ff6677' : '#552233' }} title={hasMilitary ? `${summary.military} military upgrade(s)` : 'No military upgrades — rat here'}>MIL {hasMilitary ? summary.military : '—'}</span>
+                                    <span style={{ fontSize: 8, padding: '0 3px', borderRadius: 2, background: hasIndustry ? 'rgba(0,255,136,0.1)' : 'rgba(0,255,136,0.03)', border: `1px solid ${hasIndustry ? 'rgba(0,255,136,0.3)' : 'rgba(0,255,136,0.1)'}`, color: hasIndustry ? '#00ff88' : '#224433' }} title={hasIndustry ? `${summary.industry} industry upgrade(s)` : 'No industry upgrades — mine here'}>IND {hasIndustry ? summary.industry : '—'}</span>
+                                    <span style={{ fontSize: 8, padding: '0 3px', borderRadius: 2, background: hasStrategic ? 'rgba(0,212,255,0.1)' : 'rgba(0,212,255,0.03)', border: `1px solid ${hasStrategic ? 'rgba(0,212,255,0.3)' : 'rgba(0,212,255,0.1)'}`, color: hasStrategic ? '#00d4ff' : '#223344' }} title={hasStrategic ? `${summary.strategic} strategic upgrade(s)` : 'No strategic upgrades'}>STR {hasStrategic ? summary.strategic : '—'}</span>
+                                </div>
+                                {upgrades.length > 0 && (
+                                    <div style={{ marginTop: 2 }}>
+                                        <UpgradeBadges upgrades={upgrades} config={config} compact={true} />
+                                    </div>
+                                )}
                                 <div style={{
                                     fontSize: 9,
                                     color: 'var(--text-muted)',
                                     fontStyle: 'italic',
-                                    marginTop: 4
+                                    marginTop: 2
                                 }}>
                                     {sys.adm < 2.0 ? "CRITICAL VULNERABILITY" : "Raise to 4.0+"}
                                 </div>
@@ -2374,6 +2546,91 @@
                                     {i + 1}
                                 </div>
                             </div>
+                            );
+                        })}
+                    </div>
+                </div>
+            );
+        }
+
+        function UpgradesOverview({ config }) {
+            if (!config || !config.system_upgrades || !config.upgrade_types) return null;
+
+            const LAWN_SYSTEMS_ORDER = [
+                // 6-CBBM
+                "UDVW-O", "UJXC-B", "F48K-D", "1-KCSA", "XTJ-5Q", "JT2I-7", "N-JK02",
+                // 2Q-8WA
+                "FB5U-I", "BZ-BCK", "J-OAH2", "O5-YNW", "86L-9F", "5-VFC6", "IUU3-L", "S-LHPJ"
+            ];
+
+            const upgradeTypes = config.upgrade_types;
+            const systemUpgrades = config.system_upgrades;
+
+            // Calculate totals
+            let totalUpgrades = 0;
+            let systemsWithUpgrades = 0;
+            const categoryCounts = { military: 0, industry: 0, strategic: 0 };
+            LAWN_SYSTEMS_ORDER.forEach(name => {
+                const ups = systemUpgrades[name] || [];
+                if (ups.length > 0) systemsWithUpgrades++;
+                totalUpgrades += ups.length;
+                ups.forEach(u => {
+                    const meta = upgradeTypes[u.type] || {};
+                    if (categoryCounts[meta.category] !== undefined) categoryCounts[meta.category]++;
+                });
+            });
+
+            return (
+                <div className="panel panel-wide">
+                    <CornerBrackets />
+                    <div className="panel-header">
+                        <span className="panel-title">Sovereignty Upgrades</span>
+                        <span className="panel-badge">{totalUpgrades} upgrades across {systemsWithUpgrades}/{LAWN_SYSTEMS_ORDER.length} systems</span>
+                    </div>
+                    {/* Category summary bar */}
+                    <div style={{ display: 'flex', gap: 16, marginBottom: 12, fontSize: 11, fontFamily: 'Share Tech Mono, monospace' }}>
+                        <span style={{ color: '#ff6677' }}>Military: {categoryCounts.military}</span>
+                        <span style={{ color: '#00ff88' }}>Industry: {categoryCounts.industry}</span>
+                        <span style={{ color: '#00d4ff' }}>Strategic: {categoryCounts.strategic}</span>
+                    </div>
+                    {/* Per-system upgrade grid */}
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 6 }}>
+                        {LAWN_SYSTEMS_ORDER.map(name => {
+                            const ups = systemUpgrades[name] || [];
+                            const summary = getUpgradeSummary(name, config);
+                            const isEmpty = ups.length === 0;
+                            const constellation = ["UDVW-O","UJXC-B","F48K-D","1-KCSA","XTJ-5Q","JT2I-7","N-JK02"].includes(name) ? "6-CBBM" : "2Q-8WA";
+                            return (
+                                <div key={name} style={{
+                                    background: isEmpty ? 'rgba(255,51,85,0.03)' : 'rgba(0,212,255,0.03)',
+                                    border: `1px solid ${isEmpty ? 'rgba(255,51,85,0.15)' : 'rgba(0,212,255,0.12)'}`,
+                                    padding: '6px 8px',
+                                }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                                        <span style={{
+                                            fontFamily: 'Orbitron, sans-serif',
+                                            fontSize: 10,
+                                            fontWeight: 'bold',
+                                            color: isEmpty ? 'var(--text-muted)' : 'var(--text-primary)',
+                                            letterSpacing: 1
+                                        }}>{name}</span>
+                                        <span style={{ fontSize: 8, color: 'var(--text-muted)' }}>{constellation}</span>
+                                    </div>
+                                    {ups.length > 0 ? (
+                                        <UpgradeBadges upgrades={ups} config={config} compact={true} />
+                                    ) : (
+                                        <span style={{ fontSize: 9, color: '#663344', fontStyle: 'italic' }}>No upgrades installed</span>
+                                    )}
+                                </div>
+                            );
+                        })}
+                    </div>
+                    {/* Legend */}
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, marginTop: 10, paddingTop: 8, borderTop: '1px solid var(--border-dim)', fontSize: 9, color: 'var(--text-muted)', fontFamily: 'Share Tech Mono, monospace' }}>
+                        {Object.entries(upgradeTypes).map(([code, meta]) => (
+                            <span key={code} style={{ color: UPGRADE_CATEGORY_COLORS[meta.category] || '#6a8090' }}>
+                                {code} = {meta.name}
+                            </span>
                         ))}
                     </div>
                 </div>
@@ -2846,11 +3103,12 @@
                                 <button className={`const-tab ${activeConst === 'all' ? 'active' : ''}`} onClick={() => setActiveConst('all')}>ALL TKE</button>
                                 {cids.map(c => <button key={c} className={`const-tab ${activeConst === c ? 'active' : ''}`} onClick={() => setActiveConst(c)} style={consts[c].is_lawn ? { borderLeftColor: 'var(--green-dim)', borderLeftWidth: 2 } : {}}>{consts[c].name}</button>)}
                             </div>
-                            <SystemTable systems={visible} sovereignty={sovereignty} activity={activity} selectedSystem={selectedSystem} onSelectSystem={setSelectedSystem} lawnSystemIds={lawnSysIdSet} />
+                            <SystemTable systems={visible} sovereignty={sovereignty} activity={activity} selectedSystem={selectedSystem} onSelectSystem={setSelectedSystem} lawnSystemIds={lawnSysIdSet} config={config} />
                         </div>
                         <CampaignAlerts campaigns={campaigns} config={config} />
                         <TimerBoard />
                         <AdmTrends admHistory={admHistory} config={config} sovereignty={sovereignty} />
+                        <UpgradesOverview config={config} />
                     </div>
                 </div>
             );
