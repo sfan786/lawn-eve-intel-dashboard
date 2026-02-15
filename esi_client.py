@@ -376,3 +376,21 @@ def get_zkill_corporation(corp_id: int) -> list:
     except Exception as e:
         print(f"zKill error for corporation {corp_id}: {e}")
         return []
+
+
+def get_killmail(killmail_id: int, killmail_hash: str) -> dict:
+    """Get full killmail details from ESI."""
+    cache_key = f"killmail_{killmail_id}"
+    cached = _get_cached(cache_key, "killmail")
+    if cached:
+        return cached
+
+    try:
+        # ESI endpoint: /killmails/{killmail_id}/{killmail_hash}/
+        data = esi_get(f"/killmails/{killmail_id}/{killmail_hash}/")
+        # Killmails are immutable, so we can cache them for a long time (usage 'killmail' TTL or default)
+        _set_cache(cache_key, data)
+        return data
+    except Exception as e:
+        print(f"ESI error for killmail {killmail_id}: {e}")
+        return {}

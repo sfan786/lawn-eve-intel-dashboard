@@ -639,6 +639,15 @@ def api_delete_timer(timer_id):
     return jsonify({"status": "ok"})
 
 
+@app.route("/api/history/activity/heatmap")
+def api_activity_heatmap():
+    """Get aggregated activity heatmap data."""
+    days = request.args.get("days", 7, type=int)
+    hours = days * 24
+    heatmap = db.get_activity_heatmap_data(hours=hours)
+    return jsonify(heatmap)
+
+
 @app.route("/api/intel/neighbors")
 def api_neighbor_intel():
     """Analyze neighbor entities (threat profiling)."""
@@ -660,17 +669,32 @@ def api_neighbor_intel():
         hourly_activity = {h: 0 for h in range(24)}
         total_kills = len(kills)
         
-        for k in kills:
+        # Limit to last 50 to avoid slow loading
+        recent_kills = kills[:50]
+        
+        for k in recent_kills:
+            # zKill returns { killmail_id, zkb: { hash, ... } }
+            # We need full details from ESI
+            km_id = k.get("killmail_id")
+            km_hash = k.get("zkb", {}).get("hash")
+            
+            if not km_id or not km_hash:
+                continue
+                
+            full_kill = esi_client.get_killmail(km_id, km_hash)
+            if not full_kill:
+                continue
+            
             # Timezone (killmail_time is ISO8601, e.g. "2023-10-27T12:00:00Z")
             try:
                 # Simple string parsing for speed (YYYY-MM-DDThh:mm:ssZ)
-                hour = int(k["killmail_time"][11:13])
+                hour = int(full_kill["killmail_time"][11:13])
                 hourly_activity[hour] += 1
             except:
                 pass
             
             # Ship types (we look for attackers from this entity)
-            for attacker in k.get("attackers", []):
+            for attacker in full_kill.get("attackers", []):
                 # Check if this attacker belongs to the target entity
                 if (etype == "alliance" and attacker.get("alliance_id") == eid) or \
                    (etype == "corporation" and attacker.get("corporation_id") == eid):

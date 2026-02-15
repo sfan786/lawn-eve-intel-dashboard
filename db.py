@@ -235,3 +235,40 @@ def delete_timer(timer_id):
     conn.execute("DELETE FROM custom_timers WHERE id = ?", (timer_id,))
     conn.commit()
     conn.close()
+def get_activity_heatmap_data(hours=168):
+    """
+    Aggregate activity data by hour of day for all systems.
+    Returns: { system_id: { hour(0-23): { pvp, npc, jumps } } }
+    """
+    conn = get_connection()
+    cutoff = (datetime.utcnow() - timedelta(hours=hours)).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+    # Group by system_id and the hour part of the timestamp
+    query = """
+        SELECT 
+            system_id, 
+            CAST(strftime('%H', timestamp) AS INTEGER) as hour,
+            AVG(ship_kills + pod_kills) as avg_pvp,
+            AVG(npc_kills) as avg_npc,
+            AVG(jumps) as avg_jumps
+        FROM activity_snapshots
+        WHERE timestamp >= ?
+        GROUP BY system_id, hour
+        ORDER BY system_id, hour ASC
+    """
+    
+    rows = conn.execute(query, (cutoff,)).fetchall()
+    conn.close()
+
+    result = {}
+    for row in rows:
+        sid = row["system_id"]
+        if sid not in result:
+            result[sid] = {}
+        result[sid][row["hour"]] = {
+            "pvp": round(row["avg_pvp"], 2),
+            "npc": round(row["avg_npc"], 2),
+            "jumps": round(row["avg_jumps"], 2)
+        }
+    
+    return result
