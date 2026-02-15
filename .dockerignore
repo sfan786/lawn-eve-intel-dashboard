@@ -25,6 +25,7 @@ env/
 # Docs
 README.md
 CLAUDE.md
+ROADMAP.md
 
 # Logs
 *.log
@@ -35,3 +36,6 @@ config.local.py
 
 # Demo mode
 demo.py
+
+# Developer tools
+tools/

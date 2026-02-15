@@ -63,6 +63,8 @@ lawn-eve-intel-dashboard/
 ├── esi_client.py       # ESI API wrapper with in-memory TTL caching
 ├── intel.db            # SQLite database (auto-created, gitignored)
 ├── requirements.txt    # flask, requests
+├── tools/
+│   └── esi_lookup.py   # CLI tool for ESI/zKill entity ID resolution
 ├── static/
 │   └── index.html      # React SPA with SVG constellation map + ADM sparklines
 ├── .gitignore
@@ -93,6 +95,15 @@ python demo.py      # Mock data (for UI work)
 python app.py       # Live ESI data
 # → http://localhost:5000
 ```
+
+### Entity Lookup
+```bash
+python tools/esi_lookup.py alliance "Some Alliance Name"
+python tools/esi_lookup.py corporation "Some Corp"
+python tools/esi_lookup.py system "UDVW-O"
+python tools/esi_lookup.py zkill "Partial Name"
+```
+Resolves names to numeric IDs for `config.py`. Uses ESI `POST /universe/ids/` for exact match with zKill autocomplete fallback for fuzzy search. Supports `--json` flag.
 
 ### Important ESI Endpoints (all public, no auth)
 - `GET /sovereignty/map/` — who holds what
