@@ -204,7 +204,7 @@ Manually maintained iHub/Sov Hub upgrade data per LAWN system, defined in `confi
 **Upgrade Types** (6 types across 3 categories):
 - **Military** (red): mTD (Minor Threat Detection), MTD (Major Threat Detection) — increase ratting anomaly spawns
 - **Industry** (green): PA (Prospecting Array) — increase mining anomaly spawns
-- **Strategic** (cyan): ED (Entrapment Device), PMD (Power Monitoring Device), SCF (Supercapital Facility)
+- **Strategic** (cyan): ED (Exploration Detector), PMD (Power Monitoring), SCF (Supercap Facility)
 
 **Where upgrades appear in the UI:**
 1. **Map nodes** — small colored dots (red=military, green=industry, cyan=strategic) below ADM value
