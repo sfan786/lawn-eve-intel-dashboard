@@ -1871,9 +1871,9 @@
                                         {isLawn && (() => {
                                             const upSummary = getUpgradeSummary(name, config);
                                             const cats = [];
-                                            if (upSummary.military > 0) cats.push("#ff6677");
-                                            if (upSummary.industry > 0) cats.push("#00ff88");
-                                            if (upSummary.strategic > 0) cats.push("#00d4ff");
+                                            if (upSummary.military > 0) cats.push(UPGRADE_CATEGORY_COLORS.military);
+                                            if (upSummary.industry > 0) cats.push(UPGRADE_CATEGORY_COLORS.industry);
+                                            if (upSummary.strategic > 0) cats.push(UPGRADE_CATEGORY_COLORS.strategic);
                                             if (cats.length === 0) return null;
                                             const dotR = isSubway ? 1.5 : 1.2;
                                             const dotGap = isSubway ? 4 : 3.5;
