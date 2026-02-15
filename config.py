@@ -75,19 +75,19 @@ UPGRADE_TYPES = {
 SYSTEM_UPGRADES = {
     # 6-CBBM Constellation
     "1-KCSA": [{"type": "mTD", "level": 1}, {"type": "MTD", "level": 3}],
-    "F48K-D": [{"type": "MTD", "level": 3}],
-    "JT2I-7": [{"type": "mTD", "level": 1}, {"type": "MTD", "level": 3}, {"type": "PMD", "level": 3}],
+    "F48K-D": [{"type": "MTD", "level": 2}],
+    "JT2I-7": [{"type": "mTD", "level": 1}, {"type": "MTD", "level": 2}, {"type": "PMD", "level": 2}],
     "N-JK02": [{"type": "ED", "level": 3}],
-    "UDVW-O": [{"type": "ED", "level": 2}],
-    "UJXC-B": [{"type": "mTD", "level": 1}, {"type": "MTD", "level": 3}, {"type": "ED", "level": 2}],
-    "XTJ-5Q": [{"type": "MTD", "level": 1}, {"type": "ED", "level": 2}],
+    "UDVW-O": [{"type": "ED", "level": 1}],
+    "UJXC-B": [{"type": "mTD", "level": 1}, {"type": "MTD", "level": 3}, {"type": "ED", "level": 1}],
+    "XTJ-5Q": [{"type": "MTD", "level": 1}, {"type": "ED", "level": 1}],
     # 2Q-8WA Constellation
     "5-VFC6": [{"type": "mTD", "level": 3}, {"type": "MTD", "level": 3}, {"type": "PA", "level": 1}],
-    "86L-9F": [{"type": "PA", "level": 3}],
-    "BZ-BCK": [{"type": "mTD", "level": 1}, {"type": "MTD", "level": 3}],
+    "86L-9F": [{"type": "PA", "level": 2}],
+    "BZ-BCK": [{"type": "mTD", "level": 1}, {"type": "MTD", "level": 2}],
     "FB5U-I": [{"type": "mTD", "level": 2}, {"type": "MTD", "level": 3}],
     "IUU3-L": [{"type": "MTD", "level": 1}],
-    "J-OAH2": [{"type": "mTD", "level": 1}, {"type": "PA", "level": 1}, {"type": "PA", "level": 2}, {"type": "PA", "level": 3}, {"type": "ED", "level": 2}, {"type": "PMD", "level": 3}],
+    "J-OAH2": [{"type": "mTD", "level": 1}, {"type": "PA", "level": 1}, {"type": "PA", "level": 2}, {"type": "PA", "level": 3}, {"type": "ED", "level": 1}, {"type": "PMD", "level": 3}],
     "O5-YNW": [{"type": "MTD", "level": 3}],
     "S-LHPJ": [{"type": "MTD", "level": 3}],
 }
