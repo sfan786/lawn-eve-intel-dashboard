@@ -5,6 +5,8 @@ Get Off My Lawn [LAWN] — Kalevala Expanse
 Configure your monitored constellations and other settings here.
 """
 
+import os
+
 # ESI Base URL
 ESI_BASE = "https://esi.evetech.net/latest"
 ESI_DATASOURCE = "tranquility"
@@ -105,7 +107,7 @@ ZKILL_RECENT_HOURS = 24  # How far back to pull kills
 # Flask settings
 FLASK_HOST = "0.0.0.0"
 FLASK_PORT = 5000
-FLASK_DEBUG = True
+FLASK_DEBUG = os.environ.get("FLASK_DEBUG", "false").lower() == "true"
 
 # Timerboard Authentication
-TIMER_PASSWORD = "lawnmower"
+TIMER_PASSWORD = os.environ.get("TIMER_PASSWORD", "lawnmower")

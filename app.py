@@ -264,7 +264,11 @@ def api_config():
 @app.route("/api/sovereignty")
 def api_sovereignty():
     """Get sovereignty data for all monitored systems."""
-    sov_map = esi_client.get_sovereignty_map()
+    try:
+        sov_map = esi_client.get_sovereignty_map()
+    except Exception as e:
+        print(f"[!] ESI sovereignty map unavailable: {e}")
+        return jsonify({"error": "ESI unavailable"}), 503
 
     # Get ADM and vulnerability window data from sovereignty structures
     adm_by_system = {}
@@ -352,8 +356,12 @@ def api_sovereignty():
 @app.route("/api/activity")
 def api_activity():
     """Get kill and jump activity for all monitored systems."""
-    kills_data = esi_client.get_system_kills()
-    jumps_data = esi_client.get_system_jumps()
+    try:
+        kills_data = esi_client.get_system_kills()
+        jumps_data = esi_client.get_system_jumps()
+    except Exception as e:
+        print(f"[!] ESI activity data unavailable: {e}")
+        return jsonify({"error": "ESI unavailable"}), 503
 
     # Index by system_id
     kills_by_system = {
@@ -402,8 +410,12 @@ def api_campaigns():
         system_names[sys_id] = info["name"]
 
     # Fetch campaigns and structures
-    campaigns = esi_client.get_sovereignty_campaigns()
-    structures = esi_client.get_sovereignty_structures()
+    try:
+        campaigns = esi_client.get_sovereignty_campaigns()
+        structures = esi_client.get_sovereignty_structures()
+    except Exception as e:
+        print(f"[!] ESI campaign data unavailable: {e}")
+        return jsonify({"error": "ESI unavailable"}), 503
     structure_by_id = {s["structure_id"]: s for s in structures}
 
     # Filter to ALL TKE constellations (not just LAWN)
@@ -566,7 +578,7 @@ def api_zkill_feed():
 def api_history_adm():
     """Get ADM history for all monitored systems."""
     hours = request.args.get("hours", 168, type=int)
-    hours = min(hours, 720)  # Cap at 30 days
+    hours = max(1, min(hours, 720))  # Clamp to 1h–30d
     history = db.get_adm_history(hours=hours)
     return jsonify(history)
 
@@ -600,7 +612,8 @@ def api_get_timers():
 @app.route("/api/auth/check", methods=["POST"])
 def api_check_auth():
     """Verify timer password."""
-    password = request.json.get("password")
+    data = request.json or {}
+    password = data.get("password")
     if password == TIMER_PASSWORD:
         return jsonify({"status": "ok"})
     return jsonify({"error": "Invalid password"}), 401
@@ -614,7 +627,7 @@ def api_add_timer():
     if auth_header != TIMER_PASSWORD:
         return jsonify({"error": "Unauthorized"}), 401
 
-    data = request.json
+    data = request.json or {}
     if not all(k in data for k in ("system_name", "structure_type", "owner", "event_type", "timestamp")):
         return jsonify({"error": "Missing fields"}), 400
     
@@ -645,6 +658,7 @@ def api_delete_timer(timer_id):
 def api_activity_heatmap():
     """Get aggregated activity heatmap data."""
     days = request.args.get("days", 7, type=int)
+    days = max(1, min(days, 30))  # Clamp to 1–30 days
     hours = days * 24
     heatmap = db.get_activity_heatmap_data(hours=hours)
     return jsonify(heatmap)
@@ -692,7 +706,7 @@ def api_neighbor_intel():
                 # Simple string parsing for speed (YYYY-MM-DDThh:mm:ssZ)
                 hour = int(full_kill["killmail_time"][11:13])
                 hourly_activity[hour] += 1
-            except:
+            except Exception:
                 pass
             
             # Ship types (we look for attackers from this entity)

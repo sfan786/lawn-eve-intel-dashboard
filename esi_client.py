@@ -119,26 +119,22 @@ def get_system_info(system_id: int) -> dict:
 
 
 def resolve_constellation_name(name: str) -> Optional[int]:
-    """Find a constellation ID by name using ESI search."""
+    """Find a constellation ID by name using POST /universe/ids/."""
     cache_key = f"constellation_resolve_{name}"
     cached = _get_cached(cache_key, "constellation_info")
     if cached:
         return cached
-    
-    # Use the search endpoint
+
     try:
-        data = esi_get("/search/", params={
-            "categories": "constellation",
-            "search": name,
-            "strict": "true"
-        })
-        if "constellation" in data and len(data["constellation"]) > 0:
-            result = data["constellation"][0]
+        data = post_universe_ids([name])
+        constellations = data.get("constellations", [])
+        if constellations:
+            result = constellations[0]["id"]
             _set_cache(cache_key, result)
             return result
     except Exception as e:
         print(f"Failed to resolve constellation '{name}': {e}")
-    
+
     return None
 
 
@@ -237,18 +233,6 @@ def get_corporation_info(corp_id: int) -> dict:
 
 
 # ============ Killmail Enrichment ============
-
-def get_killmail(kill_id: int, kill_hash: str) -> dict:
-    """Get killmail details from ESI using kill ID and hash from zKillboard."""
-    cache_key = f"killmail_{kill_id}"
-    cached = _get_cached(cache_key, "zkill")
-    if cached:
-        return cached
-
-    data = esi_get(f"/killmails/{kill_id}/{kill_hash}/")
-    _set_cache(cache_key, data)
-    return data
-
 
 def get_type_name(type_id: int) -> str:
     """Get the name of a type (ship, item, etc.) by ID."""

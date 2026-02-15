@@ -3181,16 +3181,20 @@
             const fetchData = useCallback(async (init = false) => {
                 try {
                     if (!init) setRefreshing(true);
+                    const checkedFetch = (url) => fetch(url).then(r => {
+                        if (!r.ok) throw new Error(`${url}: ${r.status}`);
+                        return r.json();
+                    });
                     const [cfg, sov, act, camp] = await Promise.all([
-                        fetch("/api/config").then(r => r.json()),
-                        fetch("/api/sovereignty").then(r => r.json()),
-                        fetch("/api/activity").then(r => r.json()),
-                        fetch("/api/campaigns").then(r => r.json()),
+                        checkedFetch("/api/config"),
+                        checkedFetch("/api/sovereignty"),
+                        checkedFetch("/api/activity"),
+                        checkedFetch("/api/campaigns"),
                     ]);
                     setConfig(cfg); setSovereignty(sov); setActivity(act); setCampaigns(camp);
                     // Fetch kill feed and ADM history separately — don't block main data load
-                    fetch("/api/zkill/feed").then(r => r.json()).then(setKillFeed).catch(() => { });
-                    fetch("/api/history/adm").then(r => r.json()).then(setAdmHistory).catch(() => { });
+                    checkedFetch("/api/zkill/feed").then(setKillFeed).catch(e => console.warn("Kill feed unavailable:", e.message));
+                    checkedFetch("/api/history/adm").then(setAdmHistory).catch(e => console.warn("ADM history unavailable:", e.message));
                     setLastUpdate(new Date()); setError(null);
                 } catch (err) { if (init) setError(err.message); }
                 finally { setLoading(false); setRefreshing(false); }
