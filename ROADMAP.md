@@ -12,28 +12,14 @@ Prioritized by tactical value for LAWN's current situation: brand new sov in Kal
 - [x] **Vulnerability windows** — ADM-based vuln duration calculation per system
 - [x] **Alliance activity summary** — LAWN-wide kills/NPC/jumps totals (always visible regardless of tab selection)
 - [x] **Enhanced data timestamp** — full date/time display for ESI data freshness indicator
+- [x] **Neighbor threat profiling** — zKillboard-sourced ship doctrine analysis, TZ heatmaps, and threat scoring for border-adjacent alliances
+- [x] **Activity heatmap** — per-system hourly activity grid (systems × hours UTC) from SQLite snapshots
+- [x] **Timerboard** — password-protected custom structure timers with add/delete and countdown display
+- [x] **Sov upgrade tracking** — manual iHub upgrade display (military/industry/strategic) per LAWN system
 
 ---
 
 ## Priority 1 — Immediate Tactical Value
-
-### Neighbor Threat Profiling
-**Why:** SL0W space is collapsing around us. Need to know who's moving in before they're on our doorstep.
-- Pull alliance/corp activity from zKillboard for border-adjacent holders (SL0W remnants, T.RD, BIGAB, FRIES)
-- Ship doctrine analysis — what do they fly? (top 10 ship types by kills)
-- Timezone activity — when are they active? (kill timestamps binned by hour)
-- Threat score per neighbor — composite of activity level, fleet size indicators, proximity
-- Display as a dedicated panel with per-neighbor cards
-- **Data sources:** zKillboard API (public, no auth), ESI sovereignty map
-
-### Time-Zone Activity Heatmaps
-**Why:** LAWN needs to know when systems are safe to grind and when to expect hostiles.
-- Heatmap grid: systems × hours (24h UTC), colored by activity level
-- Separate views for NPC kills (friendly grinding activity) and PVP kills (hostile activity)
-- Highlight vulnerability windows overlaid on the heatmap
-- Use historical activity_snapshots from SQLite for the data
-- Shows "safe grinding hours" vs "danger hours" at a glance
-- **Data sources:** SQLite activity_snapshots table, ESI hourly data
 
 ### zKillboard Feed Enhancements
 **Why:** Current feed is basic — need better filtering and analysis for fleet intel.

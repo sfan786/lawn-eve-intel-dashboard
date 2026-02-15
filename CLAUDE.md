@@ -69,7 +69,8 @@ lawn-eve-intel-dashboard/
 │   └── index.html      # React SPA with SVG constellation map + ADM sparklines
 ├── .gitignore
 ├── CLAUDE.md           # This file
-└── README.md
+├── README.md
+└── ROADMAP.md          # Feature roadmap and backlog
 ```
 
 ## Key Technical Decisions
@@ -112,14 +113,22 @@ Resolves names to numeric IDs for `config.py`. Uses ESI `POST /universe/ids/` fo
 - `GET /universe/system_jumps/` — jump traffic (hourly)
 - `GET /universe/constellations/{id}/` — system list for a constellation
 - `GET /universe/systems/{id}/` — system details (name, security)
-- `GET /search/?categories=constellation&search={name}` — name → ID resolution
+- `POST /universe/ids/` — bulk name → ID resolution (replaces deprecated `/search/`)
 
 ### Dashboard API Routes
 - `GET /api/config` — constellation + system metadata
 - `GET /api/sovereignty` — sov holder per system with friendly/hostile flag
 - `GET /api/activity` — kills + jumps per system
 - `GET /api/campaigns` — active sov contests
+- `GET /api/zkill/<system_id>` — zKillboard kills for a specific system
+- `GET /api/zkill/feed` — regional kill feed (last 50 kills)
 - `GET /api/history/adm?hours=168` — ADM history for sparklines (default 7 days, max 30)
+- `GET /api/history/activity/heatmap?days=7` — per-system hourly activity grid (max 30 days)
+- `GET /api/intel/neighbors` — neighbor threat profiles (ship doctrines, TZ activity, threat scores)
+- `GET /api/timers` — active custom timers
+- `POST /api/timers` — add timer (requires `X-Timer-Auth` header)
+- `DELETE /api/timers/<id>` — delete timer (requires `X-Timer-Auth` header)
+- `POST /api/auth/check` — verify timer password
 - `GET /api/status` — health check
 
 ### Map Implementation Details
@@ -245,10 +254,12 @@ See [ROADMAP.md](ROADMAP.md) for full details and backlog.
 **Done:**
 - [x] SQLite persistence for historical trends
 - [x] ADM tracking with trend sparklines and 24h change indicators
+- [x] Neighbor threat profiling (ship doctrines, TZ heatmaps, threat scores)
+- [x] Activity heatmap (per-system hourly grid)
+- [x] Timerboard (password-protected custom structure timers)
+- [x] Sov upgrade tracking (manual iHub upgrade display)
 
 **Priority 1 — Immediate tactical value:**
-- [ ] Neighbor threat profiling (who lives nearby, what they fly, TZ activity)
-- [ ] Time-zone activity heatmaps
 - [ ] zKillboard feed panel enhancements (filtering, ship class breakdowns)
 - [ ] ADM grinding planner (priority ranking, rate estimation, daily targets)
 
