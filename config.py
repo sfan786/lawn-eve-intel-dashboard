@@ -66,9 +66,9 @@ UPGRADE_TYPES = {
     "mTD": {"name": "Minor Threat Detection", "category": "military"},
     "MTD": {"name": "Major Threat Detection", "category": "military"},
     "PA":  {"name": "Prospecting Array",      "category": "industry"},
-    "ED":  {"name": "Exploration Detector",     "category": "strategic"},
-    "PMD": {"name": "Power Monitoring",          "category": "strategic"},
-    "SCF": {"name": "Supercap Facility",         "category": "strategic"},
+    "ED":  {"name": "Exploration Detector", "category": "strategic"},
+    "PMD": {"name": "Power Monitoring",     "category": "strategic"},
+    "SCF": {"name": "Supercap Facility",    "category": "strategic"}
 }
 
 # Per-system upgrades: system_name -> list of {"type": abbrev, "level": int}
