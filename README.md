@@ -4,11 +4,15 @@ Real-time sovereignty and intel monitoring for EVE Online nullsec space. Built f
 
 ## Features
 
-- **Sovereignty map** — Interactive SVG constellation map with gate connections, neighbor systems, and visual indicators for PVP danger zones and ratting activity
+- **Sovereignty map** — Interactive SVG constellation map (traditional + subway modes) with gate connections, neighbor systems, and visual indicators for PVP danger, ratting activity, and grinding priority
 - **ADM trend tracking** — SQLite-backed historical ADM data with sparkline charts and 24h change indicators
-- **System status table** — All monitored systems with kill stats, jump traffic, sovereignty holder, and activity bars
-- **Campaign alerts** — Flashing warnings for active sovereignty contests with phase tracking (reinforced / nodes active)
-- **Kill feed** — Regional zKillboard integration with LAWN space highlighting
+- **System status table** — All monitored systems with kill stats, jump traffic, sovereignty holder, upgrade badges, and activity bars
+- **Campaign alerts** — Pulsing warnings for active sovereignty contests with countdown timers and progress bars
+- **Kill feed** — Regional zKillboard integration with LAWN space highlighting and attacker details
+- **Neighbor threat profiling** — Ship doctrine analysis, timezone heatmaps, and threat scoring for border-adjacent alliances
+- **Activity heatmap** — Per-system hourly activity grid showing safe grinding hours vs danger hours
+- **Timerboard** — Manual structure timer tracking with password-protected add/delete
+- **Sov upgrade tracking** — Manual iHub upgrade display (military/industry/strategic) per LAWN system
 - **Auto-refresh** — Live ESI data updates with in-memory caching
 - **Demo mode** — Full UI testing with mock data, no ESI access required
 
@@ -42,6 +46,13 @@ MONITORED_CONSTELLATION_IDS = [
 FRIENDLY_ALLIANCES = ["Get Off My Lawn"]
 FRIENDLY_CORPORATIONS = ["Astrum Mechanica", "LAWN Logistics"]
 ```
+
+### Environment Variables
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `FLASK_DEBUG` | `false` | Enable Flask debug mode (set to `true` for development) |
+| `TIMER_PASSWORD` | `REDACTED` | Password for timerboard add/delete operations |
 
 ## Logo
 
