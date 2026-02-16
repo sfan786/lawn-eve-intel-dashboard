@@ -61,6 +61,14 @@ Prioritized by tactical value for LAWN's current situation: brand new sov in Kal
 - Vulnerability schedule display
 - **Data sources:** ESI structure endpoints (requires SSO auth)
 
+### Infrastructure: Frontend Build System
+**Why:** Current single-file HTML/JS is hard to maintain and lacks modern tooling.
+- Set up Vite or Webpack for bundling
+- Modularize React components (separate files)
+- Add linting, type checking (TypeScript?), and hot module replacement
+- Optimize assets for production
+- **Technical debt reduction**
+
 ### Regional Intel Aggregation
 **Why:** Need early warning from neighboring regions before hostiles reach LAWN.
 - Monitor Vale of the Silent (north gate — UDVW-O), Geminate (northwest), Etherium Reach (south), Malpais (east)

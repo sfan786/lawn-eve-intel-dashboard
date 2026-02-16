@@ -9,6 +9,8 @@ Usage:
 """
 
 from flask import Flask, jsonify, request, send_from_directory
+from concurrent.futures import ThreadPoolExecutor, as_completed
+import datetime
 from config import (
     FLASK_HOST, FLASK_PORT, FLASK_DEBUG,
     LAWN_CONSTELLATION_IDS, FRIENDLY_ALLIANCES,
@@ -688,36 +690,58 @@ def api_neighbor_intel():
         # Limit to last 50 to avoid slow loading
         recent_kills = kills[:50]
         
-        for k in recent_kills:
-            # zKill returns { killmail_id, zkb: { hash, ... } }
-            # We need full details from ESI
-            km_id = k.get("killmail_id")
-            km_hash = k.get("zkb", {}).get("hash")
-            
-            if not km_id or not km_hash:
-                continue
-                
-            full_kill = esi_client.get_killmail(km_id, km_hash)
-            if not full_kill:
-                continue
-            
-            # Timezone (killmail_time is ISO8601, e.g. "2023-10-27T12:00:00Z")
-            try:
-                # Simple string parsing for speed (YYYY-MM-DDThh:mm:ssZ)
-                hour = int(full_kill["killmail_time"][11:13])
-                hourly_activity[hour] += 1
-            except Exception:
-                pass
-            
-            # Ship types (we look for attackers from this entity)
-            for attacker in full_kill.get("attackers", []):
-                # Check if this attacker belongs to the target entity
-                if (etype == "alliance" and attacker.get("alliance_id") == eid) or \
-                   (etype == "corporation" and attacker.get("corporation_id") == eid):
+        # Parallel fetch of killmails to avoid N+1 slow queries
+        # We limit to recent kills to avoid blowing up the ESI rate limit
+        with ThreadPoolExecutor(max_workers=20) as pool:
+            future_to_kill = {
+                pool.submit(esi_client.get_killmail, k.get('killmail_id'), k.get('zkb', {}).get('hash')): k
+                for k in recent_kills
+                if k.get('killmail_id') and k.get('zkb', {}).get('hash')
+            }
+
+            for future in as_completed(future_to_kill):
+                try:
+                    full_kill = future.result()
+                    if not full_kill:
+                        continue
+
+                    victim = full_kill.get('victim', {})
                     
-                    ship_type = attacker.get("ship_type_id")
-                    if ship_type:
-                        ship_counts[ship_type] = ship_counts.get(ship_type, 0) + 1
+                    # Check if it's a loss (victim is neighbor) or kill (attacker is neighbor)
+                    is_loss = False
+                    if victim.get('alliance_id') == eid or victim.get('corporation_id') == eid:
+                        is_loss = True
+                    
+                    # Aggregate ships
+                    ship_type_id = victim.get('ship_type_id')
+                    ship_name = "Unknown"
+                    if ship_type_id:
+                        ship_name = esi_client.get_type_name(ship_type_id)
+                        ship_counts[ship_name] = ship_counts.get(ship_name, 0) + 1
+                        
+                        if is_loss:
+                            # We don't track losses in this simplified view, but good to know
+                            pass
+                        
+                    # Time activity
+                    kill_time_str = full_kill.get('killmail_time')
+                    if kill_time_str:
+                        # 2024-10-25T12:00:00Z
+                        try:
+                            # Fast parsing
+                            hour = int(kill_time_str[11:13])
+                            hourly_activity[hour] += 1
+                        except:
+                            pass
+                    
+                    # Threat calculation
+                    # If they are flying scary ships, increase threat
+                    if ship_name in ['Nyx', 'Aeon', 'Hel', 'Wyvern', 'Erebus', 'Avatar', 'Ragnarok', 'Leviathan']:
+                        # Supercaps
+                        pass # Calculated later based on total kills for now
+                    
+                except Exception as e:
+                    print(f"Error processing killmail: {e}")
         
         # Resolve ship names for top 5
         top_ships = sorted(ship_counts.items(), key=lambda x: x[1], reverse=True)[:5]
