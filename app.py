@@ -3,7 +3,9 @@ EVE Intel Dashboard - Flask Backend
 Get Off My Lawn [LAWN] — Kalevala Expanse
 
 Usage:
-    pip install flask requests
+    ./run_dev.fish
+    OR
+    source .venv/bin/activate.fish
     python app.py
     Open http://localhost:5000
 """
