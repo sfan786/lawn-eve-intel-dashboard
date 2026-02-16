@@ -68,6 +68,12 @@ UPGRADE_TYPES = {
     "mTD": {"name": "Minor Threat Detection", "category": "military"},
     "MTD": {"name": "Major Threat Detection", "category": "military"},
     "PA":  {"name": "Prospecting Array",      "category": "industry"},
+    "PA_Trit": {"name": "Prospecting Array (Tritanium)", "category": "industry"},
+    "PA_Mex":  {"name": "Prospecting Array (Mexallon)",  "category": "industry"},
+    "PA_Pyer": {"name": "Prospecting Array (Pyerite)",   "category": "industry"},
+    "PA_Iso":  {"name": "Prospecting Array (Isogen)",    "category": "industry"},
+    "PA_Nocx": {"name": "Prospecting Array (Nocxium)",   "category": "industry"},
+    "PA_Zyd":  {"name": "Prospecting Array (Zydrine)",   "category": "industry"},
     "ED":  {"name": "Exploration Detector", "category": "strategic"},
     "PMD": {"name": "Power Monitoring",     "category": "strategic"},
     "SCF": {"name": "Supercap Facility",    "category": "strategic"}
@@ -78,19 +84,19 @@ SYSTEM_UPGRADES = {
     # 6-CBBM Constellation
     "1-KCSA": [{"type": "mTD", "level": 1}, {"type": "MTD", "level": 3}],
     "F48K-D": [{"type": "MTD", "level": 2}],
-    "JT2I-7": [{"type": "mTD", "level": 1}, {"type": "MTD", "level": 2}, {"type": "PMD", "level": 2}],
+    "JT2I-7": [{"type": "mTD", "level": 1}, {"type": "MTD", "level": 2}],
     "N-JK02": [{"type": "ED", "level": 3}],
     "UDVW-O": [{"type": "ED", "level": 1}],
     "UJXC-B": [{"type": "mTD", "level": 1}, {"type": "MTD", "level": 3}, {"type": "ED", "level": 1}],
     "XTJ-5Q": [{"type": "MTD", "level": 1}, {"type": "ED", "level": 1}],
     # 2Q-8WA Constellation
-    "5-VFC6": [{"type": "mTD", "level": 3}, {"type": "MTD", "level": 3}, {"type": "PA", "level": 1}],
-    "86L-9F": [{"type": "PA", "level": 2}],
+    "5-VFC6": [{"type": "mTD", "level": 3}, {"type": "MTD", "level": 3}, {"type": "PA_Trit", "level": 1}, {"type": "PA_Mex", "level": 1}],
+    "86L-9F": [{"type": "PA_Trit", "level": 1}, {"type": "PA_Mex", "level": 1}, {"type": "PA_Zyd", "level": 1}],
     "BZ-BCK": [{"type": "mTD", "level": 1}, {"type": "MTD", "level": 2}],
     "FB5U-I": [{"type": "mTD", "level": 2}, {"type": "MTD", "level": 3}],
     "IUU3-L": [{"type": "MTD", "level": 1}],
-    "J-OAH2": [{"type": "mTD", "level": 1}, {"type": "PA", "level": 1}, {"type": "PA", "level": 2}, {"type": "PA", "level": 3}, {"type": "ED", "level": 1}, {"type": "PMD", "level": 3}],
-    "O5-YNW": [{"type": "MTD", "level": 3}],
+    "J-OAH2": [{"type": "mTD", "level": 1}, {"type": "PA_Pyer", "level": 2}, {"type": "PA_Iso", "level": 2}, {"type": "PA_Nocx", "level": 1}],
+    "O5-YNW": [{"type": "mTD", "level": 1}, {"type": "MTD", "level": 3}],
     "S-LHPJ": [{"type": "MTD", "level": 3}],
 }
 # Neighbor entities to track for "Threat Profiling"
