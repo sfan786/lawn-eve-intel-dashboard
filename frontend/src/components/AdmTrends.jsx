@@ -1,5 +1,5 @@
 import React from 'react'
-import { getAdmColor } from '../utils/admHelpers'
+import { getAdmColor, compute24hChange } from '../utils/admHelpers'
 import CornerBrackets from './common/CornerBrackets'
 import Sparkline from './Sparkline'
 
@@ -43,18 +43,7 @@ export default function AdmTrends({ admHistory, config, sovereignty }) {
                         const sov = sovereignty[sys.system_id] || {}
                         const currentAdm = sov.adm || 0
 
-                        let change24h = null
-                        if (history.length >= 2) {
-                            const cutoff = Date.now() - 24 * 60 * 60 * 1000
-                            let oldPoint = history[0]
-                            for (let i = 0; i < history.length; i++) {
-                                if (new Date(history[i].timestamp).getTime() >= cutoff) {
-                                    oldPoint = history[Math.max(0, i - 1)]
-                                    break
-                                }
-                            }
-                            change24h = currentAdm - oldPoint.adm
-                        }
+                        const change24h = history.length >= 2 ? compute24hChange(history, currentAdm) : null
 
                         return (
                             <div key={sys.system_id} style={{

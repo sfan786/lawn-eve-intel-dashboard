@@ -26,6 +26,7 @@ export default function App() {
     const [lastUpdate, setLastUpdate] = useState(null)
     const [activeConst, setActiveConst] = useState("lawn")
     const [selectedSystem, setSelectedSystem] = useState(null)
+    const [mapMode, setMapMode] = useState("subway")
     const timer = useRef(null)
 
     const fetchData = useCallback(async (init = false) => {
@@ -162,7 +163,13 @@ export default function App() {
                     <CornerBrackets />
                     <div className="panel-header">
                         <span className="panel-title">Constellation Map</span>
-                        <span className="panel-badge">69 systems + 18 neighbors</span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <div className="map-mode-toggle">
+                                <button className={`map-mode-btn ${mapMode === 'traditional' ? 'active' : ''}`} onClick={() => setMapMode('traditional')}>Traditional</button>
+                                <button className={`map-mode-btn ${mapMode === 'subway' ? 'active' : ''}`} onClick={() => setMapMode('subway')}>Subway</button>
+                            </div>
+                            <span className="panel-badge">69 systems + 18 neighbors</span>
+                        </div>
                     </div>
                     <ConstellationMap
                         config={config}
@@ -171,6 +178,7 @@ export default function App() {
                         campaigns={campaigns}
                         selectedSystem={selectedSystem}
                         onSelectSystem={setSelectedSystem}
+                        mapMode={mapMode}
                     />
                 </div>
 

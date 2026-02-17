@@ -11,7 +11,7 @@ export default function KillFeed({ kills }) {
                     <span className="panel-title">Kill Feed</span>
                     <span className="panel-badge">Kalevala Expanse</span>
                 </div>
-                <div style={{ textAlign: 'center', padding: 20, color: 'var(--text-muted)', fontFamily: 'Share Tech Mono, monospace', fontSize: 11 }}>
+                <div style={{ textAlign: 'center', padding: 10, color: 'var(--text-muted)', fontFamily: 'Share Tech Mono, monospace', fontSize: 11 }}>
                     No recent kills in region
                 </div>
             </div>

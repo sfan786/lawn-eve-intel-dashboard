@@ -5,9 +5,8 @@ import { getCampaignPhase, formatCountdown, formatVulnWindow } from '../utils/ca
 import { getSystemUpgrades, getUpgradeSummary, UPGRADE_CATEGORY_COLORS } from '../utils/upgradeHelpers'
 import UpgradeBadges from './common/UpgradeBadges'
 
-export default function ConstellationMap({ config, sovereignty, activity, campaigns, selectedSystem, onSelectSystem }) {
+export default function ConstellationMap({ config, sovereignty, activity, campaigns, selectedSystem, onSelectSystem, mapMode = "subway" }) {
     const [tooltip, setTooltip] = useState(null)
-    const [mapMode, setMapMode] = useState("subway")
     const svgRef = useRef(null)
 
     const isSubway = mapMode === "subway"
@@ -174,12 +173,6 @@ export default function ConstellationMap({ config, sovereignty, activity, campai
 
     return (
         <div style={{ position: 'relative' }}>
-            <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 8 }}>
-                <div className="map-mode-toggle">
-                    <button className={`map-mode-btn ${mapMode === 'traditional' ? 'active' : ''}`} onClick={() => setMapMode('traditional')}>Traditional</button>
-                    <button className={`map-mode-btn ${mapMode === 'subway' ? 'active' : ''}`} onClick={() => setMapMode('subway')}>Subway</button>
-                </div>
-            </div>
             <div className="map-container">
                 <svg ref={svgRef} viewBox={activeViewBox} xmlns="http://www.w3.org/2000/svg">
                     <defs>

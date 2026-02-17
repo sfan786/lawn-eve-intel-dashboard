@@ -31,3 +31,32 @@ export function needsCautionGrinding(name, activeLayout, nameToId, sovereignty) 
     const adm = sov.adm || 0;
     return adm >= 2 && adm < 4;
 }
+
+// Compute ADM change per day from history snapshots.
+// Uses last 48h of data; falls back to full range if sparse.
+// Returns null if < 2 points or time window < 1h.
+export function computeGrindingRate(history) {
+    if (!history || history.length < 2) return null
+    const cutoff = Date.now() - 48 * 60 * 60 * 1000
+    let points = history.filter(p => new Date(p.timestamp).getTime() >= cutoff)
+    if (points.length < 2) points = history
+    const first = points[0]
+    const last = points[points.length - 1]
+    const hours = (new Date(last.timestamp) - new Date(first.timestamp)) / (1000 * 60 * 60)
+    if (hours < 1) return null
+    return (last.adm - first.adm) / (hours / 24)
+}
+
+// Compute ADM change over the last 24 hours vs current value.
+export function compute24hChange(history, currentAdm) {
+    if (!history || history.length < 2) return 0
+    const cutoff = Date.now() - 24 * 60 * 60 * 1000
+    let oldPoint = history[0]
+    for (let i = 0; i < history.length; i++) {
+        if (new Date(history[i].timestamp).getTime() >= cutoff) {
+            oldPoint = history[Math.max(0, i - 1)]
+            break
+        }
+    }
+    return currentAdm - oldPoint.adm
+}

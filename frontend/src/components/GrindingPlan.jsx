@@ -1,8 +1,36 @@
-import React from 'react'
-import { getAdmColor } from '../utils/admHelpers'
+import React, { useState } from 'react'
+import { getAdmColor, computeGrindingRate, compute24hChange } from '../utils/admHelpers'
 import { getSystemUpgrades, getUpgradeSummary } from '../utils/upgradeHelpers'
 import CornerBrackets from './common/CornerBrackets'
 import UpgradeBadges from './common/UpgradeBadges'
+
+const SYSTEM_TIERS = {
+    border:     new Set(["UDVW-O", "N-JK02"]),
+    crossConst: new Set(["F48K-D", "FB5U-I"]),
+    hub:        new Set(["1-KCSA", "BZ-BCK", "O5-YNW", "IUU3-L"]),
+    deadEnd:    new Set(["JT2I-7", "J-OAH2", "86L-9F", "5-VFC6", "S-LHPJ"]),
+}
+
+function getTierBonus(name) {
+    if (SYSTEM_TIERS.border.has(name))     return { bonus: 500, label: "BORDER" }
+    if (SYSTEM_TIERS.crossConst.has(name)) return { bonus: 300, label: "CROSS" }
+    if (SYSTEM_TIERS.hub.has(name))        return { bonus: 100, label: "HUB" }
+    if (SYSTEM_TIERS.deadEnd.has(name))    return { bonus: -50, label: "DEAD-END" }
+    return { bonus: 0, label: "—" }
+}
+
+function RateDisplay({ rate }) {
+    if (rate === null) {
+        return <span style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>No data</span>
+    }
+    const abs = Math.abs(rate)
+    if (abs < 0.05) {
+        return <span style={{ color: 'var(--text-muted)' }}>Flat</span>
+    }
+    const sign = rate > 0 ? '+' : ''
+    const color = rate > 0 ? '#00ff88' : '#ff3355'
+    return <span style={{ color }}>{sign}{rate.toFixed(1)}/day</span>
+}
 
 export default function GrindingPlan({ config, sovereignty, activity, admHistory }) {
     const lawnSystems = []
@@ -20,32 +48,21 @@ export default function GrindingPlan({ config, sovereignty, activity, admHistory
         })
     }
 
-    const strategicSystems = new Set(["UDVW-O", "N-JK02", "F48K-D", "FB5U-I"])
-
     const plannedSystems = lawnSystems.map(sys => {
         const sysId = sys.system_id
         const sov = sovereignty[sysId] || {}
         const adm = sov.adm || 0
         const histData = admHistory && admHistory[sysId] ? admHistory[sysId].history : []
 
-        let change24h = 0
-        if (histData.length >= 2) {
-            const cutoff = Date.now() - 24 * 60 * 60 * 1000
-            let oldPoint = histData[0]
-            for (let i = 0; i < histData.length; i++) {
-                if (new Date(histData[i].timestamp).getTime() >= cutoff) {
-                    oldPoint = histData[Math.max(0, i - 1)]
-                    break
-                }
-            }
-            change24h = adm - oldPoint.adm
-        }
+        const change24h = compute24hChange(histData, adm)
+        const rate = computeGrindingRate(histData)
+        const tier = getTierBonus(sys.name)
 
         let score = 0
         if (adm > 0 && adm < 2.0) score += 1000
         else if (adm >= 2.0 && adm < 4.0) score += 200
 
-        if (strategicSystems.has(sys.name)) score += 500
+        score += tier.bonus
 
         if (adm > 0) score += (6.0 - adm) * 50
 
@@ -55,8 +72,9 @@ export default function GrindingPlan({ config, sovereignty, activity, admHistory
             ...sys,
             adm,
             change24h,
+            rate,
             score,
-            isStrategic: strategicSystems.has(sys.name)
+            tierLabel: tier.label,
         }
     })
 
@@ -65,6 +83,9 @@ export default function GrindingPlan({ config, sovereignty, activity, admHistory
         .sort((a, b) => b.score - a.score)
         .slice(0, 6)
 
+    const allSorted = [...plannedSystems].sort((a, b) => b.score - a.score)
+    const [showTable, setShowTable] = useState(false)
+
     if (targets.length === 0) return null
 
     return (
@@ -72,7 +93,25 @@ export default function GrindingPlan({ config, sovereignty, activity, admHistory
             <CornerBrackets />
             <div className="panel-header">
                 <span className="panel-title" style={{ color: 'var(--amber)' }}>⚠ Daily Grinding Targets</span>
-                <span className="panel-badge">Top Priorities</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <button
+                        onClick={() => setShowTable(v => !v)}
+                        style={{
+                            background: 'none',
+                            border: '1px solid rgba(255,255,255,0.1)',
+                            color: 'var(--text-muted)',
+                            fontFamily: 'Share Tech Mono, monospace',
+                            fontSize: 10,
+                            padding: '2px 8px',
+                            cursor: 'pointer',
+                            borderRadius: 2,
+                            letterSpacing: '0.05em',
+                        }}
+                    >
+                        {showTable ? '▴ All systems' : '▾ All systems'}
+                    </button>
+                    <span className="panel-badge">Top Priorities</span>
+                </div>
             </div>
             <div style={{
                 display: 'grid',
@@ -111,9 +150,12 @@ export default function GrindingPlan({ config, sovereignty, activity, admHistory
                                     {sys.adm.toFixed(1)}
                                 </span>
                             </div>
+                            <div style={{ fontSize: 10, fontFamily: 'Share Tech Mono, monospace' }}>
+                                <RateDisplay rate={sys.rate} />
+                            </div>
                             <div style={{ display: 'flex', gap: 6, fontSize: 10, color: 'var(--text-secondary)', flexWrap: 'wrap' }}>
-                                {sys.isStrategic && (
-                                    <span style={{ color: 'var(--cyan)', border: '1px solid rgba(0,212,255,0.3)', padding: '0 4px', borderRadius: 2 }}>STRATEGIC</span>
+                                {sys.tierLabel !== '—' && sys.tierLabel !== 'DEAD-END' && (
+                                    <span style={{ color: 'var(--cyan)', border: '1px solid rgba(0,212,255,0.3)', padding: '0 4px', borderRadius: 2 }}>{sys.tierLabel}</span>
                                 )}
                                 {sys.change24h < -0.05 && (
                                     <span style={{ color: 'var(--red)' }}>DROPPING ({sys.change24h.toFixed(1)})</span>
@@ -153,6 +195,41 @@ export default function GrindingPlan({ config, sovereignty, activity, admHistory
                     )
                 })}
             </div>
+
+            {/* Full system table — collapsible */}
+            {showTable && (
+                <div style={{ marginTop: 10 }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 11, fontFamily: 'Share Tech Mono, monospace' }}>
+                        <thead>
+                            <tr style={{ color: 'var(--text-muted)', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+                                <th style={{ textAlign: 'left', padding: '3px 6px', fontWeight: 'normal' }}>System</th>
+                                <th style={{ textAlign: 'right', padding: '3px 6px', fontWeight: 'normal' }}>ADM</th>
+                                <th style={{ textAlign: 'right', padding: '3px 6px', fontWeight: 'normal' }}>Rate/day</th>
+                                <th style={{ textAlign: 'right', padding: '3px 6px', fontWeight: 'normal' }}>Tier</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {allSorted.map(sys => {
+                                const rowColor = sys.adm < 2 ? '#ff3355' : sys.adm < 4 ? '#ffaa00' : '#00d4ff'
+                                return (
+                                    <tr key={sys.system_id} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                                        <td style={{ padding: '3px 6px', color: rowColor }}>{sys.name}</td>
+                                        <td style={{ padding: '3px 6px', textAlign: 'right', color: getAdmColor(sys.adm) }}>
+                                            {sys.adm > 0 ? sys.adm.toFixed(1) : '—'}
+                                        </td>
+                                        <td style={{ padding: '3px 6px', textAlign: 'right' }}>
+                                            <RateDisplay rate={sys.rate} />
+                                        </td>
+                                        <td style={{ padding: '3px 6px', textAlign: 'right', color: 'var(--text-muted)' }}>
+                                            {sys.tierLabel}
+                                        </td>
+                                    </tr>
+                                )
+                            })}
+                        </tbody>
+                    </table>
+                </div>
+            )}
         </div>
     )
 }
