@@ -37,15 +37,6 @@ Prioritized by tactical value for LAWN's current situation: brand new sov in Kal
 - Expandable kill details (fitted ship value, attacker list)
 - **Data sources:** zKillboard API + websocket for real-time
 
-### ADM Grinding Planner *(partially done)*
-**Why:** With 15 systems all below ADM 4, need to prioritize grinding efficiently.
-- [x] Ranked system list by grinding urgency (ADM level × 5-tier tactical scoring)
-- [x] Strategic importance weighting: border > cross-constellation > hub > interior > dead-end
-- [x] Rate display — actual grinding speed (+X.X/day) from ADM history on each priority card
-- [x] Full system table (all 15 systems) with ADM, rate, and tier — behind collapsible toggle in panel header
-- [ ] ADM goal tracker — set target ADMs per system, show progress bars
-- **Data sources:** SQLite adm_snapshots (trend analysis), config.py (system metadata)
-
 ### Planetary Interaction Info
 **Why:** PI key resources are very important for manufacturing and industry.
 - List all known PI planets in LAWN space
@@ -54,6 +45,12 @@ Prioritized by tactical value for LAWN's current situation: brand new sov in Kal
 - List pi types by Alliance Strategic Importance
 - **Data sources:** ?
 
+### Mobile Responsive Layout
+**Why:** Need to be able to check the dashboard on mobile.
+- Make the dashboard responsive to mobile devices
+- Make the dashboard responsive to tablet devices
+- Make the dashboard responsive to large screens
+- **Data sources:** ?
 ---
 
 ## Priority 2 — Operational Quality of Life
@@ -113,6 +110,15 @@ Prioritized by tactical value for LAWN's current situation: brand new sov in Kal
 ---
 
 ## Priority 4 -- Low Priority   
+
+### ADM Grinding Planner *(partially done)*
+**Why:** With 15 systems all below ADM 4, need to prioritize grinding efficiently.
+- [x] Ranked system list by grinding urgency (ADM level × 5-tier tactical scoring)
+- [x] Strategic importance weighting: border > cross-constellation > hub > interior > dead-end
+- [x] Rate display — actual grinding speed (+X.X/day) from ADM history on each priority card
+- [x] Full system table (all 15 systems) with ADM, rate, and tier — behind collapsible toggle in panel header
+- [ ] ADM goal tracker — set target ADMs per system, show progress bars
+- **Data sources:** SQLite adm_snapshots (trend analysis), config.py (system metadata)
 
 ### Moon Mining Tracker
 **Why:** Moons are a key income source in nullsec. (Low Priority-Alliance Auth does moons plus We are going to primarily use Metanox Moon Mining for this   )
