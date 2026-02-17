@@ -139,7 +139,6 @@ Prioritized by tactical value for LAWN's current situation: brand new sov in Kal
 
 ## Ideas / Backlog
 
-- **Mobile-responsive layout** — dashboard works on phone for quick checks during ops
 - **Multi-alliance view** — if LAWN blues other groups, show their space too
 - **Wormhole connection tracker** — integration with Pathfinder/Tripwire APIs
 - **PI (Planetary Interaction) tracker** — colony status and extraction timers (SSO)
@@ -149,3 +148,5 @@ Prioritized by tactical value for LAWN's current situation: brand new sov in Kal
 - **Map annotations** — user-placed notes on systems ("cloaky camper here", "safe to rat")
 - **SRP (Ship Replacement) integration** — track losses eligible for reimbursement
 - **Localized time display** — show timers in user's local TZ alongside EVE time
+- **Dscan Parsing** - Parse dscan data to identify ships and structures in space
+- **Local Chat Parsing** - Parse local chat data to identify charecters in space
