@@ -29,11 +29,12 @@ Prioritized by tactical value for LAWN's current situation: brand new sov in Kal
 
 ### zKillboard Feed Enhancements
 **Why:** Current feed is basic — need better filtering and analysis for fleet intel.
-- Filter by: LAWN space only / all regional, PVP only / include NPC, ISK threshold
+- [x] Filter by: LAWN space only / all regional, PVP only / include NPC
+- [x] Attacker corp/alliance aggregation — "who's roaming our space?"
+- [x] Loss summary — "LAWN lost X ISK today" vs "LAWN killed X ISK today"
+- ISK threshold filter
 - Ship class breakdown — subcaps vs caps vs supers in region
-- Attacker corp/alliance aggregation — "who's roaming our space?"
 - Repeat offender tracking — flag pilots/corps seen multiple times
-- Loss summary — "LAWN lost X ISK today" vs "LAWN killed X ISK today"
 - Expandable kill details (fitted ship value, attacker list)
 - **Data sources:** zKillboard API + websocket for real-time
 
