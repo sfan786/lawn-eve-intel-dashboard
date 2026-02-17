@@ -19,6 +19,9 @@ echo "   This builds the Vite frontend + Python app from scratch."
 echo "   Takes ~2-3 minutes on first run, faster after..."
 docker-compose build --no-cache
 
+echo "🗄️  Ensuring intel.db exists as a file (not directory)..."
+touch intel.db
+
 echo "🚀 Starting containers..."
 docker-compose up -d
 
