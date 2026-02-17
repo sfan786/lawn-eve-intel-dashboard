@@ -44,6 +44,14 @@ Prioritized by tactical value for LAWN's current situation: brand new sov in Kal
 - ADM goal tracker — set target ADMs per system, show progress
 - **Data sources:** SQLite adm_snapshots (trend analysis), config.py (system metadata)
 
+### Planetary Interaction Info
+**Why:** PI key resources are very important for manufacturing and industry.
+- List all known PI planets in LAWN space
+- Show PI resource types
+- Prioritize which systems to grind PI in based on resource availability and strategic importance
+- List pi types by Alliance Strategic Importance
+- **Data sources:** ?
+
 ---
 
 ## Priority 2 — Operational Quality of Life
@@ -56,14 +64,6 @@ Prioritized by tactical value for LAWN's current situation: brand new sov in Kal
 - Uses browser Notification API — works in background tabs
 - Configurable per-system and per-alert-type
 - **Data sources:** Existing API endpoints, polled client-side
-
-### Structure Tracking
-**Why:** Once citadels and engineering complexes go up, need to track timers and fuel.
-- List all known structures in LAWN space (citadels, refineries, ECs)
-- Fuel status and depletion estimates (requires SSO)
-- Reinforcement timers if attacked
-- Vulnerability schedule display
-- **Data sources:** ESI structure endpoints (requires SSO auth)
 
 ### Regional Intel Aggregation
 **Why:** Need early warning from neighboring regions before hostiles reach LAWN.
@@ -108,14 +108,25 @@ Prioritized by tactical value for LAWN's current situation: brand new sov in Kal
 - "Can we fight this?" quick assessment based on recent fleet comps
 - **Data sources:** zKillboard API (public for kills), ESI (SSO for corp members)
 
+---
+
+## Priority 4 -- Low Priority   
+
 ### Moon Mining Tracker
-**Why:** Moons are a key income source in nullsec.
+**Why:** Moons are a key income source in nullsec. (Low Priority-Alliance Auth does moons plus We are going to primarily use Metanox Moon Mining for this   )
 - Track moon extraction timers
 - Ore composition and estimated value per moon
 - Extraction schedule calendar view
 - **Prerequisite:** EVE SSO auth
 - **Data sources:** ESI moon extraction endpoints (SSO)
 
+### Structure Tracking
+**Why:** Once citadels and engineering complexes go up, need to track timers and fuel. (Low Priority-Alliance Auth does structures)
+- List all known structures in LAWN space (citadels, refineries, ECs)
+- Fuel status and depletion estimates (requires SSO)
+- Reinforcement timers if attacked
+- Vulnerability schedule display
+- **Data sources:** ESI structure endpoints (requires SSO auth)
 ---
 
 ## Ideas / Backlog
