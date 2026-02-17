@@ -52,11 +52,25 @@ NEIGHBOR_SYSTEM_NAMES = [
 
 # Your alliance info (for highlighting friendly vs hostile)
 FRIENDLY_ALLIANCES = [
-    "Get Off My Lawn",
+    "Get Off My Lawn",        # LAWN (150097440)
+    "BorderZone",             # BOZON (99012845) — allies
+    "Gnomes Rising HoA",      # GNOME (99013982) — LAWN alt/highsec alliance
 ]
 
 FRIENDLY_CORPORATIONS = [
+    # LAWN member corporations (as of Feb 2026)
     "Astrum Mechanica",
+    "DarkMatterEnterprises",
+    "Derp Company",
+    "Dormir no da ISK",
+    "Gnome Tactical Foundations and Orientation",
+    "Gnomeland Services",
+    "Gnomes von Zurich",
+    "Gnomestead Structures",
+    "LAWN HC",
+    "Moo-Tang Clan",
+    "Obsidian Engineering",
+    "Undersized Armada",
 ]
 
 # ===== SOVEREIGNTY UPGRADES =====
