@@ -20,6 +20,8 @@ Prioritized by tactical value for LAWN's current situation: brand new sov in Kal
 - [x] **Flask Blueprint refactor** — `app.py` and `demo.py` reduced to thin entry points; live routes in `routes/` package, mock routes in `mock/` package; `SystemState` singleton for shared startup state
 - [x] **Multi-stage Docker build** — Node 20 stage builds Vite frontend, Python 3.11 stage runs gunicorn; `intel.db` persisted via host volume mount
 - [x] **Friendly entity expansion** — BorderZone [BOZON] and Gnomes Rising HoA [GNOME] added as friendly alliances; all 12 LAWN member corps added to `FRIENDLY_CORPORATIONS`
+- [x] **ADM grinding planner** — priority cards (top 6 systems) ranked by 5-tier tactical scoring (border > cross-constellation > hub > interior > dead-end), with grinding rate (+X.X/day from history), and collapsible full-system table for all 15 LAWN systems; `computeGrindingRate` and `compute24hChange` added to `admHelpers.js`
+- [x] **UI space efficiency pass** — map mode toggle lifted into panel header; controls policy documented in CLAUDE.md (controls in headers, compact empty states, metadata as badges)
 
 ---
 
@@ -35,13 +37,13 @@ Prioritized by tactical value for LAWN's current situation: brand new sov in Kal
 - Expandable kill details (fitted ship value, attacker list)
 - **Data sources:** zKillboard API + websocket for real-time
 
-### ADM Grinding Planner
+### ADM Grinding Planner *(partially done)*
 **Why:** With 15 systems all below ADM 4, need to prioritize grinding efficiently.
-- Ranked system list by grinding urgency (ADM level × strategic importance)
-- Strategic importance weighting: border systems (UDVW-O, N-JK02) > cross-constellation (F48K-D, FB5U-I) > hubs > dead-ends
-- Estimated time to next ADM level based on current grinding rate (from sparkline slope)
-- Suggested daily grinding targets — "grind these 3 systems today"
-- ADM goal tracker — set target ADMs per system, show progress
+- [x] Ranked system list by grinding urgency (ADM level × 5-tier tactical scoring)
+- [x] Strategic importance weighting: border > cross-constellation > hub > interior > dead-end
+- [x] Rate display — actual grinding speed (+X.X/day) from ADM history on each priority card
+- [x] Full system table (all 15 systems) with ADM, rate, and tier — behind collapsible toggle in panel header
+- [ ] ADM goal tracker — set target ADMs per system, show progress bars
 - **Data sources:** SQLite adm_snapshots (trend analysis), config.py (system metadata)
 
 ### Planetary Interaction Info
