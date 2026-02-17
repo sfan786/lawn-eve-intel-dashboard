@@ -1,45 +1,46 @@
 #!/bin/bash
-# Quick update script for LAWN Intel Dashboard
-# Run this on your Hetzner server after pushing code changes
+# Full update — no cache rebuild.
+# Use this when you've changed requirements.txt, package.json, or need a clean slate.
+# Slower than quick-update.sh but guaranteed fresh.
 
 set -e
 
-echo "🔄 Updating LAWN Intel Dashboard..."
+echo "🔄 Full update (no-cache rebuild)..."
 echo ""
 
-# Pull latest code
-echo "📥 Pulling latest code from GitHub..."
+echo "📥 Pulling latest code..."
 git pull origin main
 
-# Stop containers cleanly
 echo "🛑 Stopping containers..."
 docker-compose down
 
-# Rebuild with fresh images
-echo "🏗️  Building new image..."
+echo "🏗️  Building fresh image (no cache)..."
+echo "   This builds the Vite frontend + Python app from scratch."
+echo "   Takes ~2-3 minutes on first run, faster after..."
 docker-compose build --no-cache
 
-# Start containers
 echo "🚀 Starting containers..."
 docker-compose up -d
 
-# Wait a moment for startup
-sleep 3
+echo "⏳ Waiting for startup (ESI resolution takes ~20-30s)..."
+sleep 5
 
-# Check status
-echo ""
-echo "✅ Update complete! Checking status..."
-docker-compose ps
-
-# Test API
 echo ""
 echo "🧪 Testing API..."
-if curl -s http://localhost:5000/api/status | grep -q "online"; then
-    echo "✅ API is responding!"
-    echo ""
-    echo "Dashboard updated and running at https://lawn.sfan.xyz"
-else
-    echo "⚠️  API not responding. Check logs:"
-    echo "  docker-compose logs -f"
-    exit 1
-fi
+# Poll up to 60s for the app to be ready
+for i in $(seq 1 12); do
+    if curl -sf http://localhost:5000/api/status | grep -q '"status"'; then
+        echo "✅ Full update complete! Dashboard is live at https://lawn.sfan.xyz"
+        echo "   View logs: docker-compose logs -f"
+        echo ""
+        docker-compose ps
+        exit 0
+    fi
+    echo "   Waiting... ($((i * 5))s)"
+    sleep 5
+done
+
+echo "⚠️  API still not responding after 60s. Check logs:"
+echo "   docker-compose logs -f"
+docker-compose ps
+exit 1

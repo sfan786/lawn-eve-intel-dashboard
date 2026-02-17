@@ -1,32 +1,34 @@
 #!/bin/bash
-# Quick update for code changes only (no dependency changes)
-# Faster than full rebuild
+# Quick update — code changes only (uses Docker layer cache)
+# Rebuilds Python + Vite layers only where files changed.
+# Use update.sh instead if you've changed requirements.txt or package.json.
 
 set -e
 
-echo "⚡ Quick update (code changes only)..."
+echo "⚡ Quick update (cached build)..."
 echo ""
 
-# Pull latest code
 echo "📥 Pulling latest code..."
 git pull origin main
 
-# Stop containers cleanly (prevents Docker Compose bugs)
 echo "🛑 Stopping containers..."
 docker-compose down
 
-# Rebuild and restart (uses cache)
-echo "🔄 Rebuilding and restarting..."
+echo "🔄 Rebuilding (with cache) and restarting..."
 docker-compose up -d --build
 
-# Wait for startup
-sleep 2
+sleep 3
 
-# Show logs
 echo ""
 echo "📋 Recent logs:"
 docker-compose logs --tail=20
 
 echo ""
-echo "✅ Quick update complete!"
-echo "View live logs: docker-compose logs -f"
+echo "🧪 Testing API..."
+if curl -sf http://localhost:5000/api/status | grep -q '"status"'; then
+    echo "✅ Quick update complete! Dashboard is live."
+    echo "   View logs: docker-compose logs -f"
+else
+    echo "⚠️  API not responding yet — may still be starting (ESI resolution takes ~20s)"
+    echo "   Check: docker-compose logs -f"
+fi

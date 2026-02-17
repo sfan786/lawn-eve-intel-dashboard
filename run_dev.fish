@@ -9,8 +9,51 @@ else
     source .venv/bin/activate.fish
 end
 
-set -x FLASK_APP app.py
-set -x FLASK_DEBUG 1
+# Parse mode argument: live (default) or demo
+set mode "live"
+if test (count $argv) -ge 1
+    if test $argv[1] = "demo"
+        set mode "demo"
+    end
+end
 
-echo "[*] Starting EVE Intel Dashboard..."
-flask run --host=0.0.0.0 --port=5000 --reload
+if test $mode = "demo"
+    # Demo mode: Flask mock API on :5001 + Vite dev server on :3000
+    echo "[*] Starting DEMO mode (mock API :5001 + Vite :3000)..."
+    set -x FLASK_PORT 5001
+    set -x FLASK_DEBUG true
+    python demo.py &
+    set flask_pid $last_pid
+    echo "[*] Demo Flask PID: $flask_pid"
+
+    if test -d "frontend"
+        cd frontend
+        npm run dev:demo
+        cd ..
+    else
+        echo "[*] No frontend/ yet — serving legacy static/index.html from Flask"
+        wait $flask_pid
+    end
+
+    # Kill Flask when Vite exits
+    kill $flask_pid 2>/dev/null
+else
+    # Live mode: Flask on :5000 + Vite dev server on :3000
+    echo "[*] Starting LIVE mode (ESI API :5000 + Vite :3000)..."
+    set -x FLASK_DEBUG true
+    python app.py &
+    set flask_pid $last_pid
+    echo "[*] Live Flask PID: $flask_pid"
+
+    if test -d "frontend"
+        cd frontend
+        npm run dev
+        cd ..
+    else
+        echo "[*] No frontend/ yet — serving legacy static/index.html from Flask"
+        wait $flask_pid
+    end
+
+    # Kill Flask when Vite exits
+    kill $flask_pid 2>/dev/null
+end
