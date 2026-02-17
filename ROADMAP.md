@@ -16,6 +16,10 @@ Prioritized by tactical value for LAWN's current situation: brand new sov in Kal
 - [x] **Activity heatmap** — per-system hourly activity grid (systems × hours UTC) from SQLite snapshots
 - [x] **Timerboard** — password-protected custom structure timers with add/delete and countdown display
 - [x] **Sov upgrade tracking** — manual iHub upgrade display (military/industry/strategic) per LAWN system
+- [x] **Vite + React build system** — frontend split into `frontend/src/` with proper component files, utils, and CSS modules; Vite dev proxy for local development; legacy `static/index.html` kept as fallback
+- [x] **Flask Blueprint refactor** — `app.py` and `demo.py` reduced to thin entry points; live routes in `routes/` package, mock routes in `mock/` package; `SystemState` singleton for shared startup state
+- [x] **Multi-stage Docker build** — Node 20 stage builds Vite frontend, Python 3.11 stage runs gunicorn; `intel.db` persisted via host volume mount
+- [x] **Friendly entity expansion** — BorderZone [BOZON] and Gnomes Rising HoA [GNOME] added as friendly alliances; all 12 LAWN member corps added to `FRIENDLY_CORPORATIONS`
 
 ---
 
@@ -60,14 +64,6 @@ Prioritized by tactical value for LAWN's current situation: brand new sov in Kal
 - Reinforcement timers if attacked
 - Vulnerability schedule display
 - **Data sources:** ESI structure endpoints (requires SSO auth)
-
-### Infrastructure: Frontend Build System
-**Why:** Current single-file HTML/JS is hard to maintain and lacks modern tooling.
-- Set up Vite or Webpack for bundling
-- Modularize React components (separate files)
-- Add linting, type checking (TypeScript?), and hot module replacement
-- Optimize assets for production
-- **Technical debt reduction**
 
 ### Regional Intel Aggregation
 **Why:** Need early warning from neighboring regions before hostiles reach LAWN.

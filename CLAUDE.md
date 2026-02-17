@@ -1,7 +1,7 @@
 # CLAUDE.md — LAWN Eve Intel Dashboard
 
 ## What This Is
-Real-time intel dashboard for **Get Off My Lawn [LAWN]** alliance (EVE Online). LAWN was removed from the Imperium coalition after 14 years and relocated to the Dronelands, claiming 2 constellations in **The Kalevala Expanse** region. The dashboard serves the whole alliance — multiple corps including Astrum Mechanica, LAWN Logistics, and others.
+Real-time intel dashboard for **Get Off My Lawn [LAWN]** alliance (EVE Online). LAWN was removed from the Imperium coalition after 14 years and relocated to the Dronelands, claiming 2 constellations in **The Kalevala Expanse** region. The dashboard serves the whole alliance — 12 member corps including Astrum Mechanica, Gnomeland Services, LAWN HC, and others. Friendly alliances include **BorderZone [BOZON]** (allies) and **Gnomes Rising HoA [GNOME]** (LAWN's alt/highsec alliance).
 
 The dashboard monitors sovereignty, kill activity, jump traffic, and active sov campaigns across LAWN's territory and the neighboring border systems.
 
@@ -47,54 +47,90 @@ LAWN has **only 2 exits** from sov space:
 All other border systems (XTJ-5Q, S-LHPJ) are interior dead-ends with no external gates.
 
 ## Tech Stack
-- **Backend:** Python 3 + Flask
-- **Frontend:** React 18 (CDN via Babel) in a single HTML file
+- **Backend:** Python 3.11 + Flask, split into Flask Blueprint modules under `routes/` (live) and `mock/` (demo)
+- **Frontend:** React 18 + Vite 5 — source in `frontend/src/`, built to `static/dist/`
 - **Data source:** EVE ESI public endpoints (esi.evetech.net) — no auth needed
-- **No build step** — CDN React + Babel in-browser transpilation
+- **Production:** Docker multi-stage build (Node 20 Vite build → Python 3.11 + Gunicorn)
+- **Legacy fallback:** `static/index.html` (CDN Babel/React, no build step) — kept for reference
 - User's OS is **CachyOS (Arch Linux)** with **fish shell**
 
 ## Project Structure
 ```
 lawn-eve-intel-dashboard/
-├── app.py              # Flask backend — live ESI data
-├── demo.py             # Demo mode — mock data for testing UI
-├── config.py           # Constellation IDs, friendly alliance definitions
-├── db.py               # SQLite persistence — ADM/activity snapshots + history queries
-├── esi_client.py       # ESI API wrapper with in-memory TTL caching
-├── intel.db            # SQLite database (auto-created, gitignored)
-├── requirements.txt    # flask, requests
-├── tools/
-│   └── esi_lookup.py   # CLI tool for ESI/zKill entity ID resolution
+├── app.py                   # Thin entry point — registers live ESI blueprints
+├── demo.py                  # Thin entry point — registers mock blueprints
+├── config.py                # Alliance IDs, constellation IDs, upgrade data
+├── db.py                    # SQLite persistence (ADM + activity snapshots)
+├── esi_client.py            # ESI API wrapper with TTL caching
+│
+├── routes/                  # Live Flask blueprints (ESI-backed)
+│   ├── system_state.py      # SystemState singleton (populated at startup)
+│   ├── config_routes.py     # /api/config, /api/status
+│   ├── sov_routes.py        # /api/sovereignty, /api/campaigns
+│   ├── activity_routes.py   # /api/activity
+│   ├── zkill_routes.py      # /api/zkill/feed, /api/zkill/<id>
+│   ├── history_routes.py    # /api/history/adm, /api/history/activity/heatmap
+│   ├── intel_routes.py      # /api/intel/neighbors
+│   ├── timer_routes.py      # /api/timers, /api/auth/check
+│   └── static_routes.py     # / (serves Vite build or legacy fallback)
+│
+├── mock/                    # Demo mock blueprints (no ESI calls)
+│   ├── mock_data.py         # All mock constants and builder functions
+│   └── mock_*_routes.py     # One file per route group
+│
+├── frontend/                # Vite + React project
+│   ├── package.json
+│   ├── vite.config.js       # Proxy /api → Flask, build → static/dist/
+│   └── src/
+│       ├── App.jsx          # Root component — state, fetching, tab nav
+│       ├── data/mapData.js  # MAP_LAYOUT, MAP_LAYOUT_SUBWAY, MAP_CONNECTIONS
+│       ├── utils/           # admHelpers, campaignHelpers, formatters, upgradeHelpers
+│       └── components/      # 11 feature components + 3 common components
+│
 ├── static/
-│   └── index.html      # React SPA with SVG constellation map + ADM sparklines
-├── .gitignore
-├── CLAUDE.md           # This file
-├── README.md
-└── ROADMAP.md          # Feature roadmap and backlog
+│   ├── index.html           # Legacy CDN-React fallback (no build step required)
+│   └── dist/                # Vite build output (gitignored, served by Flask in prod)
+│
+├── tools/
+│   └── esi_lookup.py        # CLI: resolve system/alliance/corp names to IDs
+│
+├── Dockerfile               # Multi-stage: Node (Vite build) → Python (gunicorn)
+├── docker-compose.yml
+├── setup.fish               # Local first-time setup (venv + npm install)
+├── run_dev.fish             # Local dev launcher (Flask + Vite, accepts 'demo' arg)
+└── requirements.txt
 ```
 
 ## Key Technical Decisions
-1. **static/index.html not templates/** — Must be served via `send_from_directory`, NOT `render_template`, because Jinja2's `{{ }}` conflicts with React JSX expressions
-2. **Map layout is manual** — Two layout modes: `MAP_LAYOUT` (traditional Dotlan-style) and `MAP_LAYOUT_SUBWAY` (abstract metro-style). Gate connections are in `MAP_CONNECTIONS` array with types: `internal` (same constellation), `cross` (different TKE constellations), `regional` (to other regions), `neighbor` (neighbor region systems). Subway mode prioritizes readability over geometric accuracy — LAWN at top, TKE spread below, neighbor systems positioned to avoid overlapping TKE connection lines
-3. **Demo mode** — `demo.py` serves identical API routes as `app.py` but returns hardcoded mock data (no ESI calls). Always test UI changes against demo mode first
-4. **In-memory caching** — `esi_client.py` caches responses in a dict with per-category TTLs
-5. **SQLite persistence** — `db.py` snapshots ADM and activity data hourly (deduplicated). WAL mode for concurrent reads. History API serves sparkline data to frontend
-6. **Sov upgrades are manual** — ESI doesn't expose iHub upgrade fittings without SSO auth, so `config.py` has `SYSTEM_UPGRADES` (per-system upgrade list) and `UPGRADE_TYPES` (metadata/categories). Served via `/api/config` response. Update manually when upgrades change in-game
+1. **Flask Blueprints** — Backend is split into `routes/` (live ESI) and `mock/` (demo) Blueprint packages. All blueprints share a `SystemState` singleton from `routes/system_state.py` that is populated at startup by `resolve_all_systems()`.
+2. **Vite build** — Frontend source lives in `frontend/src/`, built to `static/dist/`. `routes/static_routes.py` serves `static/dist/index.html` in production, falling back to `static/index.html` (legacy CDN version) if no build exists. Never use `render_template` — Jinja2's `{{ }}` conflicts with JSX.
+3. **Map layout is manual** — Two layout modes: `MAP_LAYOUT` (traditional Dotlan-style) and `MAP_LAYOUT_SUBWAY` (abstract metro-style). Gate connections are in `MAP_CONNECTIONS` array with types: `internal` (same constellation), `cross` (different TKE constellations), `regional` (to other regions), `neighbor` (neighbor region systems). Subway mode prioritizes readability over geometric accuracy.
+4. **Demo mode** — `demo.py` registers mock blueprints from `mock/` that return hardcoded data (no ESI calls). Reads `FLASK_PORT` from env so it can run on :5001 alongside live mode. Always test UI changes against demo first.
+5. **In-memory caching** — `esi_client.py` caches responses in a dict with per-category TTLs
+6. **SQLite persistence** — `db.py` snapshots ADM and activity data hourly (deduplicated). WAL mode for concurrent reads. History API serves sparkline data to frontend
+7. **Sov upgrades are manual** — ESI doesn't expose iHub upgrade fittings without SSO auth, so `config.py` has `SYSTEM_UPGRADES` (per-system upgrade list) and `UPGRADE_TYPES` (metadata/categories). Served via `/api/config` response. Update manually when upgrades change in-game
+8. **Docker volume gotcha** — The `./intel.db:/app/intel.db` volume mount requires `intel.db` to exist as a file on the host before `docker-compose up`. If it doesn't exist, Docker creates it as a directory and SQLite fails. The update scripts run `touch intel.db` to prevent this.
 
 ## Development
 
-### Setup
-```bash
-python -m venv .venv
-source .venv/bin/activate.fish   # fish shell
-pip install -r requirements.txt
+### First-Time Setup
+```fish
+./setup.fish    # creates .venv, pip install, npm install in frontend/
 ```
 
-### Run
-```bash
-python demo.py      # Mock data (for UI work)
-python app.py       # Live ESI data
-# → http://localhost:5000
+### Running Locally
+```fish
+./run_dev.fish          # Live ESI mode: Flask :5000 + Vite :3000
+./run_dev.fish demo     # Demo mode:     Flask :5001 + Vite :3000
+```
+
+Or manually:
+```fish
+# Terminal 1
+python app.py                     # or: FLASK_PORT=5001 python demo.py
+
+# Terminal 2
+cd frontend && npm run dev        # or: npm run dev:demo
 ```
 
 ### Entity Lookup
@@ -104,7 +140,7 @@ python tools/esi_lookup.py corporation "Some Corp"
 python tools/esi_lookup.py system "UDVW-O"
 python tools/esi_lookup.py zkill "Partial Name"
 ```
-Resolves names to numeric IDs for `config.py`. Uses ESI `POST /universe/ids/` for exact match with zKill autocomplete fallback for fuzzy search. Supports `--json` flag.
+Resolves names to numeric IDs for `config.py`. Uses ESI `POST /universe/ids/` for exact match with zKill autocomplete fallback for fuzzy search.
 
 ### Important ESI Endpoints (all public, no auth)
 - `GET /sovereignty/map/` — who holds what
@@ -133,7 +169,7 @@ Resolves names to numeric IDs for `config.py`. Uses ESI `POST /universe/ids/` fo
 
 ### Map Implementation Details
 
-**Key Functions** (in `static/index.html`):
+**Key Functions** (in `frontend/src/utils/admHelpers.js` and `frontend/src/components/ConstellationMap.jsx`; mirrored in legacy `static/index.html`):
 - `isReffed(name)` — checks if system has active sov campaign
 - `needsCriticalGrinding(name)` — checks if ADM < 2 (red treatment)
 - `needsCautionGrinding(name)` — checks if ADM 2-4 (amber treatment)
@@ -258,6 +294,9 @@ See [ROADMAP.md](ROADMAP.md) for full details and backlog.
 - [x] Activity heatmap (per-system hourly grid)
 - [x] Timerboard (password-protected custom structure timers)
 - [x] Sov upgrade tracking (manual iHub upgrade display)
+- [x] Vite + React build system (replaced CDN Babel single-file HTML)
+- [x] Flask Blueprint refactor (routes/ + mock/ packages, thin app.py/demo.py)
+- [x] Multi-stage Docker build (Node Vite build → Python gunicorn)
 
 **Priority 1 — Immediate tactical value:**
 - [ ] zKillboard feed panel enhancements (filtering, ship class breakdowns)
