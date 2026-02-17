@@ -7,10 +7,14 @@ services:
     ports:
       - "5000:5000"
     environment:
-      - FLASK_DEBUG=False
+      - FLASK_DEBUG=false
+      - TIMER_PASSWORD=${TIMER_PASSWORD:-lawnmower}
+    volumes:
+      # Persist SQLite database outside the container
+      - ./intel.db:/app/intel.db
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:5000/api/status"]
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 40s
+      start_period: 60s

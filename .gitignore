@@ -56,3 +56,7 @@ intel.db-shm
 
 .gemini/
 gha-creds-*.json
+
+# Frontend
+frontend/node_modules/
+static/dist/

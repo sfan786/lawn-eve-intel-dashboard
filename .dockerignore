@@ -39,3 +39,23 @@ demo.py
 
 # Developer tools
 tools/
+
+# Node modules (installed in Docker stage 1, not from host)
+frontend/node_modules/
+
+# Vite build output (built in stage 1, overlaid via COPY --from)
+static/dist/
+
+# Database (never bake into image, persisted via volume)
+intel.db
+intel.db-wal
+intel.db-shm
+
+# Fish scripts
+*.fish
+setup.fish
+run_dev.fish
+
+# Deploy docs
+DEPLOY*.md
+discord-post.md
