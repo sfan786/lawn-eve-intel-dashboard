@@ -23,9 +23,10 @@ export default function NeighborIntel({ lastUpdate }) {
     return (
         <div className="panel panel-wide">
             <div className="panel-header">
-                <span className="panel-title">Neighbor Threat Profiling (Previous 24h)</span>
+                <span className="panel-title">Neighbor Threat Profiling</span>
+                <span className="panel-badge">Previous 24h</span>
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 10 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 8 }}>
                 {neighbors.map(n => (
                     <div key={n.id} style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid var(--border-dim)', padding: 10 }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>

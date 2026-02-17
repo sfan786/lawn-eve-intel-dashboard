@@ -36,7 +36,7 @@ export default function UpgradesOverview({ config }) {
                 <span className="panel-title">Sovereignty Upgrades</span>
                 <span className="panel-badge">{totalUpgrades} upgrades across {systemsWithUpgrades}/{LAWN_SYSTEMS_ORDER.length} systems</span>
             </div>
-            <div style={{ display: 'flex', gap: 16, marginBottom: 12, fontSize: 11, fontFamily: 'Share Tech Mono, monospace' }}>
+            <div style={{ display: 'flex', gap: 16, marginBottom: 8, fontSize: 11, fontFamily: 'Share Tech Mono, monospace' }}>
                 <span style={{ color: '#ff6677' }}>Military: {categoryCounts.military}</span>
                 <span style={{ color: '#00ff88' }}>Industry: {categoryCounts.industry}</span>
                 <span style={{ color: '#00d4ff' }}>Strategic: {categoryCounts.strategic}</span>

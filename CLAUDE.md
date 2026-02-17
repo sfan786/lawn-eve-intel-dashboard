@@ -314,6 +314,22 @@ See [ROADMAP.md](ROADMAP.md) for full details and backlog.
 - [ ] Fleet composition analyzer
 - [ ] Moon mining tracker
 
+## UI Layout Principles — Information Density First
+
+This dashboard is a **tactical ops tool**, not a marketing page. Every pixel of vertical space is precious. Violations of these rules should be fixed proactively:
+
+1. **Controls belong in panel headers.** Toggles, mode switches, and secondary actions (e.g. map mode, "show all systems") must live in the `panel-header` bar alongside the title and badge — never as standalone elements below the header or at the bottom of a panel. A stray button taking up its own row is a layout bug.
+
+2. **Empty states are compact.** Empty/loading states use `padding: 10` max. Never `padding: 20` or centered full-height placeholders.
+
+3. **Titles carry metadata as badges, not in the string.** Time windows, counts, and qualifiers belong in `<span className="panel-badge">` next to the title — not concatenated into the title text (e.g. "Previous 24h" as a badge, not "Threat Profiling (Previous 24h)" as the title).
+
+4. **Grid gaps are tight.** Default gap between cards/rows is 6–8px. Never 12–16px unless there is a strong visual grouping reason.
+
+5. **Don't add full-width rows for secondary information.** If a stat line (e.g. "Military: 3 Industry: 1") can be placed in the panel-header badge or collapsed into existing rows, do that instead of inserting a new row between the header and content.
+
+The guiding question: *does this element require its own vertical space, or can it live inside an existing row?*
+
 ## Visual Design
 
 Dark sci-fi HUD aesthetic matching EVE's Neocom interface:
