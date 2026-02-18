@@ -238,6 +238,11 @@ export default function TimerBoard() {
                                 }}>×</button>
                             )}
                         </div>
+                        {t.notes && (
+                            <div style={{ paddingLeft: 8, paddingBottom: 4, fontSize: 10, color: 'var(--text-muted)', fontStyle: 'italic' }}>
+                                {t.notes}
+                            </div>
+                        )}
                     )
                 })}
             </div>
