@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react'
+import Clock from './components/common/Clock'
 import { getCampaignPhase } from './utils/campaignHelpers'
 import CornerBrackets from './components/common/CornerBrackets'
 import SummaryCard from './components/common/SummaryCard'
@@ -110,6 +111,8 @@ export default function App() {
                     </div>
                 </div>
                 <div className="status-bar">
+                    <Clock />
+                    <div style={{ width: 1, height: 16, background: 'var(--border-dim)' }}></div>
                     <span><span className="status-dot" />ONLINE</span>
                     {lastUpdate && <span>ESI DATA: {lastUpdate.toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span>}
                     <button className={`refresh-btn ${refreshing ? 'refreshing' : ''}`} onClick={() => fetchData(false)} disabled={refreshing}>

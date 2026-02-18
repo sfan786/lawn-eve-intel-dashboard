@@ -22,6 +22,7 @@ Prioritized by tactical value for LAWN's current situation: brand new sov in Kal
 - [x] **Friendly entity expansion** — BorderZone [BOZON] and Gnomes Rising HoA [GNOME] added as friendly alliances; all 12 LAWN member corps added to `FRIENDLY_CORPORATIONS`
 - [x] **ADM grinding planner** — priority cards (top 6 systems) ranked by 5-tier tactical scoring (border > cross-constellation > hub > interior > dead-end), with grinding rate (+X.X/day from history), and collapsible full-system table for all 15 LAWN systems; `computeGrindingRate` and `compute24hChange` added to `admHelpers.js`
 - [x] **UI space efficiency pass** — map mode toggle lifted into panel header; controls policy documented in CLAUDE.md (controls in headers, compact empty states, metadata as badges)
+- [x] **Localized time display** — status bar clock shows EVE (UTC) and Local time simultaneously
 
 ---
 
@@ -148,6 +149,5 @@ Prioritized by tactical value for LAWN's current situation: brand new sov in Kal
 - **Historical battle reports** — aggregate kills into fleet fight summaries
 - **Map annotations** — user-placed notes on systems ("cloaky camper here", "safe to rat")
 - **SRP (Ship Replacement) integration** — track losses eligible for reimbursement
-- **Localized time display** — show timers in user's local TZ alongside EVE time
 - **Dscan Parsing** - Parse dscan data to identify ships and structures in space
 - **Local Chat Parsing** - Parse local chat data to identify charecters in space
