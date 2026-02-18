@@ -213,7 +213,8 @@ export default function TimerBoard() {
                     const timeLeft = formatCountdown(time)
 
                     return (
-                        <div key={t.id} className="campaign-entry-compact" style={{ borderLeft: `3px solid ${isPast ? 'var(--text-muted)' : 'var(--cyan)'}` }}>
+                        <React.Fragment key={t.id}>
+                        <div className="campaign-entry-compact" style={{ borderLeft: `3px solid ${isPast ? 'var(--text-muted)' : 'var(--cyan)'}` }}>
                             <div style={{ width: 80, fontSize: 10, color: 'var(--text-secondary)' }}>
                                 {t.event_type.toUpperCase()}
                             </div>
@@ -243,6 +244,7 @@ export default function TimerBoard() {
                                 {t.notes}
                             </div>
                         )}
+                        </React.Fragment>
                     )
                 })}
             </div>
