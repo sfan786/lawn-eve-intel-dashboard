@@ -4,6 +4,7 @@ import CornerBrackets from './common/CornerBrackets'
 
 export default function KillFeed({ kills }) {
     const [filter, setFilter] = useState("all")  // "all" | "lawn" | "pvp"
+    const [minIsk, setMinIsk] = useState(0)
 
     if (!kills || kills.length === 0) {
         return (
@@ -21,16 +22,17 @@ export default function KillFeed({ kills }) {
     }
 
     const visible = kills.filter(k => {
+        if (minIsk > 0 && (k.total_value || 0) < minIsk) return false
         if (filter === "lawn") return k.in_lawn && !k.is_npc
-        if (filter === "pvp")  return !k.is_npc
+        if (filter === "pvp") return !k.is_npc
         return true
     })
 
     // Stats always computed from full kill set
     const lawnPvpKills = kills.filter(k => k.in_lawn && !k.is_npc)
-    const iskKilled    = lawnPvpKills.reduce((s, k) => s + (k.total_value || 0), 0)
-    const lawnLosses   = kills.filter(k => (k.victim?.alliance_name === "Get Off My Lawn") && !k.is_npc)
-    const iskLost      = lawnLosses.reduce((s, k) => s + (k.total_value || 0), 0)
+    const iskKilled = lawnPvpKills.reduce((s, k) => s + (k.total_value || 0), 0)
+    const lawnLosses = kills.filter(k => (k.victim?.alliance_name === "Get Off My Lawn") && !k.is_npc)
+    const iskLost = lawnLosses.reduce((s, k) => s + (k.total_value || 0), 0)
 
     const roamers = {}
     lawnPvpKills.forEach(k => {
@@ -39,7 +41,7 @@ export default function KillFeed({ kills }) {
     })
     const topRoamers = Object.entries(roamers).sort((a, b) => b[1] - a[1]).slice(0, 3)
 
-    const lawnKills = kills.filter(k => k.in_lawn).length
+    const lawnKills = visible.filter(k => k.in_lawn).length
 
     return (
         <div className="panel panel-wide">
@@ -48,9 +50,14 @@ export default function KillFeed({ kills }) {
                 <span className="panel-title">Kill Feed</span>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                     <div className="map-mode-toggle">
-                        <button className={`map-mode-btn ${filter === 'all'  ? 'active' : ''}`} onClick={() => setFilter('all')}>All</button>
+                        <button className={`map-mode-btn ${minIsk === 0 ? 'active' : ''}`} onClick={() => setMinIsk(0)}>All ISK</button>
+                        <button className={`map-mode-btn ${minIsk === 100000000 ? 'active' : ''}`} onClick={() => setMinIsk(100000000)}>&gt;100M</button>
+                        <button className={`map-mode-btn ${minIsk === 1000000000 ? 'active' : ''}`} onClick={() => setMinIsk(1000000000)}>&gt;1B</button>
+                    </div>
+                    <div className="map-mode-toggle">
+                        <button className={`map-mode-btn ${filter === 'all' ? 'active' : ''}`} onClick={() => setFilter('all')}>All</button>
                         <button className={`map-mode-btn ${filter === 'lawn' ? 'active' : ''}`} onClick={() => setFilter('lawn')}>LAWN</button>
-                        <button className={`map-mode-btn ${filter === 'pvp'  ? 'active' : ''}`} onClick={() => setFilter('pvp')}>PVP</button>
+                        <button className={`map-mode-btn ${filter === 'pvp' ? 'active' : ''}`} onClick={() => setFilter('pvp')}>PVP</button>
                     </div>
                     <span className="panel-badge">
                         {visible.length} kills{lawnKills > 0 ? ` — ${lawnKills} in LAWN` : ''}
