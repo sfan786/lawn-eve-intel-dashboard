@@ -36,8 +36,22 @@ export default function KillFeed({ kills }) {
 
     const roamers = {}
     lawnPvpKills.forEach(k => {
-        const a = k.final_blow?.alliance_name || k.final_blow?.corporation_name
+        const fb = k.final_blow
+        if (!fb) return
+        const a = fb.alliance_name || fb.corporation_name
         if (a && a !== "Get Off My Lawn") roamers[a] = (roamers[a] || 0) + 1
+    })
+
+    const repeatPilots = {}
+    kills.forEach(k => {
+        if (k.is_npc) return
+        const fb = k.final_blow
+        if (!fb) return
+        const char = fb.character_name
+        const a = fb.alliance_name || fb.corporation_name
+        if (char && a !== "Get Off My Lawn") {
+            repeatPilots[char] = (repeatPilots[char] || 0) + 1
+        }
     })
     const topRoamers = Object.entries(roamers).sort((a, b) => b[1] - a[1]).slice(0, 3)
 
@@ -111,6 +125,9 @@ export default function KillFeed({ kills }) {
                                         {victim.alliance_name && <span style={{ color: 'var(--text-muted)' }}> [{victim.alliance_name}]</span>}
                                         <span style={{ color: 'var(--text-muted)' }}> killed by </span>
                                         <span style={{ color: 'var(--green)' }}>{fb.character_name || fb.corporation_name || "Unknown"}</span>
+                                        {fb.character_name && repeatPilots[fb.character_name] > 1 && (
+                                            <span style={{ color: 'var(--amber)', fontSize: 9, marginLeft: 6, padding: '0 4px', border: '1px solid var(--amber)', borderRadius: 2, background: 'rgba(255, 170, 0, 0.1)' }} title={`${repeatPilots[fb.character_name]} kills recently`}>REPEAT OFFENDER</span>
+                                        )}
                                         {kill.attacker_count > 1 && <span style={{ color: 'var(--text-muted)' }}> +{kill.attacker_count - 1}</span>}
                                     </div>
                                 </div>
