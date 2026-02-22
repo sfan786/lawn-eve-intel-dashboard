@@ -33,7 +33,7 @@ Prioritized by tactical value for LAWN's current situation: brand new sov in Kal
 - [x] Filter by: LAWN space only / all regional, PVP only / include NPC
 - [x] Attacker corp/alliance aggregation — "who's roaming our space?"
 - [x] Loss summary — "LAWN lost X ISK today" vs "LAWN killed X ISK today"
-- ISK threshold filter
+- [x] ISK threshold filter
 - Ship class breakdown — subcaps vs caps vs supers in region
 - Repeat offender tracking — flag pilots/corps seen multiple times
 - Expandable kill details (fitted ship value, attacker list)
