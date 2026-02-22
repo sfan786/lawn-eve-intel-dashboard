@@ -57,6 +57,10 @@ export default function KillFeed({ kills }) {
 
     const lawnKills = visible.filter(k => k.in_lawn).length
 
+    const pvpVisible = visible.filter(k => !k.is_npc)
+    const capCount = pvpVisible.filter(k => k.victim?.ship_class === 'capital').length
+    const superCount = pvpVisible.filter(k => k.victim?.ship_class === 'super').length
+
     return (
         <div className="panel panel-wide">
             <CornerBrackets />
@@ -75,6 +79,8 @@ export default function KillFeed({ kills }) {
                     </div>
                     <span className="panel-badge">
                         {visible.length} kills{lawnKills > 0 ? ` — ${lawnKills} in LAWN` : ''}
+                        {capCount > 0 && <span style={{ color: 'var(--amber)', marginLeft: 6 }}>CAP:{capCount}</span>}
+                        {superCount > 0 && <span style={{ color: 'var(--red)', marginLeft: 4 }}>⚡SUPER:{superCount}</span>}
                     </span>
                 </div>
             </div>
@@ -119,6 +125,8 @@ export default function KillFeed({ kills }) {
                                     <div className="kill-ship">
                                         {victim.ship_type || "Unknown Ship"}
                                         {kill.is_npc && <span className="kill-npc-tag">NPC</span>}
+                                        {victim.ship_class === 'capital' && <span style={{ color: 'var(--amber)', fontSize: 9, marginLeft: 6, padding: '0 4px', border: '1px solid var(--amber)', borderRadius: 2, background: 'rgba(255,170,0,0.1)' }}>CAP</span>}
+                                        {victim.ship_class === 'super' && <span style={{ color: 'var(--red)', fontSize: 9, marginLeft: 6, padding: '0 4px', border: '1px solid var(--red)', borderRadius: 2, background: 'rgba(255,51,85,0.15)' }}>SUPER</span>}
                                     </div>
                                     <div className="kill-parties">
                                         <span style={{ color: 'var(--red)' }}>{victim.character_name || victim.corporation_name || "Unknown"}</span>

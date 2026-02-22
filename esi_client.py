@@ -267,10 +267,32 @@ def get_type_name(type_id: int) -> str:
     try:
         data = esi_get(f"/universe/types/{type_id}/")
         name = data.get("name", f"Type {type_id}")
+        group_id = data.get("group_id", 0)
         _set_cache(cache_key, name)
+        _set_cache(f"type_group_{type_id}", group_id)
         return name
     except Exception:
         return f"Type {type_id}"
+
+
+def get_type_group_id(type_id: int) -> int:
+    """Get the group_id of a type (ship class, etc.) by ID."""
+    if not type_id:
+        return 0
+    cache_key = f"type_group_{type_id}"
+    cached = _get_cached(cache_key, "system_info")
+    if cached is not None:
+        return cached
+
+    try:
+        data = esi_get(f"/universe/types/{type_id}/")
+        name = data.get("name", f"Type {type_id}")
+        group_id = data.get("group_id", 0)
+        _set_cache(f"type_{type_id}", name)
+        _set_cache(cache_key, group_id)
+        return group_id
+    except Exception:
+        return 0
 
 
 def get_character_name(character_id: int) -> str:
