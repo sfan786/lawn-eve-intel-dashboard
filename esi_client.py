@@ -286,9 +286,8 @@ def get_type_group_id(type_id: int) -> int:
 
     try:
         data = esi_get(f"/universe/types/{type_id}/")
-        name = data.get("name", f"Type {type_id}")
         group_id = data.get("group_id", 0)
-        _set_cache(f"type_{type_id}", name)
+        _set_cache(cache_key, group_id)
         _set_cache(cache_key, group_id)
         return group_id
     except Exception:
