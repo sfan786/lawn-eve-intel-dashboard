@@ -122,6 +122,28 @@ def api_zkill_feed():
                 }
                 break
 
+        fitted_value = zkb.get("fittedValue", 0)
+
+        sorted_attackers = sorted(attackers, key=lambda a: a.get("damage_done", 0), reverse=True)
+        top_attackers = []
+        for att in sorted_attackers[:4]:
+            char_id = att.get("character_id")
+            ship_type_id = att.get("ship_type_id")
+            if not char_id and not ship_type_id:
+                continue
+            att_name = ""
+            att_ship = ""
+            if char_id:
+                att_name = esi_client.get_character_name(char_id)
+            if ship_type_id:
+                att_ship = esi_client.get_type_name(ship_type_id)
+            top_attackers.append({
+                "character_name": att_name,
+                "ship_type": att_ship,
+                "damage_done": att.get("damage_done", 0),
+                "is_final_blow": att.get("final_blow", False),
+            })
+
         feed.append({
             "killmail_id": kill_id,
             "time": km.get("killmail_time", ""),
@@ -139,6 +161,8 @@ def api_zkill_feed():
             "attacker_count": len(attackers),
             "final_blow": final_blow,
             "total_value": zkb.get("totalValue", 0),
+            "fitted_value": fitted_value,
+            "top_attackers": top_attackers,
             "is_npc": zkb.get("npc", False),
         })
 

@@ -5,6 +5,7 @@ import CornerBrackets from './common/CornerBrackets'
 export default function KillFeed({ kills }) {
     const [filter, setFilter] = useState("all")  // "all" | "lawn" | "pvp"
     const [minIsk, setMinIsk] = useState(0)
+    const [expandedKillId, setExpandedKillId] = useState(null)
 
     const visible = (kills || []).filter(k => {
         if (minIsk > 0 && (k.total_value || 0) < minIsk) return false
@@ -43,16 +44,16 @@ export default function KillFeed({ kills }) {
 
     const lawnKills = visible.filter(k => k.in_lawn).length
 
-    let capCount = 0;
-    let superCount = 0;
+    let subcapCount = 0
+    let capCount = 0
+    let superCount = 0
 
     for (const kill of visible) {
         if (!kill.is_npc) {
-            if (kill.victim?.ship_class === 'capital') {
-                capCount++;
-            } else if (kill.victim?.ship_class === 'super') {
-                superCount++;
-            }
+            const sc = kill.victim?.ship_class
+            if (sc === 'subcap') subcapCount++
+            else if (sc === 'capital') capCount++
+            else if (sc === 'super') superCount++
         }
     }
 
@@ -74,23 +75,36 @@ export default function KillFeed({ kills }) {
                     </div>
                     <span className="panel-badge">
                         {visible.length} kills{lawnKills > 0 ? ` — ${lawnKills} in LAWN` : ''}
-                        {capCount > 0 && <span style={{ color: 'var(--amber)', marginLeft: 6 }}>CAP:{capCount}</span>}
-                        {superCount > 0 && <span style={{ color: 'var(--red)', marginLeft: 4 }}>⚡SUPER:{superCount}</span>}
                     </span>
                 </div>
             </div>
-            {lawnPvpKills.length > 0 && (
+            {allKills.length > 0 && (
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '4px 8px', background: 'rgba(0,0,0,0.2)', borderBottom: '1px solid var(--border-dim)', fontSize: 10, fontFamily: 'Share Tech Mono, monospace' }}>
                     <div>
-                        <span style={{ color: 'var(--green)' }}>↑ {formatIsk(iskKilled)} killed</span>
-                        <span style={{ color: 'var(--text-muted)' }}> · </span>
-                        <span style={{ color: 'var(--red)' }}>↓ {formatIsk(iskLost)} lost</span>
+                        {lawnPvpKills.length > 0 ? (
+                            <>
+                                <span style={{ color: 'var(--green)' }}>↑ {formatIsk(iskKilled)} killed</span>
+                                <span style={{ color: 'var(--text-muted)' }}> · </span>
+                                <span style={{ color: 'var(--red)' }}>↓ {formatIsk(iskLost)} lost</span>
+                            </>
+                        ) : (
+                            <span style={{ color: 'var(--text-muted)' }}>No LAWN PVP kills</span>
+                        )}
                     </div>
-                    {topRoamers.length > 0 && (
-                        <div style={{ color: 'var(--text-muted)' }}>
-                            Roaming: {topRoamers.map(([name, count]) => `${name} (${count})`).join(', ')}
-                        </div>
-                    )}
+                    <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+                        {topRoamers.length > 0 && (
+                            <span style={{ color: 'var(--text-muted)' }}>
+                                Roaming: {topRoamers.map(([name, count]) => `${name} (${count})`).join(', ')}
+                            </span>
+                        )}
+                        <span style={{ color: 'var(--text-muted)', borderLeft: '1px solid var(--border-dim)', paddingLeft: 10 }}>
+                            Sub: <span style={{ color: subcapCount > 0 ? 'var(--text)' : 'var(--text-muted)' }}>{subcapCount}</span>
+                            <span style={{ margin: '0 4px', color: 'var(--border-dim)' }}>·</span>
+                            Cap: <span style={{ color: capCount > 0 ? 'var(--amber)' : 'var(--text-muted)' }}>{capCount}</span>
+                            <span style={{ margin: '0 4px', color: 'var(--border-dim)' }}>·</span>
+                            Super: <span style={{ color: superCount > 0 ? 'var(--red)' : 'var(--text-muted)' }}>{superCount}</span>
+                        </span>
+                    </div>
                 </div>
             )}
             <div className="kill-feed">
@@ -102,16 +116,15 @@ export default function KillFeed({ kills }) {
                     const iskClass = kill.total_value >= 1e9 ? "high" : kill.total_value >= 100e6 ? "medium" : "low"
                     const victim = kill.victim || {}
                     const fb = kill.final_blow || {}
+                    const isExpanded = kill.killmail_id === expandedKillId
 
                     return (
-                        <a
-                            key={kill.killmail_id}
-                            href={`https://zkillboard.com/kill/${kill.killmail_id}/`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            style={{ textDecoration: 'none', color: 'inherit' }}
-                        >
-                            <div className={`kill-entry${kill.in_lawn ? ' in-lawn' : ''}`}>
+                        <div key={kill.killmail_id}>
+                            <div
+                                className={`kill-entry${kill.in_lawn ? ' in-lawn' : ''}`}
+                                style={{ cursor: 'pointer' }}
+                                onClick={() => setExpandedKillId(isExpanded ? null : kill.killmail_id)}
+                            >
                                 <div className="kill-time">
                                     <div>{timeAgo(kill.time)} ago</div>
                                     <div className={`kill-system ${kill.in_lawn ? 'lawn' : 'region'}`}>{kill.system_name}</div>
@@ -136,7 +149,62 @@ export default function KillFeed({ kills }) {
                                 </div>
                                 <div className={`kill-value ${iskClass}`}>{formatIsk(kill.total_value)}</div>
                             </div>
-                        </a>
+                            {isExpanded && (
+                                <div style={{
+                                    background: 'rgba(0,212,255,0.03)',
+                                    border: '1px solid rgba(0,212,255,0.15)',
+                                    borderTop: 'none',
+                                    padding: '7px 12px',
+                                    fontFamily: 'Share Tech Mono, monospace',
+                                    fontSize: 11,
+                                }}>
+                                    <div style={{ display: 'flex', gap: 16, marginBottom: 5 }}>
+                                        <span style={{ color: 'var(--text-muted)' }}>
+                                            Total: <span style={{ color: 'var(--text)' }}>{formatIsk(kill.total_value)}</span>
+                                        </span>
+                                        {(kill.fitted_value || 0) > 0 && (
+                                            <span style={{ color: 'var(--text-muted)' }}>
+                                                Fitted: <span style={{ color: 'var(--cyan)' }}>{formatIsk(kill.fitted_value)}</span>
+                                            </span>
+                                        )}
+                                    </div>
+                                    {kill.top_attackers && kill.top_attackers.length > 0 && (
+                                        <div style={{ marginBottom: 5 }}>
+                                            <div style={{ color: 'var(--text-muted)', marginBottom: 3 }}>
+                                                Attackers ({kill.attacker_count}):
+                                            </div>
+                                            {kill.top_attackers.map((att, i) => (
+                                                <div key={i} style={{ display: 'flex', gap: 8, padding: '1px 0', alignItems: 'center' }}>
+                                                    <span style={{ color: 'var(--green)', minWidth: 130, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                                        {att.character_name || 'Unknown'}
+                                                    </span>
+                                                    <span style={{ color: 'var(--text-muted)', minWidth: 100, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                                        {att.ship_type || ''}
+                                                    </span>
+                                                    <span style={{ color: '#6a8090' }}>
+                                                        {att.damage_done.toLocaleString()} dmg
+                                                    </span>
+                                                    {att.is_final_blow && (
+                                                        <span style={{ color: 'var(--amber)', fontSize: 9, padding: '0 4px', border: '1px solid var(--amber)', borderRadius: 2, background: 'rgba(255,170,0,0.1)', flexShrink: 0 }}>FINAL BLOW</span>
+                                                    )}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                    <div style={{ textAlign: 'right' }}>
+                                        <a
+                                            href={`https://zkillboard.com/kill/${kill.killmail_id}/`}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            style={{ color: 'var(--cyan)', fontSize: 11, textDecoration: 'none' }}
+                                            onClick={e => e.stopPropagation()}
+                                        >
+                                            View on zKillboard →
+                                        </a>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
                     )
                 })}
             </div>
