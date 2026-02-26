@@ -57,9 +57,18 @@ export default function KillFeed({ kills }) {
 
     const lawnKills = visible.filter(k => k.in_lawn).length
 
-    const pvpVisible = visible.filter(k => !k.is_npc)
-    const capCount = pvpVisible.filter(k => k.victim?.ship_class === 'capital').length
-    const superCount = pvpVisible.filter(k => k.victim?.ship_class === 'super').length
+    let capCount = 0;
+    let superCount = 0;
+
+    for (const kill of visible) {
+        if (!kill.is_npc) {
+            if (kill.victim?.ship_class === 'capital') {
+                capCount++;
+            } else if (kill.victim?.ship_class === 'super') {
+                superCount++;
+            }
+        }
+    }
 
     return (
         <div className="panel panel-wide">
