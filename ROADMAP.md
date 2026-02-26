@@ -34,9 +34,9 @@ Prioritized by tactical value for LAWN's current situation: brand new sov in Kal
 - [x] Attacker corp/alliance aggregation — "who's roaming our space?"
 - [x] Loss summary — "LAWN lost X ISK today" vs "LAWN killed X ISK today"
 - [x] ISK threshold filter
-- Ship class breakdown — subcaps vs caps vs supers in region
+- [x] Ship class breakdown — subcaps vs caps vs supers in region
 - [x] Repeat offender tracking — flag pilots/corps seen multiple times
-- Expandable kill details (fitted ship value, attacker list)
+- [x] Expandable kill details (fitted ship value, attacker list)
 - **Data sources:** zKillboard API + websocket for real-time
 
 ### Planetary Interaction Info
