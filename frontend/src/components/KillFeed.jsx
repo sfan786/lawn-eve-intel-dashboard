@@ -6,22 +6,7 @@ export default function KillFeed({ kills }) {
     const [filter, setFilter] = useState("all")  // "all" | "lawn" | "pvp"
     const [minIsk, setMinIsk] = useState(0)
 
-    if (!kills || kills.length === 0) {
-        return (
-            <div className="panel panel-wide">
-                <CornerBrackets />
-                <div className="panel-header">
-                    <span className="panel-title">Kill Feed</span>
-                    <span className="panel-badge">Kalevala Expanse</span>
-                </div>
-                <div style={{ textAlign: 'center', padding: 10, color: 'var(--text-muted)', fontFamily: 'Share Tech Mono, monospace', fontSize: 11 }}>
-                    No recent kills in region
-                </div>
-            </div>
-        )
-    }
-
-    const visible = kills.filter(k => {
+    const visible = (kills || []).filter(k => {
         if (minIsk > 0 && (k.total_value || 0) < minIsk) return false
         if (filter === "lawn") return k.in_lawn && !k.is_npc
         if (filter === "pvp") return !k.is_npc
@@ -29,9 +14,10 @@ export default function KillFeed({ kills }) {
     })
 
     // Stats always computed from full kill set
-    const lawnPvpKills = kills.filter(k => k.in_lawn && !k.is_npc)
+    const allKills = kills || []
+    const lawnPvpKills = allKills.filter(k => k.in_lawn && !k.is_npc)
     const iskKilled = lawnPvpKills.reduce((s, k) => s + (k.total_value || 0), 0)
-    const lawnLosses = kills.filter(k => (k.victim?.alliance_name === "Get Off My Lawn") && !k.is_npc)
+    const lawnLosses = allKills.filter(k => (k.victim?.alliance_name === "Get Off My Lawn") && !k.is_npc)
     const iskLost = lawnLosses.reduce((s, k) => s + (k.total_value || 0), 0)
 
     const roamers = {}
@@ -43,7 +29,7 @@ export default function KillFeed({ kills }) {
     })
 
     const repeatPilots = {}
-    kills.forEach(k => {
+    allKills.forEach(k => {
         if (k.is_npc) return
         const fb = k.final_blow
         if (!fb) return
@@ -110,7 +96,7 @@ export default function KillFeed({ kills }) {
             <div className="kill-feed">
                 {visible.length === 0 ? (
                     <div style={{ textAlign: 'center', padding: 10, color: 'var(--text-muted)', fontFamily: 'Share Tech Mono, monospace', fontSize: 11 }}>
-                        No kills match current filter
+                        {allKills.length === 0 ? 'No recent kills in region' : 'No kills match current filter'}
                     </div>
                 ) : visible.map(kill => {
                     const iskClass = kill.total_value >= 1e9 ? "high" : kill.total_value >= 100e6 ? "medium" : "low"
