@@ -432,7 +432,7 @@ MOCK_KILL_FEED = [
     {
         "killmail_id": 119800001, "time": _mock_time(8),
         "system_id": 30003389, "system_name": "XTJ-5Q", "in_lawn": True,
-        "victim": {"character_name": "xXDarkSlayerXx", "corporation_name": "Pandemic Horde Inc.", "alliance_name": "Pandemic Horde", "ship_type": "Sabre", "ship_type_id": 22456},
+        "victim": {"character_name": "xXDarkSlayerXx", "corporation_name": "Pandemic Horde Inc.", "alliance_name": "Pandemic Horde", "ship_type": "Sabre", "ship_type_id": 22456, "ship_class": "subcap"},
         "attacker_count": 3,
         "final_blow": {"character_name": "LAWN Defender", "corporation_name": "Astrum Mechanica", "alliance_name": "Get Off My Lawn", "ship_type": "Stiletto"},
         "total_value": 85000000, "is_npc": False,
@@ -440,7 +440,7 @@ MOCK_KILL_FEED = [
     {
         "killmail_id": 119800002, "time": _mock_time(15),
         "system_id": 30003390, "system_name": "N-JK02", "in_lawn": True,
-        "victim": {"character_name": "Scout McScoutface", "corporation_name": "Signal Cartel", "alliance_name": "EvE-Scout Enclave", "ship_type": "Astero", "ship_type_id": 33468},
+        "victim": {"character_name": "Scout McScoutface", "corporation_name": "Signal Cartel", "alliance_name": "EvE-Scout Enclave", "ship_type": "Astero", "ship_type_id": 33468, "ship_class": "subcap"},
         "attacker_count": 1,
         "final_blow": {"character_name": "Gate Camper", "corporation_name": "Astrum Mechanica", "alliance_name": "Get Off My Lawn", "ship_type": "Loki"},
         "total_value": 210000000, "is_npc": False,
@@ -448,7 +448,7 @@ MOCK_KILL_FEED = [
     {
         "killmail_id": 119800003, "time": _mock_time(32),
         "system_id": 30003392, "system_name": "BZ-BCK", "in_lawn": True,
-        "victim": {"character_name": "", "corporation_name": "", "alliance_name": "", "ship_type": "Guristas Hideaway", "ship_type_id": 0},
+        "victim": {"character_name": "", "corporation_name": "", "alliance_name": "", "ship_type": "Guristas Hideaway", "ship_type_id": 0, "ship_class": "subcap"},
         "attacker_count": 1,
         "final_blow": {"character_name": "Ratting Alt", "corporation_name": "Astrum Mechanica", "alliance_name": "Get Off My Lawn", "ship_type": "Ishtar"},
         "total_value": 0, "is_npc": True,
@@ -456,7 +456,7 @@ MOCK_KILL_FEED = [
     {
         "killmail_id": 119800004, "time": _mock_time(47),
         "system_id": 30003398, "system_name": "S-LHPJ", "in_lawn": True,
-        "victim": {"character_name": "LAWN Member", "corporation_name": "Astrum Mechanica", "alliance_name": "Get Off My Lawn", "ship_type": "Vexor Navy Issue", "ship_type_id": 29337},
+        "victim": {"character_name": "LAWN Member", "corporation_name": "Astrum Mechanica", "alliance_name": "Get Off My Lawn", "ship_type": "Vexor Navy Issue", "ship_type_id": 29337, "ship_class": "subcap"},
         "attacker_count": 7,
         "final_blow": {"character_name": "Bombers Bar FC", "corporation_name": "VOLTA", "alliance_name": "Dock Workers", "ship_type": "Nemesis"},
         "total_value": 142000000, "is_npc": False,
@@ -464,7 +464,7 @@ MOCK_KILL_FEED = [
     {
         "killmail_id": 119800005, "time": _mock_time(63),
         "system_id": _S4S_SD["LE-67X"], "system_name": "LE-67X", "in_lawn": False,
-        "victim": {"character_name": "SL0W Ratter", "corporation_name": "SL0W Corp", "alliance_name": "SL0W CHILDREN AT PLAY", "ship_type": "Dominix", "ship_type_id": 645},
+        "victim": {"character_name": "SL0W Ratter", "corporation_name": "SL0W Corp", "alliance_name": "SL0W CHILDREN AT PLAY", "ship_type": "Dominix", "ship_type_id": 645, "ship_class": "subcap"},
         "attacker_count": 5,
         "final_blow": {"character_name": "Hostile Roamer", "corporation_name": "Fraternity.", "alliance_name": "Winter Coalition", "ship_type": "Cerberus"},
         "total_value": 320000000, "is_npc": False,
@@ -472,7 +472,7 @@ MOCK_KILL_FEED = [
     {
         "killmail_id": 119800006, "time": _mock_time(88),
         "system_id": 30003384, "system_name": "1-KCSA", "in_lawn": True,
-        "victim": {"character_name": "Wandering Pilot", "corporation_name": "Brave Newbies Inc.", "alliance_name": "Brave Collective", "ship_type": "Capsule", "ship_type_id": 670},
+        "victim": {"character_name": "Wandering Pilot", "corporation_name": "Brave Newbies Inc.", "alliance_name": "Brave Collective", "ship_type": "Capsule", "ship_type_id": 670, "ship_class": "pod"},
         "attacker_count": 1,
         "final_blow": {"character_name": "Home Defense", "corporation_name": "Astrum Mechanica", "alliance_name": "Get Off My Lawn", "ship_type": "Sabre"},
         "total_value": 800000, "is_npc": False,
@@ -480,7 +480,7 @@ MOCK_KILL_FEED = [
     {
         "killmail_id": 119800007, "time": _mock_time(112),
         "system_id": _S4S_SD["L-GY1B"], "system_name": "L-GY1B", "in_lawn": False,
-        "victim": {"character_name": "Hauler Alt", "corporation_name": "Red Frog Freight", "alliance_name": "", "ship_type": "Bestower", "ship_type_id": 1944},
+        "victim": {"character_name": "Hauler Alt", "corporation_name": "Red Frog Freight", "alliance_name": "", "ship_type": "Bestower", "ship_type_id": 1944, "ship_class": "subcap"},
         "attacker_count": 2,
         "final_blow": {"character_name": "Pirate Lord", "corporation_name": "The Rejected", "alliance_name": "T.RD", "ship_type": "Tornado"},
         "total_value": 1850000000, "is_npc": False,
@@ -488,7 +488,7 @@ MOCK_KILL_FEED = [
     {
         "killmail_id": 119800008, "time": _mock_time(145),
         "system_id": 30003387, "system_name": "F48K-D", "in_lawn": True,
-        "victim": {"character_name": "LAWN Miner", "corporation_name": "LAWN Logistics", "alliance_name": "Get Off My Lawn", "ship_type": "Retriever", "ship_type_id": 17478},
+        "victim": {"character_name": "LAWN Miner", "corporation_name": "LAWN Logistics", "alliance_name": "Get Off My Lawn", "ship_type": "Retriever", "ship_type_id": 17478, "ship_class": "subcap"},
         "attacker_count": 3,
         "final_blow": {"character_name": "Cloaky Camper", "corporation_name": "Pandemic Legion", "alliance_name": "Pandemic Legion", "ship_type": "Stratios"},
         "total_value": 45000000, "is_npc": False,
@@ -496,7 +496,7 @@ MOCK_KILL_FEED = [
     {
         "killmail_id": 119800009, "time": _mock_time(180),
         "system_id": 30003385, "system_name": "UDVW-O", "in_lawn": True,
-        "victim": {"character_name": "Vale Roamer", "corporation_name": "Northern Coalition.", "alliance_name": "Northern Coalition.", "ship_type": "Jackdaw", "ship_type_id": 37483},
+        "victim": {"character_name": "Vale Roamer", "corporation_name": "Northern Coalition.", "alliance_name": "Northern Coalition.", "ship_type": "Jackdaw", "ship_type_id": 37483, "ship_class": "subcap"},
         "attacker_count": 12,
         "final_blow": {"character_name": "LAWN FC", "corporation_name": "Astrum Mechanica", "alliance_name": "Get Off My Lawn", "ship_type": "Muninn"},
         "total_value": 98000000, "is_npc": False,
@@ -504,10 +504,18 @@ MOCK_KILL_FEED = [
     {
         "killmail_id": 119800010, "time": _mock_time(210),
         "system_id": _S4S_SD["74-DRC"], "system_name": "74-DRC", "in_lawn": False,
-        "victim": {"character_name": "AFK Cloaker", "corporation_name": "Hard Knocks Citizens", "alliance_name": "Hard Knocks Inc.", "ship_type": "Tengu", "ship_type_id": 29984},
+        "victim": {"character_name": "AFK Cloaker", "corporation_name": "Hard Knocks Citizens", "alliance_name": "Hard Knocks Inc.", "ship_type": "Tengu", "ship_type_id": 29984, "ship_class": "subcap"},
         "attacker_count": 4,
         "final_blow": {"character_name": "Local Response", "corporation_name": "SL0W Corp", "alliance_name": "SL0W CHILDREN AT PLAY", "ship_type": "Eagle"},
         "total_value": 520000000, "is_npc": False,
+    },
+    {
+        "killmail_id": 119800011, "time": _mock_time(255),
+        "system_id": _S4S_SD["L-GY1B"], "system_name": "L-GY1B", "in_lawn": False,
+        "victim": {"character_name": "SL0W Capital Pilot", "corporation_name": "SL0W Corp", "alliance_name": "SL0W CHILDREN AT PLAY", "ship_type": "Naglfar", "ship_type_id": 19720, "ship_class": "capital"},
+        "attacker_count": 38,
+        "final_blow": {"character_name": "Hostile FC", "corporation_name": "Fraternity.", "alliance_name": "Winter Coalition", "ship_type": "Revelation"},
+        "total_value": 8200000000, "is_npc": False,
     },
 ]
 

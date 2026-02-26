@@ -5,6 +5,21 @@ from routes.system_state import state
 
 zkill_bp = Blueprint("zkill", __name__)
 
+# EVE ship group IDs for capital classification
+_SUPER_GROUPS = {30, 659}        # Titan, Supercarrier
+_CAPITAL_GROUPS = {485, 547, 1538}  # Dreadnought, Carrier, Force Auxiliary
+_POD_GROUPS = {29}               # Capsule
+
+
+def _ship_class(group_id: int) -> str:
+    if group_id in _SUPER_GROUPS:
+        return "super"
+    if group_id in _CAPITAL_GROUPS:
+        return "capital"
+    if group_id in _POD_GROUPS:
+        return "pod"
+    return "subcap"
+
 
 @zkill_bp.route("/api/zkill/<int:system_id>")
 def api_zkill(system_id):
@@ -52,8 +67,10 @@ def api_zkill_feed():
                 sys_name = str(solar_system_id)
 
         victim_ship = ""
+        victim_ship_class = "subcap"
         if victim.get("ship_type_id"):
             victim_ship = esi_client.get_type_name(victim["ship_type_id"])
+            victim_ship_class = _ship_class(esi_client.get_type_group_id(victim["ship_type_id"]))
 
         victim_name = ""
         if victim.get("character_id"):
@@ -117,6 +134,7 @@ def api_zkill_feed():
                 "alliance_name": victim_alliance,
                 "ship_type": victim_ship,
                 "ship_type_id": victim.get("ship_type_id"),
+                "ship_class": victim_ship_class,
             },
             "attacker_count": len(attackers),
             "final_blow": final_blow,
