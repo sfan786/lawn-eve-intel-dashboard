@@ -41,11 +41,12 @@ Prioritized by tactical value for LAWN's current situation: brand new sov in Kal
 
 ### Planetary Interaction Info
 **Why:** PI key resources are very important for manufacturing and industry.
-- List all known PI planets in LAWN space
-- Show PI resource types
-- Prioritize which systems to grind PI in based on resource availability and strategic importance
-- List pi types by Alliance Strategic Importance
-- **Data sources:** ?
+- [x] List all known PI planets in LAWN space (Backend API)
+- [x] Show PI resource types (Backend API)
+- [ ] Display PI planets and resource types on the UI
+- [ ] Prioritize which systems to grind PI in based on resource availability and strategic importance
+- [ ] List pi types by Alliance Strategic Importance
+- **Data sources:** ESI statically stored in backend/config
 
 ### Mobile Responsive Layout
 **Why:** Need to be able to check the dashboard on mobile.

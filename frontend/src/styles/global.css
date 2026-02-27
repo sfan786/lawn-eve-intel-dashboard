@@ -869,6 +869,82 @@ body::after {
     margin-left: 4px;
 }
 
+/* ============ TABLE SCROLL WRAPPER ============ */
+.table-scroll-wrapper {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+/* ============ MOBILE NAV ============ */
+.mobile-nav {
+    display: none;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 52px;
+    background: var(--bg-panel);
+    border-top: 1px solid var(--border-dim);
+    z-index: 1000;
+}
+
+.mobile-nav-tab {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    padding: 4px 0;
+    transition: color 0.2s;
+    font-family: 'Orbitron', sans-serif;
+    font-size: 7px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+}
+
+.mobile-nav-tab.active {
+    color: var(--cyan);
+}
+
+.mobile-nav-tab:active {
+    background: rgba(0, 212, 255, 0.05);
+}
+
+.mobile-nav-icon {
+    font-size: 18px;
+    line-height: 1;
+}
+
+.mobile-nav-label {
+    font-size: 7px;
+}
+
+/* ============ MAP RESET BUTTON ============ */
+.map-reset-btn {
+    position: absolute;
+    bottom: 8px;
+    right: 8px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 1px;
+    padding: 4px 10px;
+    background: rgba(0, 0, 0, 0.7);
+    border: 1px solid var(--cyan-dim);
+    color: var(--cyan);
+    cursor: pointer;
+    z-index: 10;
+    transition: all 0.2s;
+}
+
+.map-reset-btn:active {
+    background: rgba(0, 212, 255, 0.1);
+}
+
 @media (max-width: 900px) {
     .dashboard {
         grid-template-columns: 1fr;
@@ -884,5 +960,89 @@ body::after {
 
     .panel-wide {
         grid-column: 1;
+    }
+}
+
+@media (max-width: 640px) {
+    /* Mobile layout resets */
+    .dashboard {
+        padding: 8px 8px 64px;
+        gap: 8px;
+    }
+
+    .header {
+        flex-direction: row;
+        align-items: center;
+        padding: 8px 10px;
+        gap: 8px;
+    }
+
+    .logo-text {
+        font-size: 13px;
+        letter-spacing: 2px;
+    }
+
+    .logo-sub {
+        display: none;
+    }
+
+    .status-bar {
+        gap: 8px;
+        font-size: 10px;
+    }
+
+    .panel {
+        margin: 0;
+    }
+
+    .panel-header {
+        padding: 6px 10px;
+        margin-bottom: 10px;
+    }
+
+    .panel-header h2,
+    .panel-title {
+        font-size: 10px;
+        letter-spacing: 2px;
+    }
+
+    .summary-row {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 6px;
+    }
+
+    .summary-card {
+        padding: 8px 6px;
+    }
+
+    .summary-value {
+        font-size: 20px;
+    }
+
+    .summary-label {
+        font-size: 8px;
+        letter-spacing: 1px;
+    }
+
+    /* Kill feed height on mobile */
+    .kill-feed {
+        max-height: 60vh;
+    }
+
+    /* Mobile nav visible */
+    .mobile-nav {
+        display: flex;
+    }
+
+    /* Const tabs wrap on mobile */
+    .const-tabs {
+        flex-wrap: wrap;
+        gap: 4px;
+    }
+
+    .const-tab {
+        font-size: 9px;
+        padding: 4px 10px;
+        letter-spacing: 1px;
     }
 }

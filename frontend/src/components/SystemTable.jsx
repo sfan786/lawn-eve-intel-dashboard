@@ -28,6 +28,7 @@ export default function SystemTable({ systems, sovereignty, activity, selectedSy
     const maxJumps = Math.max(...systems.map(s => (activity[s.system_id] || {}).jumps || 0), 1)
 
     return (
+        <div className="table-scroll-wrapper">
         <table className="sys-table">
             <thead>
                 <tr>
@@ -114,5 +115,6 @@ export default function SystemTable({ systems, sovereignty, activity, selectedSy
                 })}
             </tbody>
         </table>
+        </div>
     )
 }
