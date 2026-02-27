@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react'
+import React, { useState, useRef, useEffect } from 'react'
 import { MAP_LAYOUT, MAP_LAYOUT_SUBWAY, MAP_CONNECTIONS } from '../data/mapData'
 import { getAdmColor } from '../utils/admHelpers'
 import { getCampaignPhase, formatCountdown, formatVulnWindow } from '../utils/campaignHelpers'
@@ -7,7 +7,77 @@ import UpgradeBadges from './common/UpgradeBadges'
 
 export default function ConstellationMap({ config, sovereignty, activity, campaigns, selectedSystem, onSelectSystem, mapMode = "subway" }) {
     const [tooltip, setTooltip] = useState(null)
+    const [touchTransform, setTouchTransform] = useState({ scale: 1, x: 0, y: 0 })
     const svgRef = useRef(null)
+    const touchStateRef = useRef(null)
+    const mapContainerRef = useRef(null)
+
+    // Attach non-passive touchmove listener to prevent page scroll while panning
+    useEffect(() => {
+        const el = mapContainerRef.current
+        if (!el) return
+        const handler = (e) => {
+            if (touchStateRef.current) e.preventDefault()
+        }
+        el.addEventListener('touchmove', handler, { passive: false })
+        return () => el.removeEventListener('touchmove', handler)
+    }, [])
+
+    function handleTouchStart(e) {
+        if (e.touches.length === 1) {
+            touchStateRef.current = {
+                type: 'pan',
+                startX: e.touches[0].clientX,
+                startY: e.touches[0].clientY,
+                lastX: e.touches[0].clientX,
+                lastY: e.touches[0].clientY,
+                moved: false,
+            }
+        } else if (e.touches.length === 2) {
+            const dx = e.touches[0].clientX - e.touches[1].clientX
+            const dy = e.touches[0].clientY - e.touches[1].clientY
+            touchStateRef.current = {
+                type: 'pinch',
+                lastDist: Math.sqrt(dx * dx + dy * dy),
+            }
+        }
+    }
+
+    function handleTouchMove(e) {
+        const state = touchStateRef.current
+        if (!state) return
+        if (state.type === 'pan' && e.touches.length === 1) {
+            const dx = e.touches[0].clientX - state.lastX
+            const dy = e.touches[0].clientY - state.lastY
+            const totalDx = e.touches[0].clientX - state.startX
+            const totalDy = e.touches[0].clientY - state.startY
+            if (!state.moved && Math.sqrt(totalDx * totalDx + totalDy * totalDy) > 5) {
+                state.moved = true
+                setTooltip(null)
+            }
+            if (state.moved) {
+                state.lastX = e.touches[0].clientX
+                state.lastY = e.touches[0].clientY
+                setTouchTransform(t => ({ ...t, x: t.x + dx, y: t.y + dy }))
+            }
+        } else if (state.type === 'pinch' && e.touches.length === 2) {
+            const dx = e.touches[0].clientX - e.touches[1].clientX
+            const dy = e.touches[0].clientY - e.touches[1].clientY
+            const dist = Math.sqrt(dx * dx + dy * dy)
+            const scaleDelta = dist / state.lastDist
+            state.lastDist = dist
+            setTouchTransform(t => ({
+                ...t,
+                scale: Math.min(5, Math.max(0.5, t.scale * scaleDelta)),
+            }))
+        }
+    }
+
+    function handleTouchEnd() {
+        touchStateRef.current = null
+    }
+
+    const isTouchTransformed = touchTransform.scale !== 1 || touchTransform.x !== 0 || touchTransform.y !== 0
 
     const isSubway = mapMode === "subway"
     const activeLayout = isSubway ? MAP_LAYOUT_SUBWAY : MAP_LAYOUT
@@ -173,7 +243,26 @@ export default function ConstellationMap({ config, sovereignty, activity, campai
 
     return (
         <div style={{ position: 'relative' }}>
-            <div className="map-container">
+            <div
+                className="map-container"
+                ref={mapContainerRef}
+                onTouchStart={handleTouchStart}
+                onTouchMove={handleTouchMove}
+                onTouchEnd={handleTouchEnd}
+            >
+                {isTouchTransformed && (
+                    <button
+                        className="map-reset-btn"
+                        onClick={() => setTouchTransform({ scale: 1, x: 0, y: 0 })}
+                    >
+                        Reset View
+                    </button>
+                )}
+                <div style={{
+                    transform: `translate(${touchTransform.x}px, ${touchTransform.y}px) scale(${touchTransform.scale})`,
+                    transformOrigin: 'center center',
+                    width: '100%',
+                }}>
                 <svg ref={svgRef} viewBox={activeViewBox} xmlns="http://www.w3.org/2000/svg">
                     <defs>
                         <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
@@ -409,6 +498,7 @@ export default function ConstellationMap({ config, sovereignty, activity, campai
                         )
                     })}
                 </svg>
+                </div>
             </div>
 
             {tooltip && (

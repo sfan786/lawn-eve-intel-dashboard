@@ -13,6 +13,7 @@ import CampaignAlerts from './components/CampaignAlerts'
 import TimerBoard from './components/TimerBoard'
 import NeighborIntel from './components/NeighborIntel'
 import ActivityHeatmap from './components/ActivityHeatmap'
+import MobileNav from './components/MobileNav'
 
 export default function App() {
     const [config, setConfig] = useState(null)
@@ -28,6 +29,8 @@ export default function App() {
     const [activeConst, setActiveConst] = useState("lawn")
     const [selectedSystem, setSelectedSystem] = useState(null)
     const [mapMode, setMapMode] = useState("subway")
+    const [isMobile, setIsMobile] = useState(() => window.innerWidth < 640)
+    const [mobileTab, setMobileTab] = useState(0)
     const timer = useRef(null)
 
     const fetchData = useCallback(async (init = false) => {
@@ -56,6 +59,12 @@ export default function App() {
         timer.current = setInterval(() => fetchData(false), 5 * 60 * 1000)
         return () => clearInterval(timer.current)
     }, [fetchData])
+
+    useEffect(() => {
+        const handler = () => setIsMobile(window.innerWidth < 640)
+        window.addEventListener('resize', handler)
+        return () => window.removeEventListener('resize', handler)
+    }, [])
 
     if (loading) return (
         <div className="loading">
@@ -100,6 +109,110 @@ export default function App() {
     const lawnNPC = lawnSystems.reduce((s, v) => s + ((activity[v.system_id] || {}).npc_kills || 0), 0)
     const lawnJumps = lawnSystems.reduce((s, v) => s + ((activity[v.system_id] || {}).jumps || 0), 0)
 
+    // Panels grouped for conditional rendering
+    const summaryPanels = (
+        <>
+            <div className="panel panel-wide">
+                <CornerBrackets />
+                <div className="panel-header">
+                    <span className="panel-title">Situation Overview</span>
+                    <span className="panel-badge">Last hour</span>
+                </div>
+                <div className="summary-row">
+                    <SummaryCard label="Systems" value={visible.length} />
+                    <SummaryCard label="PVP Kills" value={totPVP} type={totPVP > 10 ? "danger" : totPVP > 0 ? "warn" : "safe"} />
+                    <SummaryCard label="NPC Kills" value={totNPC.toLocaleString()} />
+                    <SummaryCard label="Jumps" value={totJ.toLocaleString()} type={totJ > 200 ? "warn" : "default"} />
+                    <SummaryCard label="Critical ADM" value={criticalSystems} type={criticalSystems > 3 ? "danger" : criticalSystems > 0 ? "warn" : "safe"} />
+                    <SummaryCard label="Hostile Sov" value={hostile} type={hostile > 0 ? "danger" : "safe"} />
+                    {(() => {
+                        const activeCount = campaigns.filter(c => getCampaignPhase(c).phase === 'nodes').length
+                        const reffedCount = campaigns.filter(c => getCampaignPhase(c).phase === 'reinforced').length
+                        let type = "safe"
+                        if (activeCount > 0) type = "danger"
+                        else if (reffedCount > 0) type = "warn"
+                        const valueStr = activeCount > 0 ? `${activeCount} (+${reffedCount})` : reffedCount
+                        return <SummaryCard label="Campaigns" value={valueStr} type={type} />
+                    })()}
+                </div>
+            </div>
+
+            <div className="panel panel-wide">
+                <CornerBrackets />
+                <div className="panel-header">
+                    <span className="panel-title">LAWN Alliance Activity</span>
+                    <span className="panel-badge">15 systems · Last hour</span>
+                </div>
+                <div className="summary-row">
+                    <SummaryCard label="Alliance PVP" value={lawnPVP} type={lawnPVP > 15 ? "danger" : lawnPVP > 5 ? "warn" : "safe"} />
+                    <SummaryCard label="Alliance NPC" value={lawnNPC.toLocaleString()} />
+                    <SummaryCard label="Alliance Jumps" value={lawnJumps.toLocaleString()} type={lawnJumps > 300 ? "warn" : "default"} />
+                    <SummaryCard label="Avg Activity" value={lawnSystems.length > 0 ? Math.round((lawnPVP + lawnNPC / 10 + lawnJumps / 20) / lawnSystems.length) : 0} />
+                </div>
+            </div>
+        </>
+    )
+
+    const mapPanel = (
+        <div className="panel panel-wide">
+            <CornerBrackets />
+            <div className="panel-header">
+                <span className="panel-title">Constellation Map</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <div className="map-mode-toggle">
+                        <button className={`map-mode-btn ${mapMode === 'traditional' ? 'active' : ''}`} onClick={() => setMapMode('traditional')}>Traditional</button>
+                        <button className={`map-mode-btn ${mapMode === 'subway' ? 'active' : ''}`} onClick={() => setMapMode('subway')}>Subway</button>
+                    </div>
+                    <span className="panel-badge">69 systems + 18 neighbors</span>
+                </div>
+            </div>
+            <ConstellationMap
+                config={config}
+                sovereignty={sovereignty}
+                activity={activity}
+                campaigns={campaigns}
+                selectedSystem={selectedSystem}
+                onSelectSystem={setSelectedSystem}
+                mapMode={mapMode}
+            />
+        </div>
+    )
+
+    const systemStatusPanel = (
+        <div className="panel panel-wide">
+            <CornerBrackets />
+            <div className="panel-header">
+                <span className="panel-title">System Status</span>
+                <span className="panel-badge">{visible.length} systems</span>
+            </div>
+            <div className="const-tabs">
+                <button
+                    className={`const-tab ${activeConst === 'lawn' ? 'active' : ''}`}
+                    onClick={() => setActiveConst('lawn')}
+                    style={activeConst === 'lawn' ? { borderColor: 'var(--green-dim)', color: 'var(--green)' } : {}}
+                >LAWN</button>
+                <button className={`const-tab ${activeConst === 'all' ? 'active' : ''}`} onClick={() => setActiveConst('all')}>ALL TKE</button>
+                {cids.map(c => (
+                    <button
+                        key={c}
+                        className={`const-tab ${activeConst === c ? 'active' : ''}`}
+                        onClick={() => setActiveConst(c)}
+                        style={consts[c].is_lawn ? { borderLeftColor: 'var(--green-dim)', borderLeftWidth: 2 } : {}}
+                    >{consts[c].name}</button>
+                ))}
+            </div>
+            <SystemTable
+                systems={visible}
+                sovereignty={sovereignty}
+                activity={activity}
+                selectedSystem={selectedSystem}
+                onSelectSystem={setSelectedSystem}
+                lawnSystemIds={lawnSysIdSet}
+                config={config}
+            />
+        </div>
+    )
+
     return (
         <div>
             <div className="header">
@@ -112,121 +225,49 @@ export default function App() {
                 </div>
                 <div className="status-bar">
                     <Clock />
-                    <div style={{ width: 1, height: 16, background: 'var(--border-dim)' }}></div>
+                    {!isMobile && <div style={{ width: 1, height: 16, background: 'var(--border-dim)' }}></div>}
                     <span><span className="status-dot" />ONLINE</span>
-                    {lastUpdate && <span>ESI DATA: {lastUpdate.toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span>}
+                    {!isMobile && lastUpdate && <span>ESI DATA: {lastUpdate.toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span>}
                     <button className={`refresh-btn ${refreshing ? 'refreshing' : ''}`} onClick={() => fetchData(false)} disabled={refreshing}>
-                        {refreshing ? "REFRESHING..." : "↻ REFRESH"}
+                        {refreshing ? (isMobile ? "..." : "REFRESHING...") : "↻ REFRESH"}
                     </button>
                 </div>
             </div>
             <div className="dashboard">
-                <div className="panel panel-wide">
-                    <CornerBrackets />
-                    <div className="panel-header">
-                        <span className="panel-title">Situation Overview</span>
-                        <span className="panel-badge">Last hour</span>
-                    </div>
-                    <div className="summary-row">
-                        <SummaryCard label="Systems" value={visible.length} />
-                        <SummaryCard label="PVP Kills" value={totPVP} type={totPVP > 10 ? "danger" : totPVP > 0 ? "warn" : "safe"} />
-                        <SummaryCard label="NPC Kills" value={totNPC.toLocaleString()} />
-                        <SummaryCard label="Jumps" value={totJ.toLocaleString()} type={totJ > 200 ? "warn" : "default"} />
-                        <SummaryCard label="Critical ADM" value={criticalSystems} type={criticalSystems > 3 ? "danger" : criticalSystems > 0 ? "warn" : "safe"} />
-                        <SummaryCard label="Hostile Sov" value={hostile} type={hostile > 0 ? "danger" : "safe"} />
-                        {(() => {
-                            const activeCount = campaigns.filter(c => getCampaignPhase(c).phase === 'nodes').length
-                            const reffedCount = campaigns.filter(c => getCampaignPhase(c).phase === 'reinforced').length
-                            let type = "safe"
-                            if (activeCount > 0) type = "danger"
-                            else if (reffedCount > 0) type = "warn"
-                            const valueStr = activeCount > 0 ? `${activeCount} (+${reffedCount})` : reffedCount
-                            return <SummaryCard label="Campaigns" value={valueStr} type={type} />
-                        })()}
-                    </div>
-                </div>
+                {/* Tab 0: Map — summary cards + map */}
+                {(!isMobile || mobileTab === 0) && summaryPanels}
 
-                <div className="panel panel-wide">
-                    <CornerBrackets />
-                    <div className="panel-header">
-                        <span className="panel-title">LAWN Alliance Activity</span>
-                        <span className="panel-badge">15 systems · Last hour</span>
-                    </div>
-                    <div className="summary-row">
-                        <SummaryCard label="Alliance PVP" value={lawnPVP} type={lawnPVP > 15 ? "danger" : lawnPVP > 5 ? "warn" : "safe"} />
-                        <SummaryCard label="Alliance NPC" value={lawnNPC.toLocaleString()} />
-                        <SummaryCard label="Alliance Jumps" value={lawnJumps.toLocaleString()} type={lawnJumps > 300 ? "warn" : "default"} />
-                        <SummaryCard label="Avg Activity" value={lawnSystems.length > 0 ? Math.round((lawnPVP + lawnNPC / 10 + lawnJumps / 20) / lawnSystems.length) : 0} />
-                    </div>
-                </div>
+                {/* Tab 1: Systems — grinding plan */}
+                {(!isMobile || mobileTab === 1) && (
+                    <GrindingPlan config={config} sovereignty={sovereignty} activity={activity} admHistory={admHistory} />
+                )}
 
-                <GrindingPlan config={config} sovereignty={sovereignty} activity={activity} admHistory={admHistory} />
+                {/* Tab 0: Map — constellation map */}
+                {(!isMobile || mobileTab === 0) && mapPanel}
 
-                <div className="panel panel-wide">
-                    <CornerBrackets />
-                    <div className="panel-header">
-                        <span className="panel-title">Constellation Map</span>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                            <div className="map-mode-toggle">
-                                <button className={`map-mode-btn ${mapMode === 'traditional' ? 'active' : ''}`} onClick={() => setMapMode('traditional')}>Traditional</button>
-                                <button className={`map-mode-btn ${mapMode === 'subway' ? 'active' : ''}`} onClick={() => setMapMode('subway')}>Subway</button>
-                            </div>
-                            <span className="panel-badge">69 systems + 18 neighbors</span>
-                        </div>
-                    </div>
-                    <ConstellationMap
-                        config={config}
-                        sovereignty={sovereignty}
-                        activity={activity}
-                        campaigns={campaigns}
-                        selectedSystem={selectedSystem}
-                        onSelectSystem={setSelectedSystem}
-                        mapMode={mapMode}
-                    />
-                </div>
+                {/* Tab 2: Kills — kill feed */}
+                {(!isMobile || mobileTab === 2) && <KillFeed kills={killFeed} />}
 
-                <KillFeed kills={killFeed} />
+                {/* Tab 1: Systems — system table */}
+                {(!isMobile || mobileTab === 1) && systemStatusPanel}
 
-                <div className="panel panel-wide">
-                    <CornerBrackets />
-                    <div className="panel-header">
-                        <span className="panel-title">System Status</span>
-                        <span className="panel-badge">{visible.length} systems</span>
-                    </div>
-                    <div className="const-tabs">
-                        <button
-                            className={`const-tab ${activeConst === 'lawn' ? 'active' : ''}`}
-                            onClick={() => setActiveConst('lawn')}
-                            style={activeConst === 'lawn' ? { borderColor: 'var(--green-dim)', color: 'var(--green)' } : {}}
-                        >LAWN</button>
-                        <button className={`const-tab ${activeConst === 'all' ? 'active' : ''}`} onClick={() => setActiveConst('all')}>ALL TKE</button>
-                        {cids.map(c => (
-                            <button
-                                key={c}
-                                className={`const-tab ${activeConst === c ? 'active' : ''}`}
-                                onClick={() => setActiveConst(c)}
-                                style={consts[c].is_lawn ? { borderLeftColor: 'var(--green-dim)', borderLeftWidth: 2 } : {}}
-                            >{consts[c].name}</button>
-                        ))}
-                    </div>
-                    <SystemTable
-                        systems={visible}
-                        sovereignty={sovereignty}
-                        activity={activity}
-                        selectedSystem={selectedSystem}
-                        onSelectSystem={setSelectedSystem}
-                        lawnSystemIds={lawnSysIdSet}
-                        config={config}
-                    />
-                </div>
+                {/* Tab 3: Intel — campaign alerts */}
+                {(!isMobile || mobileTab === 3) && <CampaignAlerts campaigns={campaigns} config={config} />}
 
-                <CampaignAlerts campaigns={campaigns} config={config} />
-                <TimerBoard />
-                <ActivityHeatmap config={config} sovereignty={sovereignty} lastUpdate={lastUpdate} />
-                <NeighborIntel lastUpdate={lastUpdate} />
-                <AdmTrends admHistory={admHistory} config={config} sovereignty={sovereignty} />
-                <UpgradesOverview config={config} />
+                {/* Tab 4: Timers */}
+                {(!isMobile || mobileTab === 4) && <TimerBoard />}
+
+                {/* Tab 2: Kills — activity heatmap */}
+                {(!isMobile || mobileTab === 2) && <ActivityHeatmap config={config} sovereignty={sovereignty} lastUpdate={lastUpdate} />}
+
+                {/* Tab 3: Intel — neighbor intel */}
+                {(!isMobile || mobileTab === 3) && <NeighborIntel lastUpdate={lastUpdate} />}
+
+                {/* Tab 1: Systems — adm trends + upgrades */}
+                {(!isMobile || mobileTab === 1) && <AdmTrends admHistory={admHistory} config={config} sovereignty={sovereignty} />}
+                {(!isMobile || mobileTab === 1) && <UpgradesOverview config={config} />}
             </div>
+            {isMobile && <MobileNav activeTab={mobileTab} onTabChange={setMobileTab} />}
         </div>
     )
 }

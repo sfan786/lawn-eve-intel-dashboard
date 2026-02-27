@@ -1,9 +1,10 @@
 from flask import Blueprint, jsonify
 from config import (
     FRIENDLY_ALLIANCES, FRIENDLY_CORPORATIONS,
-    UPGRADE_TYPES, SYSTEM_UPGRADES,
+    UPGRADE_TYPES, SYSTEM_UPGRADES, PI_DATA
 )
 from routes.system_state import state
+
 
 config_bp = Blueprint("config", __name__)
 
@@ -31,6 +32,13 @@ def api_config():
         "friendly_corporations": FRIENDLY_CORPORATIONS,
         "upgrade_types": UPGRADE_TYPES,
         "system_upgrades": SYSTEM_UPGRADES,
+    })
+
+
+@config_bp.route("/api/pi_data")
+def api_pi_data():
+    return jsonify({
+        "pi_data": PI_DATA,
     })
 
 
