@@ -85,7 +85,7 @@ lawn-eve-intel-dashboard/
 │       ├── App.jsx          # Root component — state, fetching, tab nav
 │       ├── data/mapData.js  # MAP_LAYOUT, MAP_LAYOUT_SUBWAY, MAP_CONNECTIONS
 │       ├── utils/           # admHelpers, campaignHelpers, formatters, upgradeHelpers
-│       └── components/      # 11 feature components + 3 common components
+│       └── components/      # 12 feature components + 3 common components
 │
 ├── static/
 │   ├── index.html           # Legacy CDN-React fallback (no build step required)
@@ -165,6 +165,7 @@ Resolves names to numeric IDs for `config.py`. Uses ESI `POST /universe/ids/` fo
 - `POST /api/timers` — add timer (requires `X-Timer-Auth` header)
 - `DELETE /api/timers/<id>` — delete timer (requires `X-Timer-Auth` header)
 - `POST /api/auth/check` — verify timer password
+- `GET /api/pi_data` — planetary interaction data (125 planets across 15 LAWN systems, planet type per planet)
 - `GET /api/status` — health check
 
 ### Map Implementation Details
@@ -297,10 +298,11 @@ See [ROADMAP.md](ROADMAP.md) for full details and backlog.
 - [x] Vite + React build system (replaced CDN Babel single-file HTML)
 - [x] Flask Blueprint refactor (routes/ + mock/ packages, thin app.py/demo.py)
 - [x] Multi-stage Docker build (Node Vite build → Python gunicorn)
+- [x] Planetary Interaction Industry tab — 125 planets across 15 LAWN systems; per-system type badges; interactive product filter (Fuel Blocks / BSC / P4 Advanced) highlights relevant types across all cards; ◆ priority indicators (amber=critical chain, cyan=high chain); strategic coverage check per product
 
 **Priority 1 — Immediate tactical value:**
-- [ ] zKillboard feed panel enhancements (filtering, ship class breakdowns)
-- [ ] ADM grinding planner (priority ranking, rate estimation, daily targets)
+- [x] zKillboard feed panel enhancements (filtering, ship class breakdowns)
+- [x] ADM grinding planner (priority ranking, rate estimation, daily targets)
 
 **Priority 2 — Operational:**
 - [ ] Browser push notifications (PVP alerts, sov campaigns, ADM drops)
