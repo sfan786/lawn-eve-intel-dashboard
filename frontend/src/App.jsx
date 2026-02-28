@@ -11,6 +11,7 @@ import GrindingPlan from './components/GrindingPlan'
 import UpgradesOverview from './components/UpgradesOverview'
 import CampaignAlerts from './components/CampaignAlerts'
 import TimerBoard from './components/TimerBoard'
+import PlanetaryIntel from './components/PlanetaryIntel'
 import NeighborIntel from './components/NeighborIntel'
 import ActivityHeatmap from './components/ActivityHeatmap'
 import MobileNav from './components/MobileNav'
@@ -256,6 +257,9 @@ export default function App() {
 
                 {/* Tab 4: Timers */}
                 {(!isMobile || mobileTab === 4) && <TimerBoard />}
+
+                {/* Tab 5: Industry — PI */}
+                {(!isMobile || mobileTab === 5) && <PlanetaryIntel />}
 
                 {/* Tab 2: Kills — activity heatmap */}
                 {(!isMobile || mobileTab === 2) && <ActivityHeatmap config={config} sovereignty={sovereignty} lastUpdate={lastUpdate} />}
