@@ -50,10 +50,12 @@ Prioritized by tactical value for LAWN's current situation: brand new sov in Kal
 
 ### Mobile Responsive Layout
 **Why:** Need to be able to check the dashboard on mobile.
-- Make the dashboard responsive to mobile devices
-- Make the dashboard responsive to tablet devices
-- Make the dashboard responsive to large screens
-- **Data sources:** ?
+- [x] Mobile tab nav (Map / Systems / Kills / Intel / Timers / Industry) with bottom nav bar
+- [x] Tab-based content switching — each tab shows only its relevant panels
+- [x] Responsive header — compact clock/status bar on small screens
+- [ ] Tablet layout — two-column panel grid for mid-size screens
+- [ ] Large screen optimisation — wider panels, side-by-side map + table
+- **Data sources:** N/A
 ---
 
 ## Priority 2 — Operational Quality of Life
