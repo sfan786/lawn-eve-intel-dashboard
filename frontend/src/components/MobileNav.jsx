@@ -6,6 +6,7 @@ const TABS = [
     { id: 2, icon: '💀', label: 'Kills' },
     { id: 3, icon: '📡', label: 'Intel' },
     { id: 4, icon: '⏱', label: 'Timers' },
+    { id: 5, icon: '🏭', label: 'Industry' },
 ]
 
 export default function MobileNav({ activeTab, onTabChange }) {

@@ -1,5 +1,6 @@
 from flask import Blueprint, jsonify
 from mock.mock_data import MOCK_CONFIG
+from config import PI_DATA
 
 mock_config_bp = Blueprint("mock_config", __name__)
 
@@ -7,6 +8,11 @@ mock_config_bp = Blueprint("mock_config", __name__)
 @mock_config_bp.route("/api/config")
 def api_config():
     return jsonify(MOCK_CONFIG)
+
+
+@mock_config_bp.route("/api/pi_data")
+def api_pi_data():
+    return jsonify({"pi_data": PI_DATA})
 
 
 @mock_config_bp.route("/api/status")
