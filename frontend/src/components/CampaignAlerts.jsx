@@ -23,7 +23,7 @@ export default function CampaignAlerts({ campaigns }) {
     const reffedCount = enrichedCampaigns.filter(c => c.phaseInfo.phase === 'reinforced').length
 
     return (
-        <div className="panel panel-wide" style={{ marginBottom: 16 }}>
+        <div className="panel panel-wide">
             <CornerBrackets />
             <div className="panel-header">
                 <span className="panel-title">⚠ Sovereignty Campaigns</span>

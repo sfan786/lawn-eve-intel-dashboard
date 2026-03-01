@@ -135,7 +135,7 @@ export default function TimerBoard() {
     }
 
     return (
-        <div className="panel panel-wide" style={{ marginBottom: 16 }}>
+        <div className="panel panel-wide">
             <CornerBrackets />
             <div className="panel-header">
                 <span className="panel-title">⏱ Strategic Timerboard</span>

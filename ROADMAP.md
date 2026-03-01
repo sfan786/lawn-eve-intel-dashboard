@@ -53,7 +53,7 @@ Prioritized by tactical value for LAWN's current situation: brand new sov in Kal
 - [x] Mobile tab nav (Map / Systems / Kills / Intel / Timers / Industry) with bottom nav bar
 - [x] Tab-based content switching — each tab shows only its relevant panels
 - [x] Responsive header — compact clock/status bar on small screens
-- [ ] Tablet layout — two-column panel grid for mid-size screens
+- [x] Tablet layout — `.panel-pair` wrapper puts CampaignAlerts+Timers and AdmTrends+Upgrades side-by-side at 700px+
 - [ ] Large screen optimisation — wider panels, side-by-side map + table
 - **Data sources:** N/A
 ---

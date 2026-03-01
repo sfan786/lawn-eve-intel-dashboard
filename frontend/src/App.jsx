@@ -252,11 +252,13 @@ export default function App() {
                 {/* Tab 1: Systems — system table */}
                 {(!isMobile || mobileTab === 1) && systemStatusPanel}
 
-                {/* Tab 3: Intel — campaign alerts */}
-                {(!isMobile || mobileTab === 3) && <CampaignAlerts campaigns={campaigns} config={config} />}
-
-                {/* Tab 4: Timers */}
-                {(!isMobile || mobileTab === 4) && <TimerBoard />}
+                {/* Tab 3+4: Campaign alerts + Timers — side by side on tablet+ */}
+                {(!isMobile || mobileTab === 3 || mobileTab === 4) && (
+                    <div className="panel-pair">
+                        {(!isMobile || mobileTab === 3) && <CampaignAlerts campaigns={campaigns} config={config} />}
+                        {(!isMobile || mobileTab === 4) && <TimerBoard />}
+                    </div>
+                )}
 
                 {/* Tab 5: Industry — PI */}
                 {(!isMobile || mobileTab === 5) && <PlanetaryIntel />}
@@ -267,9 +269,13 @@ export default function App() {
                 {/* Tab 3: Intel — neighbor intel */}
                 {(!isMobile || mobileTab === 3) && <NeighborIntel lastUpdate={lastUpdate} />}
 
-                {/* Tab 1: Systems — adm trends + upgrades */}
-                {(!isMobile || mobileTab === 1) && <AdmTrends admHistory={admHistory} config={config} sovereignty={sovereignty} />}
-                {(!isMobile || mobileTab === 1) && <UpgradesOverview config={config} />}
+                {/* Tab 1: Systems — adm trends + upgrades side by side on tablet+ */}
+                {(!isMobile || mobileTab === 1) && (
+                    <div className="panel-pair">
+                        <AdmTrends admHistory={admHistory} config={config} sovereignty={sovereignty} />
+                        <UpgradesOverview config={config} />
+                    </div>
+                )}
             </div>
             {isMobile && <MobileNav activeTab={mobileTab} onTabChange={setMobileTab} />}
         </div>
