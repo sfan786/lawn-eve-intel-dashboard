@@ -179,6 +179,30 @@ body::after {
     grid-column: 1 / -1;
 }
 
+/* ============ TABLET TWO-COLUMN PAIRS ============ */
+/* Panels inside a panel-pair sit side-by-side at tablet+ widths */
+.panel-pair {
+    grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    align-items: start;
+}
+
+.panel-pair .panel-wide {
+    grid-column: span 1;
+}
+
+@media (max-width: 700px) {
+    .panel-pair {
+        grid-template-columns: 1fr;
+    }
+
+    .panel-pair .panel-wide {
+        grid-column: 1;
+    }
+}
+
 .panel-header {
     display: flex;
     align-items: center;
