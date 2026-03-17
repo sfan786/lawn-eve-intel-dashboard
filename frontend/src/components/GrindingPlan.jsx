@@ -5,17 +5,17 @@ import CornerBrackets from './common/CornerBrackets'
 import UpgradeBadges from './common/UpgradeBadges'
 
 const SYSTEM_TIERS = {
-    border:     new Set(["UDVW-O", "N-JK02"]),
+    border: new Set(["UDVW-O", "N-JK02"]),
     crossConst: new Set(["F48K-D", "FB5U-I"]),
-    hub:        new Set(["1-KCSA", "BZ-BCK", "O5-YNW", "IUU3-L"]),
-    deadEnd:    new Set(["JT2I-7", "J-OAH2", "86L-9F", "5-VFC6", "S-LHPJ"]),
+    hub: new Set(["1-KCSA", "BZ-BCK", "O5-YNW", "IUU3-L"]),
+    deadEnd: new Set(["JT2I-7", "J-OAH2", "86L-9F", "5-VFC6", "S-LHPJ"]),
 }
 
 function getTierBonus(name) {
-    if (SYSTEM_TIERS.border.has(name))     return { bonus: 500, label: "BORDER" }
+    if (SYSTEM_TIERS.border.has(name)) return { bonus: 500, label: "BORDER" }
     if (SYSTEM_TIERS.crossConst.has(name)) return { bonus: 300, label: "CROSS" }
-    if (SYSTEM_TIERS.hub.has(name))        return { bonus: 100, label: "HUB" }
-    if (SYSTEM_TIERS.deadEnd.has(name))    return { bonus: -50, label: "DEAD-END" }
+    if (SYSTEM_TIERS.hub.has(name)) return { bonus: 100, label: "HUB" }
+    if (SYSTEM_TIERS.deadEnd.has(name)) return { bonus: -50, label: "DEAD-END" }
     return { bonus: 0, label: "—" }
 }
 
@@ -85,6 +85,20 @@ export default function GrindingPlan({ config, sovereignty, activity, admHistory
 
     const allSorted = [...plannedSystems].sort((a, b) => b.score - a.score)
     const [showTable, setShowTable] = useState(false)
+    const [targetAdms, setTargetAdms] = useState(() => {
+        try { return JSON.parse(localStorage.getItem('adm_targets')) || {} }
+        catch (e) { return {} }
+    })
+
+    const handleSetTarget = (sysId, currentTarget) => {
+        const val = prompt("Set target ADM (e.g. 4.5, max 6.0):", currentTarget)
+        if (val !== null) {
+            const num = Math.min(Math.max(parseFloat(val) || 4.5, 1.0), 6.0)
+            const newTargets = { ...targetAdms, [sysId]: num }
+            setTargetAdms(newTargets)
+            localStorage.setItem('adm_targets', JSON.stringify(newTargets))
+        }
+    }
 
     if (targets.length === 0) return null
 
@@ -171,13 +185,20 @@ export default function GrindingPlan({ config, sovereignty, activity, admHistory
                                     <UpgradeBadges upgrades={upgrades} config={config} compact={true} />
                                 </div>
                             )}
-                            <div style={{
-                                fontSize: 9,
-                                color: 'var(--text-muted)',
-                                fontStyle: 'italic',
-                                marginTop: 2
-                            }}>
-                                {sys.adm < 2.0 ? "CRITICAL VULNERABILITY" : "Raise to 4.0+"}
+                            <div
+                                style={{ marginTop: 6, cursor: 'pointer' }}
+                                onClick={() => handleSetTarget(sys.system_id, targetAdms[sys.system_id] || 4.5)}
+                                title="Click to set Target ADM"
+                            >
+                                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 9, fontFamily: 'Share Tech Mono, monospace', color: 'var(--text-muted)', marginBottom: 2 }}>
+                                    <span style={{ color: sys.adm < 2.0 ? 'var(--red)' : 'var(--text-muted)' }}>
+                                        {sys.adm < 2.0 ? "CRITICAL VULN" : `TARGET: ${targetAdms[sys.system_id] || 4.5}`}
+                                    </span>
+                                    <span>{Math.round(Math.min((sys.adm / (targetAdms[sys.system_id] || 4.5)) * 100, 100))}%</span>
+                                </div>
+                                <div style={{ height: 4, background: 'rgba(255,255,255,0.1)', borderRadius: 2, overflow: 'hidden' }}>
+                                    <div style={{ height: '100%', width: `${Math.min((sys.adm / (targetAdms[sys.system_id] || 4.5)) * 100, 100)}%`, background: getAdmColor(sys.adm), transition: 'width 0.5s ease-out' }} />
+                                </div>
                             </div>
                             <div style={{
                                 position: 'absolute',
@@ -199,7 +220,7 @@ export default function GrindingPlan({ config, sovereignty, activity, admHistory
             {/* Full system table — collapsible */}
             {showTable && (
                 <div style={{ marginTop: 10 }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 11, fontFamily: 'Share Tech Mono, monospace' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 11, fontFamily: 'Share Tech Mono, monospace' }}>
                         <thead>
                             <tr style={{ color: 'var(--text-muted)', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
                                 <th style={{ textAlign: 'left', padding: '3px 6px', fontWeight: 'normal' }}>System</th>

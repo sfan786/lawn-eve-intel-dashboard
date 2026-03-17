@@ -122,7 +122,7 @@ Prioritized by tactical value for LAWN's current situation: brand new sov in Kal
 - [x] Strategic importance weighting: border > cross-constellation > hub > interior > dead-end
 - [x] Rate display — actual grinding speed (+X.X/day) from ADM history on each priority card
 - [x] Full system table (all 15 systems) with ADM, rate, and tier — behind collapsible toggle in panel header
-- [ ] ADM goal tracker — set target ADMs per system, show progress bars
+- [x] ADM goal tracker — set target ADMs per system, show progress bars
 - **Data sources:** SQLite adm_snapshots (trend analysis), config.py (system metadata)
 
 ### Moon Mining Tracker
