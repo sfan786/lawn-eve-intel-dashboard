@@ -99,7 +99,7 @@ SYSTEM_UPGRADES = {
     "1-KCSA": [{"type": "mTD", "level": 1}, {"type": "MTD", "level": 3}],
     "F48K-D": [{"type": "MTD", "level": 2}],
     "JT2I-7": [{"type": "mTD", "level": 1}, {"type": "MTD", "level": 2}],
-    "N-JK02": [{"type": "ED", "level": 3}],
+    "N-JK02": [{"type": "PA_Mex", "level": 1}, {"type": "PA_Nocx", "level": 1}],
     "UDVW-O": [{"type": "ED", "level": 1}],
     "UJXC-B": [{"type": "mTD", "level": 1}, {"type": "MTD", "level": 3}, {"type": "ED", "level": 1}],
     "XTJ-5Q": [{"type": "MTD", "level": 1}, {"type": "ED", "level": 1}],
@@ -109,7 +109,7 @@ SYSTEM_UPGRADES = {
     "BZ-BCK": [{"type": "mTD", "level": 1}, {"type": "MTD", "level": 2}],
     "FB5U-I": [{"type": "mTD", "level": 2}, {"type": "MTD", "level": 3}],
     "IUU3-L": [{"type": "MTD", "level": 1}],
-    "J-OAH2": [{"type": "mTD", "level": 1}, {"type": "PA_Pyer", "level": 2}, {"type": "PA_Iso", "level": 2}, {"type": "PA_Nocx", "level": 1}],
+    "J-OAH2": [{"type": "PA_Mex", "level": 3}, {"type": "PA_Iso", "level": 2}, {"type": "PA_Nocx", "level": 1}],
     "O5-YNW": [{"type": "mTD", "level": 1}, {"type": "MTD", "level": 3}],
     "S-LHPJ": [{"type": "MTD", "level": 3}],
 }
