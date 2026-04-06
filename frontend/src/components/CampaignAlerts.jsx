@@ -3,7 +3,20 @@ import { getCampaignPhase, formatCountdown, formatEveTime } from '../utils/campa
 import CornerBrackets from './common/CornerBrackets'
 
 export default function CampaignAlerts({ campaigns }) {
-    if (!campaigns || campaigns.length === 0) return null
+    if (!campaigns || campaigns.length === 0) {
+        return (
+            <div className="panel panel-wide">
+                <CornerBrackets />
+                <div className="panel-header">
+                    <span className="panel-title">⚠ Sovereignty Campaigns</span>
+                    <span className="panel-badge" style={{ color: 'var(--green)' }}>ALL CLEAR</span>
+                </div>
+                <div style={{ padding: 10, textAlign: 'center' }}>
+                    <div style={{ color: 'var(--text-muted)', fontSize: 11, fontStyle: 'italic' }}>No active sovereignty campaigns. Secure the lawn.</div>
+                </div>
+            </div>
+        )
+    }
 
     const enrichedCampaigns = campaigns.map(c => ({
         ...c,
