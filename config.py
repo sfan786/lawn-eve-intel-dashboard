@@ -57,14 +57,16 @@ FRIENDLY_ALLIANCE_IDS = [
     99013982,   # Gnomes Rising HoA [GNOME] — LAWN alt/highsec alliance
     99008788,   # The Skeleton Crew [MEAN] — allies
     99010468,   # Weapons Of Mass Production [WOMP] — deployed allies
+    99012018,   # EDENCOM DEFENSIVE INITIATIVE [EDENC] — allies
 ]
 
 FRIENDLY_ALLIANCES = [
     "Get Off My Lawn",           # LAWN (150097440)
     "BorderZone",                # BOZON (99012845) — allies
     "Gnomes Rising HoA",         # GNOME (99013982) — LAWN alt/highsec alliance
-    "The Skeleton Crew",         # MEAN (99008788) — allies
+    "The Skeleton Crew",           # MEAN (99008788) — allies
     "Weapons Of Mass Production.", # WOMP (99010468) — deployed allies
+    "EDENCOM DEFENSIVE INITIATIVE", # EDENC (99012018) — allies
 ]
 
 FRIENDLY_CORPORATIONS = [

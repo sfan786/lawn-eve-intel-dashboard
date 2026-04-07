@@ -1,6 +1,6 @@
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from flask import Blueprint, jsonify, request
-from config import NEIGHBOR_ENTITIES, LAWN_ALLIANCE_ID, FRIENDLY_ALLIANCE_IDS
+from config import NEIGHBOR_ENTITIES, LAWN_ALLIANCE_ID, FRIENDLY_ALLIANCE_IDS, FRIENDLY_CORPORATIONS
 import esi_client
 
 intel_bp = Blueprint("intel", __name__)
@@ -126,9 +126,11 @@ def api_local_scan():
             except Exception:
                 pass
 
-        # Classify standing
+        # Classify standing — alliance first, corp name as fallback
         if alliance_id == LAWN_ALLIANCE_ID:
             standing = "lawn"
+        elif corp_name in FRIENDLY_CORPORATIONS:
+            standing = "lawn"  # LAWN member corp, possibly without alliance tag set
         elif alliance_id in FRIENDLY_ALLIANCE_IDS:
             standing = "friendly"
         else:
