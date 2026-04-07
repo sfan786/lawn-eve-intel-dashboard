@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import CornerBrackets from './common/CornerBrackets'
 
 const STANDING_CONFIG = {
@@ -23,8 +23,17 @@ export default function LocalScanner() {
     const [results, setResults] = useState(null)
     const [scanning, setScanning] = useState(false)
     const [error, setError] = useState(null)
+    const debounceTimer = useRef(null)
 
     const names = parseNames(rawInput)
+
+    // Auto-scan 800ms after the user stops typing/pasting
+    useEffect(() => {
+        if (!names.length) return
+        clearTimeout(debounceTimer.current)
+        debounceTimer.current = setTimeout(() => handleScan(), 800)
+        return () => clearTimeout(debounceTimer.current)
+    }, [rawInput]) // eslint-disable-line react-hooks/exhaustive-deps
 
     async function handleScan() {
         if (!names.length) return
@@ -118,7 +127,7 @@ export default function LocalScanner() {
                         transition: 'all 0.2s',
                     }}
                 >
-                    {scanning ? 'SCANNING...' : 'SCAN\nLOCAL'}
+                    {scanning ? 'SCANNING...' : 'SCAN LOCAL'}
                 </button>
             </div>
 

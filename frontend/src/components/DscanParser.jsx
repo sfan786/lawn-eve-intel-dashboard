@@ -116,7 +116,9 @@ function parseDscan(raw) {
     }
 
     const presentCats = new Set(Object.keys(byCat))
-    const threat = THREAT_TIERS.find(t => t.test(presentCats)) || THREAT_TIERS[THREAT_TIERS.length - 1]
+    const threat = ships.length === 0
+        ? { tier: 'CLEAR', color: '#00ff88', bg: 'rgba(0,255,136,0.08)' }
+        : (THREAT_TIERS.find(t => t.test(presentCats)) || THREAT_TIERS[THREAT_TIERS.length - 1])
 
     return { byCat, structures, ships: ships.length, total: lines.length, unrecognized, threat }
 }
