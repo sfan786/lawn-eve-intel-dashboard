@@ -39,7 +39,149 @@ const GROUP_CATEGORIES = {
     'Mobile Large Warp Disruptor': 'BUBBLE', 'Mobile Medium Warp Disruptor': 'BUBBLE',
     'Mobile Small Warp Disruptor': 'BUBBLE',
     'Scanner Probe': 'PROBE', 'Survey Probe': 'PROBE', 'Combat Scanner Probe': 'PROBE',
-    'Sovereignty Blockade Unit': 'SOV', 'Infrastructure Hub': 'SOV',
+    'Sovereignty Blockade Unit': 'SOV', 'Infrastructure Hub': 'SOV', 'Sovereignty Hub': 'SOV',
+    // Misc objects to silently ignore (not threats, not structures)
+    'Sun': 'PROBE', // suns show up on dscan — bucket into PROBE so they're skipped
+
+    // ===== SHIP TYPE NAMES (when Group column is blank/dash) =====
+    // Titans
+    'Avatar': 'SUPER', 'Erebus': 'SUPER', 'Ragnarok': 'SUPER', 'Leviathan': 'SUPER',
+    'Vanquisher': 'SUPER', 'Komodo': 'SUPER', 'Molok': 'SUPER', 'Azariel': 'SUPER',
+    // Supercarriers
+    'Aeon': 'SUPER', 'Nyx': 'SUPER', 'Hel': 'SUPER', 'Wyvern': 'SUPER',
+    'Vendetta': 'SUPER', 'Revenant': 'SUPER', 'Vehement': 'SUPER',
+    // Dreadnoughts
+    'Revelation': 'CAPITAL', 'Naglfar': 'CAPITAL', 'Moros': 'CAPITAL', 'Phoenix': 'CAPITAL',
+    'Zirnitra': 'CAPITAL',
+    'Revelation Navy Issue': 'CAPITAL', 'Phoenix Navy Issue': 'CAPITAL',
+    // Carriers
+    'Archon': 'CAPITAL', 'Thanatos': 'CAPITAL', 'Chimera': 'CAPITAL', 'Nidhoggur': 'CAPITAL',
+    // Force Auxiliaries
+    'Apostle': 'CAPITAL', 'Lif': 'CAPITAL', 'Ninazu': 'CAPITAL', 'Minokawa': 'CAPITAL',
+    // Black Ops
+    'Sin': 'CAPITAL', 'Widow': 'CAPITAL', 'Panther': 'CAPITAL', 'Redeemer': 'CAPITAL',
+    // Marauders
+    'Paladin': 'BATTLESHIP', 'Kronos': 'BATTLESHIP', 'Golem': 'BATTLESHIP', 'Vargur': 'BATTLESHIP',
+    // T1 Battleships
+    'Armageddon': 'BATTLESHIP', 'Apocalypse': 'BATTLESHIP', 'Abaddon': 'BATTLESHIP',
+    'Dominix': 'BATTLESHIP', 'Megathron': 'BATTLESHIP', 'Hyperion': 'BATTLESHIP',
+    'Raven': 'BATTLESHIP', 'Rokh': 'BATTLESHIP', 'Scorpion': 'BATTLESHIP',
+    'Maelstrom': 'BATTLESHIP', 'Typhoon': 'BATTLESHIP', 'Tempest': 'BATTLESHIP',
+    'Apocalypse Navy Issue': 'BATTLESHIP', 'Armageddon Navy Issue': 'BATTLESHIP',
+    'Megathron Navy Issue': 'BATTLESHIP', 'Dominix Navy Issue': 'BATTLESHIP',
+    'Raven Navy Issue': 'BATTLESHIP', 'Scorpion Navy Issue': 'BATTLESHIP',
+    'Typhoon Fleet Issue': 'BATTLESHIP', 'Tempest Fleet Issue': 'BATTLESHIP',
+    // Faction/Pirate Battleships
+    'Bhaalgorn': 'BATTLESHIP', 'Vindicator': 'BATTLESHIP', 'Nightmare': 'BATTLESHIP',
+    'Machariel': 'BATTLESHIP', 'Leshak': 'BATTLESHIP', 'Barghest': 'BATTLESHIP',
+    'Rattlesnake': 'BATTLESHIP', 'Nestor': 'BATTLESHIP', 'Praxis': 'BATTLESHIP',
+    'Drekavac': 'BATTLESHIP', 'Caiman': 'BATTLESHIP', 'Chemosh': 'BATTLESHIP',
+    // Command Ships
+    'Absolution': 'BATTLECRUISER', 'Damnation': 'BATTLECRUISER',
+    'Astarte': 'BATTLECRUISER', 'Eos': 'BATTLECRUISER',
+    'Nighthawk': 'BATTLECRUISER', 'Vulture': 'BATTLECRUISER',
+    'Sleipnir': 'BATTLECRUISER', 'Claymore': 'BATTLECRUISER',
+    // Attack BCs
+    'Naga': 'BATTLECRUISER', 'Oracle': 'BATTLECRUISER', 'Tornado': 'BATTLECRUISER', 'Talos': 'BATTLECRUISER',
+    // T1 Battlecruisers
+    'Prophecy': 'BATTLECRUISER', 'Harbinger': 'BATTLECRUISER',
+    'Drake': 'BATTLECRUISER', 'Ferox': 'BATTLECRUISER',
+    'Cyclone': 'BATTLECRUISER', 'Hurricane': 'BATTLECRUISER',
+    'Brutix': 'BATTLECRUISER', 'Myrmidon': 'BATTLECRUISER',
+    'Harbinger Navy Issue': 'BATTLECRUISER', 'Drake Navy Issue': 'BATTLECRUISER',
+    'Hurricane Fleet Issue': 'BATTLECRUISER', 'Brutix Navy Issue': 'BATTLECRUISER',
+    // T3 Strategic Cruisers
+    'Legion': 'DOCTRINE', 'Tengu': 'DOCTRINE', 'Proteus': 'DOCTRINE', 'Loki': 'DOCTRINE',
+    // Heavy Assault Cruisers
+    'Sacrilege': 'DOCTRINE', 'Zealot': 'DOCTRINE',
+    'Cerberus': 'DOCTRINE', 'Eagle': 'DOCTRINE',
+    'Muninn': 'DOCTRINE', 'Vagabond': 'DOCTRINE',
+    'Deimos': 'DOCTRINE', 'Ishtar': 'DOCTRINE',
+    // Force Recon
+    'Pilgrim': 'RECON', 'Arazu': 'RECON', 'Falcon': 'RECON', 'Rapier': 'RECON',
+    // Combat Recon
+    'Curse': 'RECON', 'Lachesis': 'RECON', 'Rook': 'RECON', 'Huginn': 'RECON',
+    // Logistics Cruisers
+    'Guardian': 'SUPPORT', 'Oneiros': 'SUPPORT', 'Basilisk': 'SUPPORT', 'Scimitar': 'SUPPORT',
+    // Logistics Frigates
+    'Deacon': 'SUPPORT', 'Thalia': 'SUPPORT', 'Kirin': 'SUPPORT', 'Scalpel': 'SUPPORT',
+    // Interceptors
+    'Malediction': 'TACKLE', 'Crusader': 'TACKLE', 'Stiletto': 'TACKLE', 'Crow': 'TACKLE',
+    'Raptor': 'TACKLE', 'Claw': 'TACKLE', 'Ares': 'TACKLE', 'Taranis': 'TACKLE',
+    // Interdictors
+    'Heretic': 'TACKLE', 'Flycatcher': 'TACKLE', 'Eris': 'TACKLE', 'Sabre': 'TACKLE',
+    // Heavy Interdictors
+    'Devoter': 'TACKLE', 'Broadsword': 'TACKLE', 'Phobos': 'TACKLE', 'Onyx': 'TACKLE',
+    // Electronic Attack Ships
+    'Sentinel': 'EWAR', 'Kitsune': 'EWAR', 'Keres': 'EWAR', 'Hyena': 'EWAR',
+    // Stealth Bombers
+    'Purifier': 'BOMBER', 'Hound': 'BOMBER', 'Manticore': 'BOMBER', 'Nemesis': 'BOMBER',
+    // Covert Ops
+    'Anathema': 'COVOPS', 'Buzzard': 'COVOPS', 'Helios': 'COVOPS', 'Cheetah': 'COVOPS',
+    'Astero': 'COVOPS', 'Stratios': 'COVOPS',
+    // T1 Cruisers — Amarr
+    'Omen': 'CRUISER', 'Maller': 'CRUISER', 'Arbitrator': 'CRUISER', 'Augoror': 'CRUISER',
+    // T1 Cruisers — Gallente
+    'Thorax': 'CRUISER', 'Vexor': 'CRUISER', 'Exequror': 'CRUISER', 'Celestis': 'CRUISER',
+    // T1 Cruisers — Caldari
+    'Caracal': 'CRUISER', 'Blackbird': 'CRUISER', 'Moa': 'CRUISER', 'Osprey': 'CRUISER',
+    // T1 Cruisers — Minmatar
+    'Stabber': 'CRUISER', 'Rupture': 'CRUISER', 'Bellicose': 'CRUISER', 'Scythe': 'CRUISER',
+    // Navy Cruisers
+    'Omen Navy Issue': 'CRUISER', 'Vexor Navy Issue': 'CRUISER',
+    'Caracal Navy Issue': 'CRUISER', 'Stabber Fleet Issue': 'CRUISER',
+    // Faction/Pirate Cruisers
+    'Gila': 'CRUISER', 'Cynabal': 'CRUISER', 'Phantasm': 'CRUISER', 'Vigilant': 'CRUISER',
+    'Vedmak': 'CRUISER', 'Zarmazd': 'SUPPORT', 'Rodiva': 'SUPPORT',
+    // T2 Destroyers / Command Destroyers
+    'Pontifex': 'DESTROYER', 'Stork': 'DESTROYER', 'Magus': 'DESTROYER', 'Bifrost': 'DESTROYER',
+    // T1 Destroyers — Amarr
+    'Coercer': 'DESTROYER', 'Dragoon': 'DESTROYER',
+    // T1 Destroyers — Gallente
+    'Catalyst': 'DESTROYER', 'Algos': 'DESTROYER',
+    // T1 Destroyers — Caldari
+    'Cormorant': 'DESTROYER', 'Corax': 'DESTROYER',
+    // T1 Destroyers — Minmatar
+    'Thrasher': 'DESTROYER', 'Talwar': 'DESTROYER',
+    // Navy/Faction Destroyers
+    'Coercer Navy Issue': 'DESTROYER', 'Catalyst Navy Issue': 'DESTROYER',
+    'Cormorant Navy Issue': 'DESTROYER', 'Thrasher Fleet Issue': 'DESTROYER',
+    'Kikimora': 'DESTROYER',
+    // T2 Assault Frigates — Amarr
+    'Retribution': 'FRIGATE', 'Vengeance': 'FRIGATE',
+    // T2 Assault Frigates — Gallente
+    'Enyo': 'FRIGATE', 'Ishkur': 'FRIGATE',
+    // T2 Assault Frigates — Caldari
+    'Hawk': 'FRIGATE', 'Harpy': 'FRIGATE',
+    // T2 Assault Frigates — Minmatar
+    'Wolf': 'FRIGATE', 'Jaguar': 'FRIGATE',
+    // Faction/Pirate Frigates
+    'Daredevil': 'FRIGATE', 'Dramiel': 'FRIGATE', 'Cruor': 'FRIGATE', 'Succubus': 'FRIGATE',
+    'Worm': 'FRIGATE', 'Imperial Navy Slicer': 'FRIGATE',
+    'Caldari Navy Hookbill': 'FRIGATE', 'Republic Fleet Firetail': 'FRIGATE',
+    'Federation Navy Comet': 'FRIGATE', 'Pacifier': 'FRIGATE', 'Enforcer': 'FRIGATE',
+    // T1 Frigates — Amarr
+    'Punisher': 'FRIGATE', 'Executioner': 'FRIGATE', 'Inquisitor': 'FRIGATE', 'Tormentor': 'FRIGATE',
+    // T1 Frigates — Gallente
+    'Incursus': 'FRIGATE', 'Atron': 'FRIGATE', 'Navitas': 'FRIGATE', 'Tristan': 'FRIGATE',
+    // T1 Frigates — Caldari
+    'Kestrel': 'FRIGATE', 'Merlin': 'FRIGATE', 'Bantam': 'FRIGATE', 'Heron': 'FRIGATE',
+    // T1 Frigates — Minmatar
+    'Rifter': 'FRIGATE', 'Breacher': 'FRIGATE', 'Slasher': 'FRIGATE',
+    // Rookie / Civilian ships
+    'Reaper': 'FRIGATE', 'Ibis': 'FRIGATE', 'Velator': 'FRIGATE', 'Impairor': 'FRIGATE',
+    'Capsule': 'POD',
+    // Mining ships (sometimes on dscan)
+    'Venture': 'FRIGATE', 'Endurance': 'FRIGATE',
+    'Procurer': 'CRUISER', 'Retriever': 'CRUISER', 'Covetor': 'CRUISER',
+    'Skiff': 'CRUISER', 'Mackinaw': 'CRUISER', 'Hulk': 'CRUISER',
+    'Orca': 'CAPITAL', 'Rorqual': 'CAPITAL',
+    // Misc containers/objects that show on dscan — suppress as PROBE so they're skipped
+    'Enormous Freight Container': 'PROBE', 'Large Freight Container': 'PROBE',
+    'Medium Freight Container': 'PROBE', 'Small Freight Container': 'PROBE',
+    'Giant Freight Container': 'PROBE', 'Huge Freight Container': 'PROBE',
+    'Secure Container': 'PROBE', 'Station Container': 'PROBE',
+    'Mercenary Den': 'PROBE', 'Outpost Platform': 'PROBE',
 }
 
 // Populate lowercase map after GROUP_CATEGORIES is defined
@@ -105,6 +247,8 @@ function parseDscan(raw) {
         for (const part of parts) {
             const val = part.trim()
             if (!val || DISTANCE_RE.test(val)) continue
+            // Sun types appear as "Sun K2 (Yellow)" etc — prefix match
+            if (/^Sun\s/i.test(val)) { cat = 'PROBE'; matchedField = val; break }
             const found = GROUP_CATEGORIES[val] || GROUP_CATEGORIES_LOWER[val.toLowerCase()]
             if (found) { cat = found; matchedField = val; break }
         }
