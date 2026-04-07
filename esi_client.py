@@ -294,6 +294,32 @@ def get_type_group_id(type_id: int) -> int:
         return 0
 
 
+def bulk_character_affiliations(character_ids: list) -> list:
+    """POST /characters/affiliation/ — bulk corp/alliance lookup for up to 1000 IDs.
+    Returns [{character_id, corporation_id, alliance_id?}, ...]
+    """
+    if not character_ids:
+        return []
+    # Cache key based on sorted IDs (order-independent)
+    cache_key = f"affiliations_{','.join(str(i) for i in sorted(character_ids))}"
+    cached = _get_cached(cache_key, "sovereignty")  # short TTL — affiliations can change
+    if cached is not None:
+        return cached
+
+    url = f"{ESI_BASE}/characters/affiliation/"
+    headers = {
+        "Accept": "application/json",
+        "Content-Type": "application/json",
+        "User-Agent": "AstrumMechanica-IntelDash/1.0 (contact: in-game)"
+    }
+    params = {"datasource": ESI_DATASOURCE}
+    resp = requests.post(url, json=character_ids, headers=headers, params=params, timeout=15)
+    resp.raise_for_status()
+    data = resp.json()
+    _set_cache(cache_key, data)
+    return data
+
+
 def get_character_name(character_id: int) -> str:
     """Get character name by ID."""
     cache_key = f"character_{character_id}"

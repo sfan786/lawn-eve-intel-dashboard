@@ -13,6 +13,8 @@ Real-time sovereignty and intel monitoring for EVE Online nullsec space. Built f
 - **Activity heatmap** — Per-system hourly activity grid showing safe grinding hours vs danger hours
 - **Timerboard** — Manual structure timer tracking with password-protected add/delete
 - **Sov upgrade tracking** — Manual iHub upgrade display (military/industry/strategic) per LAWN system
+- **DScan parser** — Paste EVE directional scan output for instant ship class breakdown and threat tier assessment (CRITICAL/HIGH/MEDIUM/LOW/MINIMAL)
+- **Local chat scanner** — Paste pilot names from local; resolves corp/alliance via ESI and classifies each as LAWN / FRIENDLY / UNKNOWN / UNRESOLVED with zKillboard links
 - **Auto-refresh** — Live ESI data updates with in-memory caching
 - **Demo mode** — Full UI testing with mock data, no ESI access required
 
@@ -35,7 +37,7 @@ lawn-eve-intel-dashboard/
 │   ├── activity_routes.py   # /api/activity
 │   ├── zkill_routes.py      # /api/zkill/feed, /api/zkill/<id>
 │   ├── history_routes.py    # /api/history/adm, /api/history/activity/heatmap
-│   ├── intel_routes.py      # /api/intel/neighbors
+│   ├── intel_routes.py      # /api/intel/neighbors, /api/local/scan
 │   ├── timer_routes.py      # /api/timers, /api/auth/check
 │   └── static_routes.py     # / (serves Vite build or legacy fallback)
 │
@@ -53,7 +55,7 @@ lawn-eve-intel-dashboard/
 │       ├── styles/global.css
 │       ├── data/mapData.js  # MAP_LAYOUT, MAP_LAYOUT_SUBWAY, MAP_CONNECTIONS
 │       ├── utils/           # admHelpers, campaignHelpers, formatters, upgradeHelpers
-│       └── components/      # 11 feature components + 3 common components
+│       └── components/      # 14 feature components + 3 common components
 │
 ├── static/
 │   ├── index.html           # Legacy CDN-React fallback (no build step required)
@@ -269,8 +271,13 @@ LAWN_CONSTELLATION_IDS = [
     20000414,  # 6-CBBM
     20000423,  # 2Q-8WA
 ]
-FRIENDLY_ALLIANCES = ["Get Off My Lawn"]
-FRIENDLY_CORPORATIONS = ["Astrum Mechanica", "LAWN Logistics"]
+LAWN_ALLIANCE_ID = 150097440          # Get Off My Lawn [LAWN]
+FRIENDLY_ALLIANCE_IDS = [
+    99012845,   # BorderZone [BOZON]
+    99013982,   # Gnomes Rising HoA [GNOME]
+    99008788,   # The Skeleton Crew [MEAN]
+    99010468,   # Weapons Of Mass Production [WOMP]
+]
 ```
 
 ### Sovereignty upgrades (`config.py`)

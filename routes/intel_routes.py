@@ -1,6 +1,6 @@
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from flask import Blueprint, jsonify
-from config import NEIGHBOR_ENTITIES
+from flask import Blueprint, jsonify, request
+from config import NEIGHBOR_ENTITIES, LAWN_ALLIANCE_ID, FRIENDLY_ALLIANCE_IDS
 import esi_client
 
 intel_bp = Blueprint("intel", __name__)
@@ -74,5 +74,85 @@ def api_neighbor_intel():
             "top_ships": resolved_top_ships,
             "activity_heatmap": [hourly_activity[h] for h in range(24)],
         })
+
+    return jsonify(results)
+
+
+@intel_bp.route("/api/local/scan", methods=["POST"])
+def api_local_scan():
+    names = request.json.get("names", [])[:100]
+    if not names:
+        return jsonify([])
+
+    # 1. Bulk resolve names → character IDs
+    try:
+        resolved = esi_client.post_universe_ids(names)
+    except Exception as e:
+        return jsonify({"error": f"ESI name resolution failed: {e}"}), 502
+
+    char_map = {c["name"]: c["id"] for c in resolved.get("characters", [])}
+    name_set = set(names)
+    unresolved = [n for n in name_set if n not in char_map]
+
+    # 2. Bulk get affiliations
+    char_ids = list(char_map.values())
+    affil_by_id = {}
+    if char_ids:
+        try:
+            affiliations = esi_client.bulk_character_affiliations(char_ids)
+            for a in affiliations:
+                affil_by_id[a["character_id"]] = a
+        except Exception as e:
+            print(f"Affiliation lookup failed: {e}")
+
+    # 3. Build results
+    results = []
+
+    for name, char_id in char_map.items():
+        affil = affil_by_id.get(char_id, {})
+        corp_id = affil.get("corporation_id")
+        alliance_id = affil.get("alliance_id")
+
+        corp_name = None
+        alliance_name = None
+        if corp_id:
+            try:
+                corp_name = esi_client.get_corporation_info(corp_id).get("name")
+            except Exception:
+                pass
+        if alliance_id:
+            try:
+                alliance_name = esi_client.get_alliance_info(alliance_id).get("name")
+            except Exception:
+                pass
+
+        # Classify standing
+        if alliance_id == LAWN_ALLIANCE_ID:
+            standing = "lawn"
+        elif alliance_id in FRIENDLY_ALLIANCE_IDS:
+            standing = "friendly"
+        else:
+            standing = "unknown"
+
+        results.append({
+            "name": name,
+            "character_id": char_id,
+            "corporation_name": corp_name,
+            "alliance_name": alliance_name,
+            "standing": standing,
+        })
+
+    for name in unresolved:
+        results.append({
+            "name": name,
+            "character_id": None,
+            "corporation_name": None,
+            "alliance_name": None,
+            "standing": "unresolved",
+        })
+
+    # Sort: unknown first, then friendly, then lawn, then unresolved
+    order = {"unknown": 0, "friendly": 1, "lawn": 2, "unresolved": 3}
+    results.sort(key=lambda r: order.get(r["standing"], 99))
 
     return jsonify(results)

@@ -163,6 +163,13 @@ body::after {
     margin: 0 auto;
 }
 
+@media (min-width: 1400px) {
+    .dashboard {
+        max-width: 2000px;
+    }
+}
+
+
 .panel {
     background: var(--bg-panel);
     border: 1px solid var(--border-dim);
