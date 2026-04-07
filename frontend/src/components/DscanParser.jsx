@@ -16,8 +16,23 @@ const GROUP_CATEGORIES = {
     'Covert Ops': 'COVOPS', 'Stealth Bomber': 'BOMBER',
     'Destroyer': 'DESTROYER', 'Assault Frigate': 'FRIGATE', 'Frigate': 'FRIGATE',
     'Capsule': 'POD',
+    // Upwell structure groups
     'Citadel': 'STRUCTURE', 'Engineering Complex': 'STRUCTURE', 'Refinery': 'STRUCTURE',
+    'Jump Gate': 'STRUCTURE',             // Ansiblex Jump Gate
+    'Orbital Infrastructure': 'STRUCTURE', // Player-owned Customs Office (POCO)
+    'Control Tower': 'STRUCTURE',          // POS towers
+    'Moon Drill': 'STRUCTURE',             // Metenox Moon Harvester
+    'Starbase Defense': 'STRUCTURE',       // POS guns/batteries
+    'Cynosural Beacon': 'STRUCTURE',       // Upwell Cyno Beacon
+    // Upwell type-name fallbacks (for when Group column is missing/blank)
+    'Astrahus': 'STRUCTURE', 'Fortizar': 'STRUCTURE', 'Keepstar': 'STRUCTURE',
+    'Raitaru': 'STRUCTURE', 'Azbel': 'STRUCTURE', 'Sotiyo': 'STRUCTURE',
+    'Athanor': 'STRUCTURE', 'Tatara': 'STRUCTURE',
+    'Ansiblex Jump Gate': 'STRUCTURE', 'Metenox Moon Harvester': 'STRUCTURE',
+    'Customs Office': 'STRUCTURE',
+    // Deployables
     'Mobile Depot': 'DEPLOYABLE', 'Mobile Cynosural Inhibitor': 'DEPLOYABLE',
+    'Mobile Cyno Inhibitor': 'DEPLOYABLE',
     'Mobile Large Warp Disruptor': 'BUBBLE', 'Mobile Medium Warp Disruptor': 'BUBBLE',
     'Mobile Small Warp Disruptor': 'BUBBLE',
     'Scanner Probe': 'PROBE', 'Survey Probe': 'PROBE', 'Combat Scanner Probe': 'PROBE',
