@@ -1,6 +1,9 @@
 import React, { useState, useMemo } from 'react'
 import CornerBrackets from './common/CornerBrackets'
 
+// Lowercase-keyed version built at module load for case-insensitive matching
+const GROUP_CATEGORIES_LOWER = {}
+
 const GROUP_CATEGORIES = {
     'Titan': 'SUPER', 'Supercarrier': 'SUPER',
     'Dreadnought': 'CAPITAL', 'Carrier': 'CAPITAL', 'Force Auxiliary': 'CAPITAL',
@@ -38,6 +41,12 @@ const GROUP_CATEGORIES = {
     'Scanner Probe': 'PROBE', 'Survey Probe': 'PROBE', 'Combat Scanner Probe': 'PROBE',
     'Sovereignty Blockade Unit': 'SOV', 'Infrastructure Hub': 'SOV',
 }
+
+// Populate lowercase map after GROUP_CATEGORIES is defined
+Object.entries(GROUP_CATEGORIES).forEach(([k, v]) => { GROUP_CATEGORIES_LOWER[k.toLowerCase()] = v })
+
+// Regex to detect distance-like fields so we skip them during column scanning
+const DISTANCE_RE = /^[\d,.*-]|km$|au$| m$/i
 
 const CATEGORY_ORDER = [
     'SUPER', 'CAPITAL', 'BATTLESHIP', 'BATTLECRUISER', 'DOCTRINE', 'RECON',
@@ -77,31 +86,43 @@ const THREAT_TIERS = [
 function parseDscan(raw) {
     if (!raw.trim()) return null
 
-    const lines = raw.trim().split('\n').map(l => l.trim()).filter(Boolean)
+    // Normalise line endings (Windows \r\n → \n)
+    const lines = raw.replace(/\r/g, '').trim().split('\n').map(l => l.trim()).filter(Boolean)
     const ships = []
     const structures = []
-    const other = []
     let unrecognized = 0
+    const unrecognizedSamples = []
 
     for (const line of lines) {
-        // EVE dscan format: Distance\tName\tType\tGroup (4 tab-separated fields)
         const parts = line.split('\t')
-        if (parts.length < 3) { unrecognized++; continue }
+        if (parts.length < 2) { unrecognized++; unrecognizedSamples.push(line); continue }
 
-        const type = parts[2]?.trim() || ''
-        const group = parts[3]?.trim() || ''
+        // Scan every column for a GROUP_CATEGORIES match (case-insensitive).
+        // Skip columns that look like distances ("1,234 km", "2.1 AU", "*", "-").
+        // This handles any column order EVE might use.
+        let cat = null
+        let matchedField = ''
+        for (const part of parts) {
+            const val = part.trim()
+            if (!val || DISTANCE_RE.test(val)) continue
+            const found = GROUP_CATEGORIES[val] || GROUP_CATEGORIES_LOWER[val.toLowerCase()]
+            if (found) { cat = found; matchedField = val; break }
+        }
 
-        // Try group first, then type as fallback
-        const cat = GROUP_CATEGORIES[group] || GROUP_CATEGORIES[type] || null
+        if (!cat) { unrecognized++; if (unrecognizedSamples.length < 5) unrecognizedSamples.push(line); continue }
 
-        if (!cat) { unrecognized++; continue }
+        // Name: first column that isn't a distance and isn't the matched type/group field
+        const name = parts.find(p => {
+            const v = p.trim()
+            return v && !DISTANCE_RE.test(v) && v !== matchedField
+        })?.trim() || matchedField
 
-        const entry = { name: parts[1]?.trim() || type, type, group, category: cat }
+        const entry = { name, type: matchedField, category: cat }
 
         if (['STRUCTURE', 'DEPLOYABLE', 'BUBBLE', 'SOV'].includes(cat)) {
             structures.push(entry)
         } else if (cat === 'PROBE') {
-            // skip probes from main ship list
+            // skip probes
         } else {
             ships.push(entry)
         }
@@ -120,7 +141,7 @@ function parseDscan(raw) {
         ? { tier: 'CLEAR', color: '#00ff88', bg: 'rgba(0,255,136,0.08)' }
         : (THREAT_TIERS.find(t => t.test(presentCats)) || THREAT_TIERS[THREAT_TIERS.length - 1])
 
-    return { byCat, structures, ships: ships.length, total: lines.length, unrecognized, threat }
+    return { byCat, structures, ships: ships.length, total: lines.length, unrecognized, unrecognizedSamples, threat }
 }
 
 export default function DscanParser() {
@@ -255,6 +276,27 @@ export default function DscanParser() {
                     {result.ships === 0 && result.structures.length === 0 && (
                         <div style={{ padding: '8px 0', color: 'var(--text-muted)', fontFamily: 'Share Tech Mono, monospace', fontSize: 11 }}>
                             No recognized ships or structures found.
+                        </div>
+                    )}
+
+                    {/* Debug: show sample unrecognized lines so we can identify format issues */}
+                    {result.unrecognized > 0 && result.unrecognizedSamples.length > 0 && (
+                        <div style={{ marginTop: 8, padding: '6px 8px', background: 'rgba(255,170,0,0.05)', border: '1px solid var(--amber-dim)' }}>
+                            <span style={{ fontFamily: 'Orbitron, sans-serif', fontSize: 9, letterSpacing: 2, color: 'var(--amber)', marginRight: 8 }}>
+                                UNRECOGNIZED ({result.unrecognized})
+                            </span>
+                            <div style={{ marginTop: 4 }}>
+                                {result.unrecognizedSamples.map((l, i) => (
+                                    <div key={i} style={{ fontFamily: 'Share Tech Mono, monospace', fontSize: 9, color: 'var(--text-muted)', whiteSpace: 'pre' }}>
+                                        {l.replace(/\t/g, ' → ')}
+                                    </div>
+                                ))}
+                                {result.unrecognized > result.unrecognizedSamples.length && (
+                                    <div style={{ fontFamily: 'Share Tech Mono, monospace', fontSize: 9, color: 'var(--text-muted)' }}>
+                                        …and {result.unrecognized - result.unrecognizedSamples.length} more
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     )}
                 </>
