@@ -51,10 +51,20 @@ NEIGHBOR_SYSTEM_NAMES = [
 ]
 
 # Your alliance info (for highlighting friendly vs hostile)
+LAWN_ALLIANCE_ID = 150097440     # Get Off My Lawn [LAWN]
+FRIENDLY_ALLIANCE_IDS = [
+    99012845,   # BorderZone [BOZON] — allies
+    99013982,   # Gnomes Rising HoA [GNOME] — LAWN alt/highsec alliance
+    99008788,   # The Skeleton Crew [MEAN] — allies
+    99010468,   # Weapons Of Mass Production [WOMP] — deployed allies
+]
+
 FRIENDLY_ALLIANCES = [
-    "Get Off My Lawn",        # LAWN (150097440)
-    "BorderZone",             # BOZON (99012845) — allies
-    "Gnomes Rising HoA",      # GNOME (99013982) — LAWN alt/highsec alliance
+    "Get Off My Lawn",           # LAWN (150097440)
+    "BorderZone",                # BOZON (99012845) — allies
+    "Gnomes Rising HoA",         # GNOME (99013982) — LAWN alt/highsec alliance
+    "The Skeleton Crew",         # MEAN (99008788) — allies
+    "Weapons Of Mass Production.", # WOMP (99010468) — deployed allies
 ]
 
 FRIENDLY_CORPORATIONS = [

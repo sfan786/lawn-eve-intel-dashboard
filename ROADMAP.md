@@ -23,6 +23,9 @@ Prioritized by tactical value for LAWN's current situation: brand new sov in Kal
 - [x] **ADM grinding planner** — priority cards (top 6 systems) ranked by 5-tier tactical scoring (border > cross-constellation > hub > interior > dead-end), with grinding rate (+X.X/day from history), and collapsible full-system table for all 15 LAWN systems; `computeGrindingRate` and `compute24hChange` added to `admHelpers.js`
 - [x] **UI space efficiency pass** — map mode toggle lifted into panel header; controls policy documented in CLAUDE.md (controls in headers, compact empty states, metadata as badges)
 - [x] **Localized time display** — status bar clock shows EVE (UTC) and Local time simultaneously
+- [x] **DScan parser** — paste EVE directional scan output for instant ship breakdown by class (SUPER/CAPITAL/BATTLESHIP/etc.), threat tier banner (CRITICAL/HIGH/MEDIUM/LOW/MINIMAL), and structures/deployables section; pure frontend, no server round-trip (`DscanParser.jsx`)
+- [x] **Local chat scanner** — paste pilot names from local chat; resolves via ESI `POST /universe/ids/` + `POST /characters/affiliation/` and classifies each pilot as LAWN / FRIENDLY / UNKNOWN / UNRESOLVED with corp+alliance display and zKillboard links (`LocalScanner.jsx`, `POST /api/local/scan`)
+- [x] **Ally expansion** — The Skeleton Crew [MEAN] (99008788) and Weapons Of Mass Production [WOMP] (99010468) added as friendly alliances in `config.py`; classified as FRIENDLY in local scanner and sov display
 
 ---
 
@@ -54,7 +57,7 @@ Prioritized by tactical value for LAWN's current situation: brand new sov in Kal
 - [x] Tab-based content switching — each tab shows only its relevant panels
 - [x] Responsive header — compact clock/status bar on small screens
 - [x] Tablet layout — `.panel-pair` wrapper puts CampaignAlerts+Timers and AdmTrends+Upgrades side-by-side at 700px+
-- [ ] Large screen optimisation — wider panels, side-by-side map + table
+- [ ] Large screen optimisation — side-by-side map + table (attempted; map too small at 3fr/2fr split — needs different approach)
 - **Data sources:** N/A
 ---
 
@@ -152,5 +155,5 @@ Prioritized by tactical value for LAWN's current situation: brand new sov in Kal
 - **Historical battle reports** — aggregate kills into fleet fight summaries
 - **Map annotations** — user-placed notes on systems ("cloaky camper here", "safe to rat")
 - **SRP (Ship Replacement) integration** — track losses eligible for reimbursement
-- **Dscan Parsing** - Parse dscan data to identify ships and structures in space
-- **Local Chat Parsing** - Parse local chat data to identify charecters in space
+- **Multi-alliance view** — if LAWN blues other groups, show their space too *(partially addressed via friendly IDs)*
+- **Wormhole connection tracker** — integration with Pathfinder/Tripwire APIs

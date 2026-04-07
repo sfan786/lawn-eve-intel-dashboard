@@ -15,6 +15,8 @@ import PlanetaryIntel from './components/PlanetaryIntel'
 import NeighborIntel from './components/NeighborIntel'
 import ActivityHeatmap from './components/ActivityHeatmap'
 import MobileNav from './components/MobileNav'
+import DscanParser from './components/DscanParser'
+import LocalScanner from './components/LocalScanner'
 
 export default function App() {
     const [config, setConfig] = useState(null)
@@ -246,11 +248,11 @@ export default function App() {
                 {/* Tab 0: Map — constellation map */}
                 {(!isMobile || mobileTab === 0) && mapPanel}
 
-                {/* Tab 2: Kills — kill feed */}
-                {(!isMobile || mobileTab === 2) && <KillFeed kills={killFeed} />}
-
                 {/* Tab 1: Systems — system table */}
                 {(!isMobile || mobileTab === 1) && systemStatusPanel}
+
+                {/* Tab 2: Kills — kill feed */}
+                {(!isMobile || mobileTab === 2) && <KillFeed kills={killFeed} />}
 
                 {/* Tab 3+4: Campaign alerts + Timers — side by side on tablet+ */}
                 {(!isMobile || mobileTab === 3 || mobileTab === 4) && (
@@ -266,8 +268,10 @@ export default function App() {
                 {/* Tab 2: Kills — activity heatmap */}
                 {(!isMobile || mobileTab === 2) && <ActivityHeatmap config={config} sovereignty={sovereignty} lastUpdate={lastUpdate} />}
 
-                {/* Tab 3: Intel — neighbor intel */}
+                {/* Tab 3: Intel — neighbor intel + dscan + local scanner */}
                 {(!isMobile || mobileTab === 3) && <NeighborIntel lastUpdate={lastUpdate} />}
+                {(!isMobile || mobileTab === 3) && <DscanParser />}
+                {(!isMobile || mobileTab === 3) && <LocalScanner />}
 
                 {/* Tab 1: Systems — adm trends + upgrades side by side on tablet+ */}
                 {(!isMobile || mobileTab === 1) && (

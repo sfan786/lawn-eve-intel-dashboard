@@ -1,7 +1,7 @@
 # CLAUDE.md — LAWN Eve Intel Dashboard
 
 ## What This Is
-Real-time intel dashboard for **Get Off My Lawn [LAWN]** alliance (EVE Online). LAWN was removed from the Imperium coalition after 14 years and relocated to the Dronelands, claiming 2 constellations in **The Kalevala Expanse** region. The dashboard serves the whole alliance — 12 member corps including Astrum Mechanica, Gnomeland Services, LAWN HC, and others. Friendly alliances include **BorderZone [BOZON]** (allies) and **Gnomes Rising HoA [GNOME]** (LAWN's alt/highsec alliance).
+Real-time intel dashboard for **Get Off My Lawn [LAWN]** alliance (EVE Online). LAWN was removed from the Imperium coalition after 14 years and relocated to the Dronelands, claiming 2 constellations in **The Kalevala Expanse** region. The dashboard serves the whole alliance — 12 member corps including Astrum Mechanica, Gnomeland Services, LAWN HC, and others. Friendly alliances include **BorderZone [BOZON]** (allies), **Gnomes Rising HoA [GNOME]** (LAWN's alt/highsec alliance), **The Skeleton Crew [MEAN]** (allies), and **Weapons Of Mass Production [WOMP]** (deployed allies).
 
 The dashboard monitors sovereignty, kill activity, jump traffic, and active sov campaigns across LAWN's territory and the neighboring border systems.
 
@@ -70,7 +70,7 @@ lawn-eve-intel-dashboard/
 │   ├── activity_routes.py   # /api/activity
 │   ├── zkill_routes.py      # /api/zkill/feed, /api/zkill/<id>
 │   ├── history_routes.py    # /api/history/adm, /api/history/activity/heatmap
-│   ├── intel_routes.py      # /api/intel/neighbors
+│   ├── intel_routes.py      # /api/intel/neighbors, /api/local/scan
 │   ├── timer_routes.py      # /api/timers, /api/auth/check
 │   └── static_routes.py     # / (serves Vite build or legacy fallback)
 │
@@ -85,7 +85,7 @@ lawn-eve-intel-dashboard/
 │       ├── App.jsx          # Root component — state, fetching, tab nav
 │       ├── data/mapData.js  # MAP_LAYOUT, MAP_LAYOUT_SUBWAY, MAP_CONNECTIONS
 │       ├── utils/           # admHelpers, campaignHelpers, formatters, upgradeHelpers
-│       └── components/      # 12 feature components + 3 common components
+│       └── components/      # 14 feature components + 3 common components
 │
 ├── static/
 │   ├── index.html           # Legacy CDN-React fallback (no build step required)
@@ -161,6 +161,7 @@ Resolves names to numeric IDs for `config.py`. Uses ESI `POST /universe/ids/` fo
 - `GET /api/history/adm?hours=168` — ADM history for sparklines (default 7 days, max 30)
 - `GET /api/history/activity/heatmap?days=7` — per-system hourly activity grid (max 30 days)
 - `GET /api/intel/neighbors` — neighbor threat profiles (ship doctrines, TZ activity, threat scores)
+- `POST /api/local/scan` — resolve pilot names from local chat → corp/alliance lookup → classify lawn/friendly/unknown/unresolved
 - `GET /api/timers` — active custom timers
 - `POST /api/timers` — add timer (requires `X-Timer-Auth` header)
 - `DELETE /api/timers/<id>` — delete timer (requires `X-Timer-Auth` header)
@@ -303,6 +304,10 @@ See [ROADMAP.md](ROADMAP.md) for full details and backlog.
 **Priority 1 — Immediate tactical value:**
 - [x] zKillboard feed panel enhancements (filtering, ship class breakdowns)
 - [x] ADM grinding planner (priority ranking, rate estimation, daily targets)
+- [x] DScan parser — paste D-scan output → ship categories, threat tier banner, structures section (`DscanParser.jsx`, pure frontend)
+- [x] Local chat scanner — paste pilot names → ESI affiliation lookup → lawn/friendly/unknown/unresolved classification with zKill links (`LocalScanner.jsx`, `POST /api/local/scan`)
+- [x] Ally expansion — The Skeleton Crew [MEAN] (99008788) and Weapons Of Mass Production [WOMP] (99010468) added as friendly alliances
+- [x] Wide screen layout — dashboard expands to max-width 2000px at 1400px+ (all panels remain full-width)
 
 **Priority 2 — Operational:**
 - [ ] Browser push notifications (PVP alerts, sov campaigns, ADM drops)
