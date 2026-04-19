@@ -17,6 +17,8 @@ import ActivityHeatmap from './components/ActivityHeatmap'
 import MobileNav from './components/MobileNav'
 import DscanParser from './components/DscanParser'
 import LocalScanner from './components/LocalScanner'
+import NotificationBell from './components/NotificationBell'
+import { useNotifications } from './hooks/useNotifications'
 
 export default function App() {
     const [config, setConfig] = useState(null)
@@ -35,6 +37,7 @@ export default function App() {
     const [isMobile, setIsMobile] = useState(() => window.innerWidth < 640)
     const [mobileTab, setMobileTab] = useState(0)
     const timer = useRef(null)
+    const { settings: notifSettings, saveSettings: saveNotifSettings, permStatus, requestPermission, checkAndNotify } = useNotifications()
 
     const fetchData = useCallback(async (init = false) => {
         try {
@@ -53,9 +56,22 @@ export default function App() {
             checkedFetch("/api/zkill/feed").then(setKillFeed).catch(e => console.warn("Kill feed unavailable:", e.message))
             checkedFetch("/api/history/adm").then(setAdmHistory).catch(e => console.warn("ADM history unavailable:", e.message))
             setLastUpdate(new Date()); setError(null)
+
+            // Build LAWN sys lookup from fresh config and check for alert-worthy changes
+            if (cfg && cfg.constellations) {
+                const lawnIds = new Set()
+                const names = {}
+                Object.values(cfg.constellations).forEach(c => {
+                    Object.values(c.systems).forEach(s => {
+                        names[s.system_id] = s.name
+                        if (c.is_lawn) lawnIds.add(String(s.system_id))
+                    })
+                })
+                checkAndNotify(camp, sov, act, lawnIds, names)
+            }
         } catch (err) { if (init) setError(err.message) }
         finally { setLoading(false); setRefreshing(false) }
-    }, [])
+    }, [checkAndNotify])
 
     useEffect(() => {
         fetchData(true)
@@ -234,6 +250,12 @@ export default function App() {
                     <button className={`refresh-btn ${refreshing ? 'refreshing' : ''}`} onClick={() => fetchData(false)} disabled={refreshing}>
                         {refreshing ? (isMobile ? "..." : "REFRESHING...") : "↻ REFRESH"}
                     </button>
+                    <NotificationBell
+                        settings={notifSettings}
+                        saveSettings={saveNotifSettings}
+                        permStatus={permStatus}
+                        requestPermission={requestPermission}
+                    />
                 </div>
             </div>
             <div className="dashboard">
