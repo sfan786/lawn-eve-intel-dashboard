@@ -310,7 +310,7 @@ See [ROADMAP.md](ROADMAP.md) for full details and backlog.
 - [x] Wide screen layout — dashboard expands to max-width 2000px at 1400px+ (all panels remain full-width)
 
 **Priority 2 — Operational:**
-- [ ] Browser push notifications (PVP alerts, sov campaigns, ADM drops)
+- [x] Browser push notifications (PVP alerts, sov campaigns, ADM drops) — ALERTS button in header, `useNotifications` hook + `NotificationBell.jsx`
 - [ ] Structure tracking (requires SSO)
 - [ ] Regional intel aggregation (neighboring region early warning)
 - [ ] Jump bridge route overlay on map

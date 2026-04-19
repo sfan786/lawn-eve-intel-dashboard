@@ -65,11 +65,12 @@ Prioritized by tactical value for LAWN's current situation: brand new sov in Kal
 
 ### Browser Push Notifications
 **Why:** Need instant alerts without requiring Discord setup.
-- PVP activity in LAWN space (configurable threshold)
-- New sov campaigns (structure reffed)
-- ADM drops below threshold
-- Uses browser Notification API — works in background tabs
-- Configurable per-system and per-alert-type
+- [x] PVP activity in LAWN space (configurable threshold, default 3 kills)
+- [x] New sov campaigns (structure reffed)
+- [x] ADM drops below 2.0 (critical threshold)
+- [x] Uses browser Notification API — works in background tabs
+- [x] Configurable per-type toggles + PVP threshold; settings persisted in localStorage
+- [x] ALERTS button in header status bar — pulsing amber dot when active
 - **Data sources:** Existing API endpoints, polled client-side
 
 ### Regional Intel Aggregation
