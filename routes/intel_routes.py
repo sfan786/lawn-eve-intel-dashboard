@@ -53,8 +53,8 @@ def api_neighbor_intel():
 
         top_ships = sorted(ship_counts.items(), key=lambda x: x[1], reverse=True)[:5]
         resolved_top_ships = [
-            {"name": esi_client.get_type_name(tid), "count": count}
-            for tid, count in top_ships
+            {"name": name, "count": count}
+            for name, count in top_ships
         ]
 
         score_val = total_kills

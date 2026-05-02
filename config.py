@@ -24,6 +24,7 @@ CACHE_TTL = {
     "system_info": 86400,         # 24h - static data
     "region_info": 86400,         # 24h - static data
     "zkill": 120,                 # 2 min - kills change fast
+    "entity_info": 3600,          # 1h - alliance/corp/character names
 }
 
 # ===== LAWN CONSTELLATIONS =====

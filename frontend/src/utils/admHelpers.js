@@ -12,26 +12,6 @@ export function getAdmStatus(adm) {
     return { label: "No Sov", color: "#3a5060", priority: 3 };
 }
 
-export function needsCriticalGrinding(name, activeLayout, nameToId, sovereignty) {
-    const layout = activeLayout[name];
-    if (!layout || !layout.lawn) return false;
-    const sysId = nameToId[name];
-    if (!sysId) return false;
-    const sov = sovereignty[sysId] || {};
-    const adm = sov.adm || 0;
-    return adm > 0 && adm < 2;
-}
-
-export function needsCautionGrinding(name, activeLayout, nameToId, sovereignty) {
-    const layout = activeLayout[name];
-    if (!layout || !layout.lawn) return false;
-    const sysId = nameToId[name];
-    if (!sysId) return false;
-    const sov = sovereignty[sysId] || {};
-    const adm = sov.adm || 0;
-    return adm >= 2 && adm < 4;
-}
-
 // Compute ADM change per day from history snapshots.
 // Uses last 48h of data; falls back to full range if sparse.
 // Returns null if < 2 points or time window < 1h.
