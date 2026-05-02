@@ -17,6 +17,7 @@ import ActivityHeatmap from './components/ActivityHeatmap'
 import MobileNav from './components/MobileNav'
 import DscanParser from './components/DscanParser'
 import LocalScanner from './components/LocalScanner'
+import JumpBridgeManager from './components/JumpBridgeManager'
 import NotificationBell from './components/NotificationBell'
 import { useNotifications } from './hooks/useNotifications'
 
@@ -27,6 +28,8 @@ export default function App() {
     const [campaigns, setCampaigns] = useState([])
     const [killFeed, setKillFeed] = useState([])
     const [admHistory, setAdmHistory] = useState({})
+    const [annotations, setAnnotations] = useState({})
+    const [jumpBridges, setJumpBridges] = useState([])
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState(null)
     const [refreshing, setRefreshing] = useState(false)
@@ -55,6 +58,8 @@ export default function App() {
             setConfig(cfg); setSovereignty(sov); setActivity(act); setCampaigns(camp)
             checkedFetch("/api/zkill/feed").then(setKillFeed).catch(e => console.warn("Kill feed unavailable:", e.message))
             checkedFetch("/api/history/adm").then(setAdmHistory).catch(e => console.warn("ADM history unavailable:", e.message))
+            checkedFetch("/api/annotations").then(setAnnotations).catch(e => console.warn("Annotations unavailable:", e.message))
+            checkedFetch("/api/jumpbridges").then(setJumpBridges).catch(e => console.warn("Jump bridges unavailable:", e.message))
             setLastUpdate(new Date()); setError(null)
 
             // Build LAWN sys lookup from fresh config and check for alert-worthy changes
@@ -193,6 +198,9 @@ export default function App() {
                 selectedSystem={selectedSystem}
                 onSelectSystem={setSelectedSystem}
                 mapMode={mapMode}
+                annotations={annotations}
+                onAnnotationChange={() => fetch("/api/annotations").then(r => r.json()).then(setAnnotations).catch(() => {})}
+                jumpBridges={jumpBridges}
             />
         </div>
     )
@@ -228,6 +236,7 @@ export default function App() {
                 onSelectSystem={setSelectedSystem}
                 lawnSystemIds={lawnSysIdSet}
                 config={config}
+                annotations={annotations}
             />
         </div>
     )
@@ -290,7 +299,13 @@ export default function App() {
                 {/* Tab 2: Kills — activity heatmap */}
                 {(!isMobile || mobileTab === 2) && <ActivityHeatmap config={config} sovereignty={sovereignty} lastUpdate={lastUpdate} />}
 
-                {/* Tab 3: Intel — neighbor intel + dscan + local scanner */}
+                {/* Tab 3: Intel — JB manager + neighbor intel + dscan + local scanner */}
+                {(!isMobile || mobileTab === 3) && (
+                    <JumpBridgeManager
+                        jumpBridges={jumpBridges}
+                        onJbChange={() => fetch("/api/jumpbridges").then(r => r.json()).then(setJumpBridges).catch(() => {})}
+                    />
+                )}
                 {(!isMobile || mobileTab === 3) && <NeighborIntel lastUpdate={lastUpdate} />}
                 {(!isMobile || mobileTab === 3) && <DscanParser />}
                 {(!isMobile || mobileTab === 3) && <LocalScanner />}

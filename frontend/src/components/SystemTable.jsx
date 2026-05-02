@@ -13,7 +13,7 @@ function ActivityBar({ value, max, type = "npc" }) {
     )
 }
 
-export default function SystemTable({ systems, sovereignty, activity, selectedSystem, onSelectSystem, lawnSystemIds, config }) {
+export default function SystemTable({ systems, sovereignty, activity, selectedSystem, onSelectSystem, lawnSystemIds, config, annotations = {} }) {
     const sorted = [...systems].sort((a, b) => {
         const sovA = sovereignty[a.system_id] || {}, sovB = sovereignty[b.system_id] || {}
         const actA = activity[a.system_id] || {}, actB = activity[b.system_id] || {}
@@ -43,6 +43,7 @@ export default function SystemTable({ systems, sovereignty, activity, selectedSy
                     <th>NPC Kills</th>
                     <th>Traffic</th>
                     <th style={{ textAlign: 'right' }}>Jumps</th>
+                    <th>Note</th>
                 </tr>
             </thead>
             <tbody>
@@ -110,6 +111,11 @@ export default function SystemTable({ systems, sovereignty, activity, selectedSy
                                 </div>
                             </td>
                             <td className={`stat-num ${classifyKills(jumps, [20, 100])}`}>{jumps}</td>
+                            <td style={{
+                                maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis',
+                                whiteSpace: 'nowrap', fontSize: 10,
+                                color: '#ffaa00', fontStyle: 'italic',
+                            }}>{annotations[sys.name]?.note || ''}</td>
                         </tr>
                     )
                 })}
