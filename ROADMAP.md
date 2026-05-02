@@ -1,6 +1,6 @@
 # ROADMAP — LAWN Eve Intel Dashboard
 
-Prioritized by tactical value for LAWN's current situation: brand new sov in Kalevala Expanse, ADMs still grinding up, surrounded by collapsed SL0W remnant space and fresh T.RD claims.
+**Current situation (May 2026):** LAWN is being evicted from The Kalevala Expanse and is consolidating for a move. Destination is likely Perrigen Falls but unconfirmed. Dashboard migration is Priority 1 once a destination is locked in.
 
 ## Completed
 
@@ -26,10 +26,27 @@ Prioritized by tactical value for LAWN's current situation: brand new sov in Kal
 - [x] **DScan parser** — paste EVE directional scan output for instant ship breakdown by class (SUPER/CAPITAL/BATTLESHIP/etc.), threat tier banner (CRITICAL/HIGH/MEDIUM/LOW/MINIMAL), and structures/deployables section; pure frontend, no server round-trip (`DscanParser.jsx`)
 - [x] **Local chat scanner** — paste pilot names from local chat; resolves via ESI `POST /universe/ids/` + `POST /characters/affiliation/` and classifies each pilot as LAWN / FRIENDLY / UNKNOWN / UNRESOLVED with corp+alliance display and zKillboard links (`LocalScanner.jsx`, `POST /api/local/scan`)
 - [x] **Ally expansion** — The Skeleton Crew [MEAN] (99008788) and Weapons Of Mass Production [WOMP] (99010468) added as friendly alliances in `config.py`; classified as FRIENDLY in local scanner and sov display
+- [x] **Map system annotations** — right-click any system to add/edit/delete sticky notes (SQLite-backed); amber dot indicator on map, note in tooltip, Note column in system table; no auth required
+- [x] **Jump bridge overlay** — manual JB config panel (timer auth gated) renders dashed violet lines on the constellation map in both modes; `JumpBridgeManager.jsx` + `routes/jb_routes.py`
+- [x] **DScan copy** — COPY button in DScan parser header copies formatted threat summary (tier + ship class counts + objects) to clipboard
 
 ---
 
 ## Priority 1 — Immediate Tactical Value
+
+### ⚠ Dashboard Migration — New Space
+**Why:** LAWN is relocating. The dashboard is hardcoded for TKE geography — map layout, constellation IDs, neighbor systems, and PI data all need replacing once the destination is confirmed.
+- [ ] **Confirm destination** — waiting on leadership (likely Perrigen Falls, unconfirmed)
+- [ ] Update `config.py` — new `LAWN_CONSTELLATION_IDS`, `ALL_MONITORED_CONSTELLATION_IDS`, `FRIENDLY_ALLIANCES`, region ID
+- [ ] Rebuild `frontend/src/data/mapData.js` — new `MAP_LAYOUT`, `MAP_LAYOUT_SUBWAY`, `MAP_CONNECTIONS` for new constellations + neighbor systems (ESI-verified gate data)
+- [ ] Update neighbor system list — new adjacent regions/constellations with correct gate connections
+- [ ] Reset `SYSTEM_UPGRADES` in `config.py` — start fresh, fill in as upgrades go online
+- [ ] Update `PI_DATA` in `config.py` — planet types for new LAWN systems
+- [ ] Update `CLAUDE.md` game situation section — new region, sov holders, threat landscape
+- [ ] Smoke test all tabs against new ESI data (sov, campaigns, activity, neighbors)
+- **Blocked on:** Destination confirmation from leadership
+
+---
 
 ### zKillboard Feed Enhancements
 **Why:** Current feed is basic — need better filtering and analysis for fleet intel.
@@ -81,13 +98,11 @@ Prioritized by tactical value for LAWN's current situation: brand new sov in Kal
 - "Threat corridor" view — show activity along the 2 entry routes into LAWN space
 - **Data sources:** ESI sovereignty/jumps/kills (public), zKillboard regional feeds
 
-### Jump Bridge Route Overlay
-**Why:** Once JBs are online, need to show route options on the constellation map.
-- Manual JB configuration (system pairs)
-- Draw JB connections on map as distinct line type
-- Route calculation — shortest path between any two LAWN systems
-- Gate-only vs JB-optimized route comparison
-- **Data sources:** Manual config (JB endpoints entered by user)
+### Jump Bridge Route Overlay *(on hold — see Priority 4)*
+**Why:** On hold pending new sov stabilization. Moving to new space resets JB infrastructure. With 1-2 constellations likely at destination, mechanics probably allow at most 1 JB total (Ansiblex requires iHub + sov upgrades per constellation). No guarantee of a viable ally link either. Config UI and map rendering are already built — revisit when sov is established.
+- [x] Manual JB config panel + map rendering (shipped, functional)
+- [ ] Route calculation and gate vs JB comparison (deferred)
+- **Blocked on:** New sov settlement and JB feasibility assessment
 
 ---
 
