@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react'
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import Clock from './components/common/Clock'
 import { getCampaignPhase } from './utils/campaignHelpers'
 import CornerBrackets from './components/common/CornerBrackets'
@@ -20,6 +20,11 @@ import LocalScanner from './components/LocalScanner'
 import JumpBridgeManager from './components/JumpBridgeManager'
 import NotificationBell from './components/NotificationBell'
 import { useNotifications } from './hooks/useNotifications'
+
+const checkedFetch = (url) => fetch(url).then(r => {
+    if (!r.ok) throw new Error(`${url}: ${r.status}`)
+    return r.json()
+})
 
 export default function App() {
     const [config, setConfig] = useState(null)
@@ -45,10 +50,6 @@ export default function App() {
     const fetchData = useCallback(async (init = false) => {
         try {
             if (!init) setRefreshing(true)
-            const checkedFetch = (url) => fetch(url).then(r => {
-                if (!r.ok) throw new Error(`${url}: ${r.status}`)
-                return r.json()
-            })
             const [cfg, sov, act, camp] = await Promise.all([
                 checkedFetch("/api/config"),
                 checkedFetch("/api/sovereignty"),
@@ -90,6 +91,15 @@ export default function App() {
         return () => window.removeEventListener('resize', handler)
     }, [])
 
+    const lawnSysIdSet = useMemo(() => {
+        if (!config?.constellations) return new Set()
+        const s = new Set()
+        Object.values(config.constellations).filter(c => c.is_lawn).forEach(c =>
+            Object.values(c.systems).forEach(sys => s.add(String(sys.system_id)))
+        )
+        return s
+    }, [config])
+
     if (loading) return (
         <div className="loading">
             <div className="loading-spinner" />
@@ -107,8 +117,6 @@ export default function App() {
     const consts = config.constellations
     const cids = Object.keys(consts)
     const lawnCids = cids.filter(c => consts[c].is_lawn)
-    const lawnSysIdSet = new Set()
-    lawnCids.forEach(c => Object.values(consts[c].systems).forEach(s => lawnSysIdSet.add(String(s.system_id))))
 
     let visible = []
     if (activeConst === "lawn") {
@@ -199,7 +207,7 @@ export default function App() {
                 onSelectSystem={setSelectedSystem}
                 mapMode={mapMode}
                 annotations={annotations}
-                onAnnotationChange={() => fetch("/api/annotations").then(r => r.json()).then(setAnnotations).catch(() => {})}
+                onAnnotationChange={() => checkedFetch("/api/annotations").then(setAnnotations).catch(() => {})}
                 jumpBridges={jumpBridges}
             />
         </div>
@@ -303,7 +311,7 @@ export default function App() {
                 {(!isMobile || mobileTab === 3) && (
                     <JumpBridgeManager
                         jumpBridges={jumpBridges}
-                        onJbChange={() => fetch("/api/jumpbridges").then(r => r.json()).then(setJumpBridges).catch(() => {})}
+                        onJbChange={() => checkedFetch("/api/jumpbridges").then(setJumpBridges).catch(() => {})}
                     />
                 )}
                 {(!isMobile || mobileTab === 3) && <NeighborIntel lastUpdate={lastUpdate} />}

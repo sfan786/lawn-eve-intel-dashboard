@@ -6,7 +6,7 @@ Handles all data fetching from ESI and zKillboard.
 import time
 import requests
 from typing import Optional
-from config import ESI_BASE, ESI_DATASOURCE, CACHE_TTL, ZKILL_BASE, ZKILL_RECENT_HOURS, REGION_ID
+from config import ESI_BASE, ESI_DATASOURCE, CACHE_TTL, ZKILL_BASE
 
 # Simple in-memory cache
 _cache = {}
@@ -234,7 +234,7 @@ def get_system_jumps() -> list:
 def get_alliance_info(alliance_id: int) -> dict:
     """Get alliance name and details."""
     cache_key = f"alliance_{alliance_id}"
-    cached = _get_cached(cache_key, "constellation_info")  # slow-changing
+    cached = _get_cached(cache_key, "entity_info")
     if cached:
         return cached
     
@@ -246,7 +246,7 @@ def get_alliance_info(alliance_id: int) -> dict:
 def get_corporation_info(corp_id: int) -> dict:
     """Get corporation name and details."""
     cache_key = f"corporation_{corp_id}"
-    cached = _get_cached(cache_key, "constellation_info")
+    cached = _get_cached(cache_key, "entity_info")
     if cached:
         return cached
     
@@ -288,7 +288,6 @@ def get_type_group_id(type_id: int) -> int:
         data = esi_get(f"/universe/types/{type_id}/")
         group_id = data.get("group_id", 0)
         _set_cache(cache_key, group_id)
-        _set_cache(cache_key, group_id)
         return group_id
     except Exception:
         return 0
@@ -323,7 +322,7 @@ def bulk_character_affiliations(character_ids: list) -> list:
 def get_character_name(character_id: int) -> str:
     """Get character name by ID."""
     cache_key = f"character_{character_id}"
-    cached = _get_cached(cache_key, "constellation_info")  # slow-changing
+    cached = _get_cached(cache_key, "entity_info")
     if cached:
         return cached
 
