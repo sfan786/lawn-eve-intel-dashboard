@@ -65,6 +65,25 @@ def init():
 
         CREATE INDEX IF NOT EXISTS idx_timer_time
             ON custom_timers(timestamp);
+
+        CREATE TABLE IF NOT EXISTS system_annotations (
+            id          INTEGER PRIMARY KEY AUTOINCREMENT,
+            system_name TEXT NOT NULL UNIQUE,
+            note        TEXT NOT NULL,
+            updated_at  TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_annotation_system
+            ON system_annotations(system_name);
+
+        CREATE TABLE IF NOT EXISTS jump_bridges (
+            id         INTEGER PRIMARY KEY AUTOINCREMENT,
+            system_a   TEXT NOT NULL,
+            system_b   TEXT NOT NULL,
+            label      TEXT,
+            created_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')),
+            UNIQUE(system_a, system_b)
+        );
     """)
     conn.commit()
     conn.close()
@@ -235,6 +254,71 @@ def delete_timer(timer_id):
     conn.execute("DELETE FROM custom_timers WHERE id = ?", (timer_id,))
     conn.commit()
     conn.close()
+def get_all_annotations():
+    """Return dict keyed by system_name: {note, updated_at}."""
+    conn = get_connection()
+    rows = conn.execute(
+        "SELECT system_name, note, updated_at FROM system_annotations ORDER BY system_name"
+    ).fetchall()
+    conn.close()
+    return {row["system_name"]: {"note": row["note"], "updated_at": row["updated_at"]} for row in rows}
+
+
+def upsert_annotation(system_name, note):
+    """Insert or replace annotation. Empty note removes it."""
+    if not note or not note.strip():
+        delete_annotation(system_name)
+        return
+    conn = get_connection()
+    conn.execute(
+        "INSERT INTO system_annotations (system_name, note, updated_at) VALUES (?, ?, strftime('%Y-%m-%dT%H:%M:%SZ', 'now')) "
+        "ON CONFLICT(system_name) DO UPDATE SET note=excluded.note, updated_at=excluded.updated_at",
+        (system_name, note.strip()),
+    )
+    conn.commit()
+    conn.close()
+
+
+def delete_annotation(system_name):
+    """Remove annotation for a system."""
+    conn = get_connection()
+    conn.execute("DELETE FROM system_annotations WHERE system_name = ?", (system_name,))
+    conn.commit()
+    conn.close()
+
+
+def get_jump_bridges():
+    """Return list of {id, system_a, system_b, label, created_at} dicts."""
+    conn = get_connection()
+    rows = conn.execute(
+        "SELECT id, system_a, system_b, label, created_at FROM jump_bridges ORDER BY created_at ASC"
+    ).fetchall()
+    conn.close()
+    return [dict(row) for row in rows]
+
+
+def add_jump_bridge(system_a, system_b, label=None):
+    """Add a JB pair (alphabetically normalized). Returns new id."""
+    a, b = sorted([system_a.strip(), system_b.strip()])
+    conn = get_connection()
+    cur = conn.execute(
+        "INSERT OR IGNORE INTO jump_bridges (system_a, system_b, label) VALUES (?, ?, ?)",
+        (a, b, label.strip() if label else None),
+    )
+    new_id = cur.lastrowid
+    conn.commit()
+    conn.close()
+    return new_id
+
+
+def delete_jump_bridge(bridge_id):
+    """Delete a jump bridge by id."""
+    conn = get_connection()
+    conn.execute("DELETE FROM jump_bridges WHERE id = ?", (bridge_id,))
+    conn.commit()
+    conn.close()
+
+
 def get_activity_heatmap_data(hours=168):
     """
     Aggregate activity data by hour of day for all systems.

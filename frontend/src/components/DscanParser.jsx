@@ -288,8 +288,28 @@ function parseDscan(raw) {
     return { byCat, structures, ships: ships.length, total: lines.length, unrecognized, unrecognizedSamples, threat }
 }
 
+function buildCopyText(result, shipCatRows, structureCounts) {
+    const lines = [`THREAT: ${result.threat.tier}`]
+    lines.push(`${result.ships} combat ships · ${result.structures.length} structures`)
+    lines.push('')
+    for (const { cat, count, types } of shipCatRows) {
+        const typeStr = Object.entries(types)
+            .sort((a, b) => b[1] - a[1])
+            .map(([t, n]) => n > 1 ? `${t} x${n}` : t)
+            .join(', ')
+        lines.push(`${CATEGORY_LABELS[cat]}: ${count}  (${typeStr})`)
+    }
+    if (Object.keys(structureCounts).length > 0) {
+        lines.push('')
+        lines.push('Objects: ' + Object.entries(structureCounts)
+            .map(([t, n]) => n > 1 ? `${t} x${n}` : t).join(', '))
+    }
+    return lines.join('\n')
+}
+
 export default function DscanParser() {
     const [rawInput, setRawInput] = useState('')
+    const [copied, setCopied] = useState(false)
 
     const result = useMemo(() => parseDscan(rawInput), [rawInput])
 
@@ -314,6 +334,34 @@ export default function DscanParser() {
                 <span className="panel-title">DSCAN PARSER</span>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                     {result && <span className="panel-badge">{result.ships} ships · {result.total} total</span>}
+                    {result && (
+                        <button
+                            onClick={async () => {
+                                const text = buildCopyText(result, shipCatRows, structureCounts)
+                                try {
+                                    await navigator.clipboard.writeText(text)
+                                } catch {
+                                    const el = document.createElement('textarea')
+                                    el.value = text
+                                    document.body.appendChild(el)
+                                    el.select()
+                                    document.execCommand('copy')
+                                    document.body.removeChild(el)
+                                }
+                                setCopied(true)
+                                setTimeout(() => setCopied(false), 2000)
+                            }}
+                            style={{
+                                background: 'none',
+                                border: `1px solid ${copied ? '#00ff8866' : 'var(--border-dim)'}`,
+                                color: copied ? '#00ff88' : 'var(--text-secondary)',
+                                cursor: 'pointer',
+                                fontFamily: 'Share Tech Mono, monospace',
+                                fontSize: 10, padding: '2px 8px', letterSpacing: 1,
+                                transition: 'color 0.2s, border-color 0.2s',
+                            }}
+                        >{copied ? 'COPIED!' : 'COPY'}</button>
+                    )}
                     {rawInput && (
                         <button
                             onClick={() => setRawInput('')}

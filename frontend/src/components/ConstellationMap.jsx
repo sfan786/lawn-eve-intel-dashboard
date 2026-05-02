@@ -5,12 +5,20 @@ import { getCampaignPhase, formatCountdown, formatVulnWindow } from '../utils/ca
 import { getSystemUpgrades, getUpgradeSummary, UPGRADE_CATEGORY_COLORS } from '../utils/upgradeHelpers'
 import UpgradeBadges from './common/UpgradeBadges'
 
-export default function ConstellationMap({ config, sovereignty, activity, campaigns, selectedSystem, onSelectSystem, mapMode = "subway" }) {
+export default function ConstellationMap({ config, sovereignty, activity, campaigns, selectedSystem, onSelectSystem, mapMode = "subway", annotations = {}, onAnnotationChange, jumpBridges = [] }) {
     const [tooltip, setTooltip] = useState(null)
     const [touchTransform, setTouchTransform] = useState({ scale: 1, x: 0, y: 0 })
+    const [annotationEditor, setAnnotationEditor] = useState(null)
     const svgRef = useRef(null)
     const touchStateRef = useRef(null)
     const mapContainerRef = useRef(null)
+
+    useEffect(() => {
+        if (!annotationEditor) return
+        const handler = (e) => { if (e.key === 'Escape') setAnnotationEditor(null) }
+        window.addEventListener('keydown', handler)
+        return () => window.removeEventListener('keydown', handler)
+    }, [annotationEditor])
 
     // Attach non-passive touchmove listener to prevent page scroll while panning
     useEffect(() => {
@@ -202,7 +210,24 @@ export default function ConstellationMap({ config, sovereignty, activity, campai
         return { stroke: "#1e3040", width: 1.2, dash: "none", opacity: 0.65 }
     }
 
+    async function handleSaveAnnotation() {
+        await fetch("/api/annotations", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ system_name: annotationEditor.name, note: annotationEditor.note }),
+        })
+        setAnnotationEditor(null)
+        if (onAnnotationChange) onAnnotationChange()
+    }
+
+    async function handleDeleteAnnotation() {
+        await fetch(`/api/annotations/${encodeURIComponent(annotationEditor.name)}`, { method: "DELETE" })
+        setAnnotationEditor(null)
+        if (onAnnotationChange) onAnnotationChange()
+    }
+
     function handleHover(e, name) {
+        if (annotationEditor) return
         const layout = activeLayout[name]
         const sysId = nameToId[name]
         const act = sysId ? (activity[sysId] || {}) : {}
@@ -313,6 +338,23 @@ export default function ConstellationMap({ config, sovereignty, activity, campai
                         return <line key={`${from}-${to}`} x1={a.x} y1={a.y} x2={b.x} y2={b.y} stroke={s.stroke} strokeWidth={s.width} strokeDasharray={s.dash} opacity={s.opacity} strokeLinecap={s.cap || "butt"} />
                     })}
 
+                    {jumpBridges.map(jb => {
+                        const a = activeLayout[jb.system_a], b = activeLayout[jb.system_b]
+                        if (!a || !b) return null
+                        return (
+                            <g key={`jb-${jb.id}`}>
+                                <line x1={a.x} y1={a.y} x2={b.x} y2={b.y}
+                                    stroke="#cc44ff" strokeWidth={isSubway ? 2.5 : 2}
+                                    strokeDasharray="10 4" opacity={0.85} strokeLinecap="round" />
+                                {jb.label && (
+                                    <text x={(a.x + b.x) / 2} y={(a.y + b.y) / 2 - 5}
+                                        textAnchor="middle" fontFamily="Share Tech Mono, monospace"
+                                        fontSize={isSubway ? 8 : 7} fill="#cc44ff" opacity={0.7}>{jb.label}</text>
+                                )}
+                            </g>
+                        )
+                    })}
+
                     {Object.entries(activeLayout).map(([name, pos]) => {
                         const isN = pos.constellation === "neighbor"
                         const isLawn = pos.lawn
@@ -364,8 +406,16 @@ export default function ConstellationMap({ config, sovereignty, activity, campai
                         return (
                             <g key={name}
                                 onMouseEnter={(e) => handleHover(e, name)}
-                                onMouseLeave={() => setTooltip(null)}
+                                onMouseLeave={() => { if (!annotationEditor) setTooltip(null) }}
                                 onClick={() => sysId && onSelectSystem(sysId)}
+                                onContextMenu={(e) => {
+                                    if (isN) return
+                                    e.preventDefault()
+                                    let x = e.clientX, y = e.clientY
+                                    if (x + 260 > window.innerWidth) x -= 270
+                                    if (y + 180 > window.innerHeight) y -= 180
+                                    setAnnotationEditor({ name, note: (annotations[name]?.note) || '', x, y })
+                                }}
                                 style={{ cursor: isN ? 'default' : 'pointer' }}
                             >
                                 {isGateway && (
@@ -417,6 +467,13 @@ export default function ConstellationMap({ config, sovereignty, activity, campai
                                         fontWeight="bold"
                                         opacity={0.95}
                                     >!</text>
+                                )}
+                                {!isN && annotations[name] && (
+                                    <circle
+                                        cx={pos.x + r + 2} cy={pos.y - r - 2}
+                                        r={isSubway && isLawn ? 3.5 : 2.5}
+                                        fill="#ffaa00" opacity={0.9}
+                                    />
                                 )}
                                 <text x={pos.x} y={pos.y - nameOff}
                                     textAnchor="middle"
@@ -580,6 +637,69 @@ export default function ConstellationMap({ config, sovereignty, activity, campai
                         )
                     })()}
                     {tooltip.note && <div style={{ marginTop: 4, color: '#6a8090', fontStyle: 'italic', fontSize: 10 }}>{tooltip.note}</div>}
+                    {annotations[tooltip.name] && (
+                        <div style={{
+                            marginTop: 6, paddingTop: 6,
+                            borderTop: '1px solid rgba(255,170,0,0.2)',
+                            color: '#ffaa00', fontSize: 10, fontStyle: 'italic',
+                        }}>📌 {annotations[tooltip.name].note}</div>
+                    )}
+                </div>
+            )}
+
+            {annotationEditor && (
+                <div style={{
+                    position: 'fixed', left: annotationEditor.x, top: annotationEditor.y,
+                    zIndex: 10001,
+                    background: '#060a0f',
+                    border: '1px solid rgba(255,170,0,0.4)',
+                    padding: '8px 10px',
+                    minWidth: 230,
+                    fontFamily: 'Share Tech Mono, monospace',
+                    fontSize: 11,
+                    boxShadow: '0 4px 20px rgba(0,0,0,0.8)',
+                }}>
+                    <div style={{ color: '#ffaa00', fontSize: 10, letterSpacing: 1, marginBottom: 6, fontFamily: 'Orbitron, sans-serif' }}>
+                        NOTE: {annotationEditor.name}
+                    </div>
+                    <textarea
+                        autoFocus
+                        value={annotationEditor.note}
+                        onChange={e => setAnnotationEditor({ ...annotationEditor, note: e.target.value })}
+                        maxLength={120}
+                        rows={2}
+                        placeholder="Enter note (120 chars max)..."
+                        style={{
+                            width: '100%', background: 'rgba(0,0,0,0.3)',
+                            border: '1px solid rgba(106,128,144,0.3)',
+                            color: '#c0d4e0',
+                            fontFamily: 'Share Tech Mono, monospace', fontSize: 11,
+                            padding: '4px 6px', resize: 'none', outline: 'none',
+                            boxSizing: 'border-box',
+                        }}
+                    />
+                    <div style={{ display: 'flex', gap: 6, marginTop: 6 }}>
+                        <button onClick={handleSaveAnnotation} style={{
+                            background: 'none', border: '1px solid rgba(0,255,136,0.4)',
+                            color: '#00ff88', cursor: 'pointer',
+                            fontFamily: 'Share Tech Mono, monospace', fontSize: 10,
+                            padding: '2px 10px', letterSpacing: 1,
+                        }}>SAVE</button>
+                        {annotations[annotationEditor.name] && (
+                            <button onClick={handleDeleteAnnotation} style={{
+                                background: 'none', border: '1px solid rgba(255,51,85,0.4)',
+                                color: '#ff3355', cursor: 'pointer',
+                                fontFamily: 'Share Tech Mono, monospace', fontSize: 10,
+                                padding: '2px 10px', letterSpacing: 1,
+                            }}>DELETE</button>
+                        )}
+                        <button onClick={() => setAnnotationEditor(null)} style={{
+                            background: 'none', border: '1px solid rgba(106,128,144,0.3)',
+                            color: '#6a8090', cursor: 'pointer',
+                            fontFamily: 'Share Tech Mono, monospace', fontSize: 10,
+                            padding: '2px 10px', letterSpacing: 1,
+                        }}>CANCEL</button>
+                    </div>
                 </div>
             )}
 
@@ -610,6 +730,14 @@ export default function ConstellationMap({ config, sovereignty, activity, campai
                         <div style={{ width: 4, height: 4, borderRadius: '50%', background: '#00d4ff' }} />
                     </div>
                     <span>Upgrades (mil/ind/str)</span>
+                </div>
+                <div className="map-legend-item">
+                    <div style={{ width: 16, height: 0, borderTop: '2.5px dashed #cc44ff', opacity: 0.85 }} />
+                    <span>Jump Bridge</span>
+                </div>
+                <div className="map-legend-item">
+                    <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#ffaa00', opacity: 0.9 }} />
+                    <span>Has note (right-click)</span>
                 </div>
                 {isSubway ? (
                     <>
