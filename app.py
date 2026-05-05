@@ -1,6 +1,8 @@
 """
 EVE Intel Dashboard - Flask Backend
-Get Off My Lawn [LAWN] — Kalevala Expanse
+
+Active deployment is selected by the DEPLOYMENT env var (default: lawn_perrigen).
+See deployments/ for the available deployment modules.
 
 Usage:
     ./run_dev.fish
@@ -11,7 +13,7 @@ Usage:
 """
 
 from flask import Flask
-from config import FLASK_HOST, FLASK_PORT, FLASK_DEBUG
+from config import ALLIANCE, REGION, FLASK_HOST, FLASK_PORT, FLASK_DEBUG
 from routes.system_state import state, resolve_all_systems
 from routes.config_routes import config_bp
 from routes.sov_routes import sov_bp
@@ -41,9 +43,9 @@ db.init()
 app = create_app()
 
 if __name__ == "__main__":
-    lawn_names = [c["name"] for c in state.constellation_data.values() if c.get("is_lawn")]
+    primary_names = [c["name"] for c in state.constellation_data.values() if c.get("is_primary")]
     print(f"\n[*] Dashboard starting at http://localhost:{FLASK_PORT}")
-    print(f"[*] LAWN Intel Dashboard - Kalevala Expanse")
-    print(f"[*] LAWN constellations: {', '.join(lawn_names)}")
+    print(f"[*] {ALLIANCE['display_name']} Intel Dashboard - {REGION['name']}")
+    print(f"[*] Primary constellations: {', '.join(primary_names)}")
     print(f"[*] Monitoring {len(state.all_monitored_ids)} systems total\n")
     app.run(host=FLASK_HOST, port=FLASK_PORT, debug=FLASK_DEBUG)

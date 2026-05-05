@@ -218,7 +218,7 @@ export default function NotificationBell({ settings, saveSettings, permStatus, r
                         </div>
 
                         <div style={S.row}>
-                            <span style={S.label}>LAWN PVP Spike</span>
+                            <span style={S.label}>Primary Sov PVP Spike</span>
                             <Toggle
                                 on={settings.pvp}
                                 onChange={(v) => saveSettings(p => ({ ...p, pvp: v }))}

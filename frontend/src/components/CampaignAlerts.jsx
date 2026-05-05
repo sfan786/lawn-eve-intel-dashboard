@@ -2,7 +2,9 @@ import React from 'react'
 import { getCampaignPhase, formatCountdown, formatEveTime } from '../utils/campaignHelpers'
 import CornerBrackets from './common/CornerBrackets'
 
-export default function CampaignAlerts({ campaigns }) {
+export default function CampaignAlerts({ campaigns, config }) {
+    const allianceShort = config?.alliance?.short_name || config?.alliance?.ticker || 'PRIMARY'
+    const isPrimaryCampaign = (c) => (c.is_primary ?? c.is_lawn) !== false
     if (!campaigns || campaigns.length === 0) {
         return (
             <div className="panel panel-wide">
@@ -22,9 +24,9 @@ export default function CampaignAlerts({ campaigns }) {
         ...c,
         phaseInfo: getCampaignPhase(c)
     })).sort((a, b) => {
-        const isLawnA = a.is_lawn !== false
-        const isLawnB = b.is_lawn !== false
-        if (isLawnA !== isLawnB) return isLawnA ? -1 : 1
+        const aPrimary = isPrimaryCampaign(a)
+        const bPrimary = isPrimaryCampaign(b)
+        if (aPrimary !== bPrimary) return aPrimary ? -1 : 1
 
         if (a.phaseInfo.phase !== b.phaseInfo.phase) {
             return a.phaseInfo.phase === 'nodes' ? -1 : 1
@@ -49,20 +51,20 @@ export default function CampaignAlerts({ campaigns }) {
                 {enrichedCampaigns.map((c, i) => {
                     const phase = c.phaseInfo
                     const isNodesActive = phase.phase === "nodes"
-                    const isLawn = c.is_lawn !== false
+                    const isPrimary = isPrimaryCampaign(c)
 
                     return (
-                        <div key={i} className={`campaign-entry-compact ${isLawn ? 'lawn' : ''} ${isNodesActive ? 'active' : ''}`}>
+                        <div key={i} className={`campaign-entry-compact ${isPrimary ? 'lawn' : ''} ${isNodesActive ? 'active' : ''}`}>
                             <div style={{ width: 100, flexShrink: 0 }}>
-                                {isLawn ? (
+                                {isPrimary ? (
                                     <span className={isNodesActive ? "campaign-badge-red" : "campaign-badge-lawn"}>
-                                        LAWN DEFENSE
+                                        {allianceShort} DEFENSE
                                     </span>
                                 ) : (
                                     <span style={{ fontSize: 9, color: 'var(--text-muted)', letterSpacing: 1 }}>REGIONAL</span>
                                 )}
                             </div>
-                            <div style={{ width: 90, flexShrink: 0, fontSize: 13, fontWeight: 'bold', color: isLawn ? 'var(--text-primary)' : 'var(--text-secondary)' }}>
+                            <div style={{ width: 90, flexShrink: 0, fontSize: 13, fontWeight: 'bold', color: isPrimary ? 'var(--text-primary)' : 'var(--text-secondary)' }}>
                                 {c.system_name}
                             </div>
                             <div style={{ flex: 1, minWidth: 200 }}>
@@ -79,14 +81,14 @@ export default function CampaignAlerts({ campaigns }) {
                                         </div>
                                     </div>
                                 ) : (
-                                    <div style={{ fontSize: 11, color: isLawn ? 'var(--text-primary)' : 'var(--text-muted)' }}>
+                                    <div style={{ fontSize: 11, color: isPrimary ? 'var(--text-primary)' : 'var(--text-muted)' }}>
                                         <span style={{ opacity: 0.7 }}>Reinforced — Nodes spawn in </span>
                                         <span style={{ color: 'var(--amber)', fontWeight: 'bold' }}>{formatCountdown(phase.nodesSpawnTime)}</span>
                                         <span style={{ fontSize: 10, color: 'var(--text-muted)', marginLeft: 8 }}>({formatEveTime(phase.nodesSpawnTime.toISOString())})</span>
                                     </div>
                                 )}
                             </div>
-                            {isLawn && isNodesActive && (
+                            {isPrimary && isNodesActive && (
                                 <div style={{
                                     width: 8, height: 8, borderRadius: '50%', background: 'var(--red)',
                                     boxShadow: '0 0 10px var(--red)', animation: 'pulse-dot 1.5s infinite'

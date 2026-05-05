@@ -2,31 +2,35 @@ import React, { useState } from 'react'
 import { formatIsk, timeAgo } from '../utils/formatters'
 import CornerBrackets from './common/CornerBrackets'
 
-export default function KillFeed({ kills }) {
-    const [filter, setFilter] = useState("all")  // "all" | "lawn" | "pvp"
+export default function KillFeed({ kills, config }) {
+    const [filter, setFilter] = useState("all")  // "all" | "primary" | "pvp"
     const [minIsk, setMinIsk] = useState(0)
     const [expandedKillId, setExpandedKillId] = useState(null)
 
+    const allianceName = config?.alliance?.name || ""
+    const allianceShort = config?.alliance?.short_name || config?.alliance?.ticker || "PRIMARY"
+    const inPrimary = (k) => k.in_primary ?? k.in_lawn
+
     const visible = (kills || []).filter(k => {
         if (minIsk > 0 && (k.total_value || 0) < minIsk) return false
-        if (filter === "lawn") return k.in_lawn && !k.is_npc
+        if (filter === "primary") return inPrimary(k) && !k.is_npc
         if (filter === "pvp") return !k.is_npc
         return true
     })
 
     // Stats always computed from full kill set
     const allKills = kills || []
-    const lawnPvpKills = allKills.filter(k => k.in_lawn && !k.is_npc)
-    const iskKilled = lawnPvpKills.reduce((s, k) => s + (k.total_value || 0), 0)
-    const lawnLosses = allKills.filter(k => (k.victim?.alliance_name === "Get Off My Lawn") && !k.is_npc)
-    const iskLost = lawnLosses.reduce((s, k) => s + (k.total_value || 0), 0)
+    const primaryPvpKills = allKills.filter(k => inPrimary(k) && !k.is_npc)
+    const iskKilled = primaryPvpKills.reduce((s, k) => s + (k.total_value || 0), 0)
+    const ourLosses = allKills.filter(k => allianceName && k.victim?.alliance_name === allianceName && !k.is_npc)
+    const iskLost = ourLosses.reduce((s, k) => s + (k.total_value || 0), 0)
 
     const roamers = {}
-    lawnPvpKills.forEach(k => {
+    primaryPvpKills.forEach(k => {
         const fb = k.final_blow
         if (!fb) return
         const a = fb.alliance_name || fb.corporation_name
-        if (a && a !== "Get Off My Lawn") roamers[a] = (roamers[a] || 0) + 1
+        if (a && a !== allianceName) roamers[a] = (roamers[a] || 0) + 1
     })
 
     const repeatPilots = {}
@@ -36,13 +40,13 @@ export default function KillFeed({ kills }) {
         if (!fb) return
         const char = fb.character_name
         const a = fb.alliance_name || fb.corporation_name
-        if (char && a !== "Get Off My Lawn") {
+        if (char && a !== allianceName) {
             repeatPilots[char] = (repeatPilots[char] || 0) + 1
         }
     })
     const topRoamers = Object.entries(roamers).sort((a, b) => b[1] - a[1]).slice(0, 3)
 
-    const lawnKills = visible.filter(k => k.in_lawn).length
+    const primaryKillsCount = visible.filter(k => inPrimary(k)).length
 
     let subcapCount = 0
     let capCount = 0
@@ -70,25 +74,25 @@ export default function KillFeed({ kills }) {
                     </div>
                     <div className="map-mode-toggle">
                         <button className={`map-mode-btn ${filter === 'all' ? 'active' : ''}`} onClick={() => setFilter('all')}>All</button>
-                        <button className={`map-mode-btn ${filter === 'lawn' ? 'active' : ''}`} onClick={() => setFilter('lawn')}>LAWN</button>
+                        <button className={`map-mode-btn ${filter === 'primary' ? 'active' : ''}`} onClick={() => setFilter('primary')}>{allianceShort}</button>
                         <button className={`map-mode-btn ${filter === 'pvp' ? 'active' : ''}`} onClick={() => setFilter('pvp')}>PVP</button>
                     </div>
                     <span className="panel-badge">
-                        {visible.length} kills{lawnKills > 0 ? ` — ${lawnKills} in LAWN` : ''}
+                        {visible.length} kills{primaryKillsCount > 0 ? ` — ${primaryKillsCount} in ${allianceShort}` : ''}
                     </span>
                 </div>
             </div>
             {allKills.length > 0 && (
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '4px 8px', background: 'rgba(0,0,0,0.2)', borderBottom: '1px solid var(--border-dim)', fontSize: 10, fontFamily: 'Share Tech Mono, monospace' }}>
                     <div>
-                        {lawnPvpKills.length > 0 ? (
+                        {primaryPvpKills.length > 0 ? (
                             <>
                                 <span style={{ color: 'var(--green)' }}>↑ {formatIsk(iskKilled)} killed</span>
                                 <span style={{ color: 'var(--text-muted)' }}> · </span>
                                 <span style={{ color: 'var(--red)' }}>↓ {formatIsk(iskLost)} lost</span>
                             </>
                         ) : (
-                            <span style={{ color: 'var(--text-muted)' }}>No LAWN PVP kills</span>
+                            <span style={{ color: 'var(--text-muted)' }}>No {allianceShort} PVP kills</span>
                         )}
                     </div>
                     <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
@@ -121,13 +125,13 @@ export default function KillFeed({ kills }) {
                     return (
                         <div key={kill.killmail_id}>
                             <div
-                                className={`kill-entry${kill.in_lawn ? ' in-lawn' : ''}`}
+                                className={`kill-entry${inPrimary(kill) ? ' in-lawn' : ''}`}
                                 style={{ cursor: 'pointer' }}
                                 onClick={() => setExpandedKillId(isExpanded ? null : kill.killmail_id)}
                             >
                                 <div className="kill-time">
                                     <div>{timeAgo(kill.time)} ago</div>
-                                    <div className={`kill-system ${kill.in_lawn ? 'lawn' : 'region'}`}>{kill.system_name}</div>
+                                    <div className={`kill-system ${inPrimary(kill) ? 'lawn' : 'region'}`}>{kill.system_name}</div>
                                 </div>
                                 <div className="kill-details">
                                     <div className="kill-ship">
