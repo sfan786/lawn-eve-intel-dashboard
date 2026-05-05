@@ -149,7 +149,8 @@ def api_zkill_feed():
             "time": km.get("killmail_time", ""),
             "system_id": solar_system_id,
             "system_name": sys_name,
-            "in_lawn": solar_system_id in state.lawn_system_ids,
+            "in_primary": solar_system_id in state.primary_system_ids,
+            "in_lawn": solar_system_id in state.primary_system_ids,  # legacy alias
             "victim": {
                 "character_name": victim_name,
                 "corporation_name": victim_corp,
