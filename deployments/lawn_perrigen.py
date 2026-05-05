@@ -144,626 +144,626 @@ SYSTEM_UPGRADES = {}
 # ===== Map layout (auto-generated, hand-tune for readability) =====
 MAP_LAYOUT = {
     "5T-A3D": {
-        "x": 218,
-        "y": 89,
+        "x": 630,
+        "y": 191,
         "constellation": "9BGY-6",
         "lawn": True
     },
     "5ZU-VG": {
-        "x": 248,
-        "y": 99,
+        "x": 683,
+        "y": 164,
         "constellation": "9BGY-6",
         "lawn": True
     },
     "6-1T6Z": {
-        "x": 267,
-        "y": 125,
+        "x": 563,
+        "y": 147,
         "constellation": "9BGY-6",
         "lawn": True
     },
     "6-8QLA": {
-        "x": 267,
-        "y": 157,
+        "x": 563,
+        "y": 234,
         "constellation": "9BGY-6",
         "lawn": True
     },
     "EH2I-P": {
-        "x": 248,
-        "y": 183,
+        "x": 630,
+        "y": 218,
         "constellation": "9BGY-6",
         "lawn": True
     },
     "G-GRSZ": {
-        "x": 218,
-        "y": 193,
+        "x": 702,
+        "y": 261,
         "constellation": "9BGY-6",
         "lawn": True
     },
     "HB-KSF": {
-        "x": 187,
-        "y": 183,
+        "x": 529,
+        "y": 174,
         "constellation": "9BGY-6",
         "lawn": True
     },
     "LW-YEW": {
-        "x": 168,
-        "y": 157,
+        "x": 563,
+        "y": 208,
         "constellation": "9BGY-6",
         "lawn": True
     },
     "OP7-BP": {
-        "x": 168,
-        "y": 125,
+        "x": 693,
+        "y": 201,
         "constellation": "9BGY-6",
         "lawn": True
     },
     "R-AYGT": {
-        "x": 187,
-        "y": 99,
+        "x": 664,
+        "y": 241,
         "constellation": "9BGY-6",
         "lawn": True
     },
     "3LL-O0": {
-        "x": 492,
-        "y": 89,
+        "x": 953,
+        "y": 147,
         "constellation": "WXB-RY",
         "lawn": True
     },
     "49V-E4": {
-        "x": 523,
-        "y": 99,
+        "x": 785,
+        "y": 211,
         "constellation": "WXB-RY",
         "lawn": True
     },
     "4F6-VZ": {
-        "x": 542,
-        "y": 125,
+        "x": 944,
+        "y": 174,
         "constellation": "WXB-RY",
         "lawn": True
     },
     "8B-A4E": {
-        "x": 542,
-        "y": 157,
+        "x": 1020,
+        "y": 208,
         "constellation": "WXB-RY",
         "lawn": True
     },
     "A1F-22": {
-        "x": 523,
-        "y": 183,
+        "x": 1020,
+        "y": 140,
         "constellation": "WXB-RY",
         "lawn": True
     },
     "B-7LYC": {
-        "x": 492,
-        "y": 193,
+        "x": 780,
+        "y": 181,
         "constellation": "WXB-RY",
         "lawn": True
     },
     "J9A-BH": {
-        "x": 462,
-        "y": 183,
+        "x": 876,
+        "y": 171,
         "constellation": "WXB-RY",
         "lawn": True
     },
     "JM0A-4": {
-        "x": 443,
-        "y": 157,
+        "x": 1020,
+        "y": 167,
         "constellation": "WXB-RY",
         "lawn": True
     },
     "L-POLO": {
-        "x": 443,
-        "y": 125,
+        "x": 963,
+        "y": 197,
         "constellation": "WXB-RY",
         "lawn": True
     },
     "PT-2KR": {
-        "x": 462,
-        "y": 99,
+        "x": 813,
+        "y": 154,
         "constellation": "WXB-RY",
         "lawn": True
     },
     "6Q4-X6": {
-        "x": 768,
-        "y": 89,
+        "x": 659,
+        "y": 80,
         "constellation": "4LEZ-6"
     },
     "B9N2-2": {
-        "x": 813,
-        "y": 115,
+        "x": 722,
+        "y": 80,
         "constellation": "4LEZ-6"
     },
     "D-QJR9": {
-        "x": 813,
-        "y": 167,
+        "x": 731,
+        "y": 103,
         "constellation": "4LEZ-6"
     },
     "H-29TM": {
-        "x": 768,
-        "y": 193,
+        "x": 693,
+        "y": 127,
         "constellation": "4LEZ-6"
     },
     "KOI8-Z": {
-        "x": 722,
-        "y": 167,
+        "x": 760,
+        "y": 127,
         "constellation": "4LEZ-6"
     },
     "U4-V3J": {
-        "x": 722,
-        "y": 115,
+        "x": 645,
+        "y": 103,
         "constellation": "4LEZ-6"
     },
     "0FG-KS": {
-        "x": 1042,
-        "y": 89,
+        "x": 813,
+        "y": 429,
         "constellation": "B-MQ0Y"
     },
     "E-WMT7": {
-        "x": 1088,
-        "y": 115,
+        "x": 924,
+        "y": 395,
         "constellation": "B-MQ0Y"
     },
     "EF-QZK": {
-        "x": 1088,
-        "y": 167,
+        "x": 789,
+        "y": 402,
         "constellation": "B-MQ0Y"
     },
     "F-5WYK": {
-        "x": 1042,
-        "y": 193,
+        "x": 867,
+        "y": 399,
         "constellation": "B-MQ0Y"
     },
     "FLK-LJ": {
-        "x": 997,
-        "y": 167,
+        "x": 891,
+        "y": 429,
         "constellation": "B-MQ0Y"
     },
     "RZ3O-K": {
-        "x": 997,
-        "y": 115,
+        "x": 731,
+        "y": 442,
         "constellation": "B-MQ0Y"
     },
     "2-YO2K": {
-        "x": 218,
-        "y": 252,
+        "x": 254,
+        "y": 523,
         "constellation": "BXT7-V"
     },
     "M-SG47": {
-        "x": 263,
-        "y": 278,
+        "x": 152,
+        "y": 570,
         "constellation": "BXT7-V"
     },
     "QHY-RU": {
-        "x": 263,
-        "y": 330,
+        "x": 292,
+        "y": 557,
         "constellation": "BXT7-V"
     },
     "SR-10Z": {
-        "x": 218,
-        "y": 356,
+        "x": 225,
+        "y": 557,
         "constellation": "BXT7-V"
     },
     "TAL1-3": {
-        "x": 172,
-        "y": 330,
+        "x": 374,
+        "y": 570,
         "constellation": "BXT7-V"
     },
     "W-KXEX": {
-        "x": 172,
-        "y": 278,
+        "x": 85,
+        "y": 570,
         "constellation": "BXT7-V"
     },
     "4-1ECP": {
-        "x": 492,
-        "y": 252,
+        "x": 398,
+        "y": 124,
         "constellation": "L7-RDZ"
     },
     "5-U12M": {
-        "x": 533,
-        "y": 271,
+        "x": 336,
+        "y": 144,
         "constellation": "L7-RDZ"
     },
     "7AH-SF": {
-        "x": 543,
-        "y": 315,
+        "x": 461,
+        "y": 144,
         "constellation": "L7-RDZ"
     },
     "7MMJ-3": {
-        "x": 515,
-        "y": 351,
+        "x": 398,
+        "y": 187,
         "constellation": "L7-RDZ"
     },
     "9-EXU9": {
-        "x": 470,
-        "y": 351,
+        "x": 398,
+        "y": 157,
         "constellation": "L7-RDZ"
     },
     "PVF-N9": {
-        "x": 442,
-        "y": 315,
+        "x": 297,
+        "y": 177,
         "constellation": "L7-RDZ"
     },
     "UYOC-1": {
-        "x": 452,
-        "y": 271,
+        "x": 476,
+        "y": 114,
         "constellation": "L7-RDZ"
     },
     "7JRA-G": {
-        "x": 768,
-        "y": 252,
+        "x": 505,
+        "y": 338,
         "constellation": "LWMW-6"
     },
     "L5Y4-M": {
-        "x": 813,
-        "y": 278,
+        "x": 437,
+        "y": 342,
         "constellation": "LWMW-6"
     },
     "PFV-ZH": {
-        "x": 813,
-        "y": 330,
+        "x": 432,
+        "y": 375,
         "constellation": "LWMW-6"
     },
     "SY-OLX": {
-        "x": 768,
-        "y": 356,
+        "x": 563,
+        "y": 365,
         "constellation": "LWMW-6"
     },
     "W-CSFY": {
-        "x": 722,
-        "y": 330,
+        "x": 500,
+        "y": 375,
         "constellation": "LWMW-6"
     },
     "XY-ZCI": {
-        "x": 722,
-        "y": 278,
+        "x": 553,
+        "y": 322,
         "constellation": "LWMW-6"
     },
     "A9-F18": {
-        "x": 1042,
-        "y": 252,
+        "x": 312,
+        "y": 372,
         "constellation": "NT1-5Q"
     },
     "B-B0ME": {
-        "x": 1088,
-        "y": 278,
+        "x": 287,
+        "y": 275,
         "constellation": "NT1-5Q"
     },
     "DE-IHK": {
-        "x": 1088,
-        "y": 330,
+        "x": 495,
+        "y": 221,
         "constellation": "NT1-5Q"
     },
     "H-HGGJ": {
-        "x": 1042,
-        "y": 356,
+        "x": 287,
+        "y": 328,
         "constellation": "NT1-5Q"
     },
     "OJT-J3": {
-        "x": 997,
-        "y": 330,
+        "x": 403,
+        "y": 224,
         "constellation": "NT1-5Q"
     },
     "TDP-T3": {
-        "x": 997,
-        "y": 278,
+        "x": 331,
+        "y": 231,
         "constellation": "NT1-5Q"
     },
     "2V-ZHM": {
-        "x": 218,
-        "y": 414,
+        "x": 254,
+        "y": 429,
         "constellation": "O5PO-O"
     },
     "AK-L0Z": {
-        "x": 263,
-        "y": 440,
+        "x": 316,
+        "y": 446,
         "constellation": "O5PO-O"
     },
     "AY9X-Q": {
-        "x": 263,
-        "y": 492,
+        "x": 138,
+        "y": 399,
         "constellation": "O5PO-O"
     },
     "R-AG7W": {
-        "x": 218,
-        "y": 518,
+        "x": 138,
+        "y": 459,
         "constellation": "O5PO-O"
     },
     "V-3K7C": {
-        "x": 172,
-        "y": 492,
+        "x": 259,
+        "y": 399,
         "constellation": "O5PO-O"
     },
     "XU7-CH": {
-        "x": 172,
-        "y": 440,
+        "x": 186,
+        "y": 426,
         "constellation": "O5PO-O"
     },
     "9-ZA4Z": {
-        "x": 492,
-        "y": 414,
+        "x": 717,
+        "y": 332,
         "constellation": "Q0-4FU"
     },
     "IU-E9T": {
-        "x": 538,
-        "y": 440,
+        "x": 640,
+        "y": 322,
         "constellation": "Q0-4FU"
     },
     "NGM-OK": {
-        "x": 538,
-        "y": 492,
+        "x": 702,
+        "y": 302,
         "constellation": "Q0-4FU"
     },
     "O-QKSM": {
-        "x": 492,
-        "y": 518,
+        "x": 630,
+        "y": 295,
         "constellation": "Q0-4FU"
     },
     "QKQ3-L": {
-        "x": 447,
-        "y": 492,
+        "x": 582,
+        "y": 278,
         "constellation": "Q0-4FU"
     },
     "VWES-Y": {
-        "x": 447,
-        "y": 440,
+        "x": 529,
+        "y": 261,
         "constellation": "Q0-4FU"
     },
     "2AUL-X": {
-        "x": 768,
-        "y": 414,
+        "x": 992,
+        "y": 305,
         "constellation": "S0X-O4"
     },
     "9IZ-HU": {
-        "x": 813,
-        "y": 440,
+        "x": 871,
+        "y": 288,
         "constellation": "S0X-O4"
     },
     "F-A3TR": {
-        "x": 813,
-        "y": 492,
+        "x": 929,
+        "y": 261,
         "constellation": "S0X-O4"
     },
     "F-HQWV": {
-        "x": 768,
-        "y": 518,
+        "x": 929,
+        "y": 228,
         "constellation": "S0X-O4"
     },
     "OBV-YC": {
-        "x": 722,
-        "y": 492,
+        "x": 1002,
+        "y": 275,
         "constellation": "S0X-O4"
     },
     "PA-ALN": {
-        "x": 722,
-        "y": 440,
+        "x": 978,
+        "y": 338,
         "constellation": "S0X-O4"
     },
     "0-U2M4": {
-        "x": 1042,
-        "y": 414,
+        "x": 210,
+        "y": 110,
         "constellation": "TPB-KG"
     },
     "01B-88": {
-        "x": 1088,
-        "y": 440,
+        "x": 273,
+        "y": 130,
         "constellation": "TPB-KG"
     },
     "C3I-D5": {
-        "x": 1088,
-        "y": 492,
+        "x": 355,
+        "y": 83,
         "constellation": "TPB-KG"
     },
     "F18-AY": {
-        "x": 1042,
-        "y": 518,
+        "x": 312,
+        "y": 110,
         "constellation": "TPB-KG"
     },
     "MTO2-2": {
-        "x": 997,
-        "y": 492,
+        "x": 191,
+        "y": 83,
         "constellation": "TPB-KG"
     },
     "RZ8A-P": {
-        "x": 997,
-        "y": 440,
+        "x": 263,
+        "y": 90,
         "constellation": "TPB-KG"
     },
     "0XN-SK": {
-        "x": 218,
-        "y": 577,
+        "x": 669,
+        "y": 466,
         "constellation": "TY0-Q2"
     },
     "4F9Y-3": {
-        "x": 263,
-        "y": 603,
+        "x": 669,
+        "y": 429,
         "constellation": "TY0-Q2"
     },
     "5V-Q1R": {
-        "x": 263,
-        "y": 655,
+        "x": 606,
+        "y": 429,
         "constellation": "TY0-Q2"
     },
     "M4-KX5": {
-        "x": 218,
-        "y": 681,
+        "x": 601,
+        "y": 466,
         "constellation": "TY0-Q2"
     },
     "MS-RXH": {
-        "x": 172,
-        "y": 655,
+        "x": 625,
+        "y": 395,
         "constellation": "TY0-Q2"
     },
     "U-3FKL": {
-        "x": 172,
-        "y": 603,
+        "x": 645,
+        "y": 362,
         "constellation": "TY0-Q2"
     },
     "7M4-4C": {
-        "x": 492,
-        "y": 577,
+        "x": 80,
+        "y": 265,
         "constellation": "VT-LHB"
     },
     "972C-1": {
-        "x": 523,
-        "y": 587,
+        "x": 143,
+        "y": 328,
         "constellation": "VT-LHB"
     },
     "9WVY-F": {
-        "x": 542,
-        "y": 613,
+        "x": 80,
+        "y": 328,
         "constellation": "VT-LHB"
     },
     "BEG-RL": {
-        "x": 542,
-        "y": 645,
+        "x": 205,
+        "y": 295,
         "constellation": "VT-LHB"
     },
     "JPEZ-R": {
-        "x": 523,
-        "y": 671,
+        "x": 114,
+        "y": 211,
         "constellation": "VT-LHB"
     },
     "JZ-UQC": {
-        "x": 492,
-        "y": 681,
+        "x": 80,
+        "y": 295,
         "constellation": "VT-LHB"
     },
     "M5NO-B": {
-        "x": 462,
-        "y": 671,
+        "x": 114,
+        "y": 238,
         "constellation": "VT-LHB"
     },
     "MJ-5F9": {
-        "x": 443,
-        "y": 645,
+        "x": 201,
+        "y": 241,
         "constellation": "VT-LHB"
     },
     "U-W436": {
-        "x": 443,
-        "y": 613,
+        "x": 143,
+        "y": 295,
         "constellation": "VT-LHB"
     },
     "Z-ENUD": {
-        "x": 462,
-        "y": 587,
+        "x": 143,
+        "y": 265,
         "constellation": "VT-LHB"
     },
     "1A8-6G": {
-        "x": 768,
-        "y": 577,
+        "x": 384,
+        "y": 426,
         "constellation": "X7-FTR"
     },
     "4-M1TY": {
-        "x": 808,
-        "y": 596,
+        "x": 452,
+        "y": 510,
         "constellation": "X7-FTR"
     },
     "C6CG-W": {
-        "x": 818,
-        "y": 640,
+        "x": 534,
+        "y": 439,
         "constellation": "X7-FTR"
     },
     "H-FOYG": {
-        "x": 790,
-        "y": 676,
+        "x": 316,
+        "y": 402,
         "constellation": "X7-FTR"
     },
     "K-3PQW": {
-        "x": 745,
-        "y": 676,
+        "x": 461,
+        "y": 456,
         "constellation": "X7-FTR"
     },
     "PE-SAM": {
-        "x": 717,
-        "y": 640,
+        "x": 456,
+        "y": 432,
         "constellation": "X7-FTR"
     },
     "RY-2FX": {
-        "x": 727,
-        "y": 596,
+        "x": 384,
+        "y": 456,
         "constellation": "X7-FTR"
     },
     "Z-DRIY": {
-        "x": 20,
-        "y": 60,
+        "x": 220,
+        "y": 322,
         "constellation": "neighbor",
         "note": "Etherium Reach"
     },
     "IF-KD1": {
-        "x": 200,
-        "y": 10,
+        "x": 80,
+        "y": 459,
         "constellation": "neighbor",
         "note": "Malpais"
     },
     "O8W-5O": {
-        "x": 260,
-        "y": 10,
+        "x": 80,
+        "y": 399,
         "constellation": "neighbor",
         "note": "Malpais"
     },
     "QCGG-Q": {
-        "x": 320,
-        "y": 10,
+        "x": 355,
+        "y": 271,
         "constellation": "neighbor",
         "note": "Malpais"
     },
     "QZ1-OH": {
-        "x": 380,
-        "y": 10,
+        "x": 215,
+        "y": 164,
         "constellation": "neighbor",
         "note": "Malpais"
     },
     "DYS-CG": {
-        "x": 1180,
-        "y": 60,
+        "x": 881,
+        "y": 204,
         "constellation": "neighbor",
         "note": "Oasa"
     },
     "MTGF-2": {
-        "x": 1180,
-        "y": 100,
+        "x": 591,
+        "y": 174,
         "constellation": "neighbor",
         "note": "Oasa"
     },
     "QE2-FS": {
-        "x": 1180,
-        "y": 140,
+        "x": 505,
+        "y": 291,
         "constellation": "neighbor",
         "note": "Oasa"
     },
     "Y-0HVF": {
-        "x": 1180,
-        "y": 180,
+        "x": 447,
+        "y": 83,
         "constellation": "neighbor",
         "note": "Oasa"
     },
     "9S-GPT": {
-        "x": 200,
-        "y": 730,
+        "x": 370,
+        "y": 359,
         "constellation": "neighbor",
         "note": "Outer Passage"
     },
     "EU-WFW": {
-        "x": 20,
-        "y": 60,
+        "x": 958,
+        "y": 369,
         "constellation": "neighbor",
         "note": "The Spire"
     },
     "L-EUY2": {
-        "x": 20,
-        "y": 100,
+        "x": 891,
+        "y": 335,
         "constellation": "neighbor",
         "note": "The Spire"
     },
     "OTJ9-E": {
-        "x": 20,
-        "y": 140,
+        "x": 838,
+        "y": 369,
         "constellation": "neighbor",
         "note": "The Spire"
     },
     "HD-JVQ": {
-        "x": 200,
-        "y": 10,
+        "x": 119,
+        "y": 87,
         "constellation": "neighbor",
         "note": "Venal"
     }
@@ -774,626 +774,626 @@ MAP_LAYOUT = {
 # over geometric accuracy.
 MAP_LAYOUT_SUBWAY = {
     "5T-A3D": {
-        "x": 218,
-        "y": 89,
+        "x": 640,
+        "y": 180,
         "constellation": "9BGY-6",
         "lawn": True
     },
     "5ZU-VG": {
-        "x": 248,
-        "y": 99,
+        "x": 680,
+        "y": 160,
         "constellation": "9BGY-6",
         "lawn": True
     },
     "6-1T6Z": {
-        "x": 267,
-        "y": 125,
+        "x": 560,
+        "y": 140,
         "constellation": "9BGY-6",
         "lawn": True
     },
     "6-8QLA": {
-        "x": 267,
-        "y": 157,
+        "x": 560,
+        "y": 220,
         "constellation": "9BGY-6",
         "lawn": True
     },
     "EH2I-P": {
-        "x": 248,
-        "y": 183,
+        "x": 640,
+        "y": 200,
         "constellation": "9BGY-6",
         "lawn": True
     },
     "G-GRSZ": {
-        "x": 218,
-        "y": 193,
+        "x": 700,
+        "y": 260,
         "constellation": "9BGY-6",
         "lawn": True
     },
     "HB-KSF": {
-        "x": 187,
-        "y": 183,
+        "x": 520,
+        "y": 160,
         "constellation": "9BGY-6",
         "lawn": True
     },
     "LW-YEW": {
-        "x": 168,
-        "y": 157,
+        "x": 560,
+        "y": 200,
         "constellation": "9BGY-6",
         "lawn": True
     },
     "OP7-BP": {
-        "x": 168,
-        "y": 125,
+        "x": 700,
+        "y": 200,
         "constellation": "9BGY-6",
         "lawn": True
     },
     "R-AYGT": {
-        "x": 187,
-        "y": 99,
+        "x": 660,
+        "y": 240,
         "constellation": "9BGY-6",
         "lawn": True
     },
     "3LL-O0": {
-        "x": 492,
-        "y": 89,
+        "x": 980,
+        "y": 140,
         "constellation": "WXB-RY",
         "lawn": True
     },
     "49V-E4": {
-        "x": 523,
-        "y": 99,
+        "x": 800,
+        "y": 200,
         "constellation": "WXB-RY",
         "lawn": True
     },
     "4F6-VZ": {
-        "x": 542,
-        "y": 125,
+        "x": 960,
+        "y": 160,
         "constellation": "WXB-RY",
         "lawn": True
     },
     "8B-A4E": {
-        "x": 542,
-        "y": 157,
+        "x": 1040,
+        "y": 200,
         "constellation": "WXB-RY",
         "lawn": True
     },
     "A1F-22": {
-        "x": 523,
-        "y": 183,
+        "x": 1040,
+        "y": 120,
         "constellation": "WXB-RY",
         "lawn": True
     },
     "B-7LYC": {
-        "x": 492,
-        "y": 193,
+        "x": 780,
+        "y": 160,
         "constellation": "WXB-RY",
         "lawn": True
     },
     "J9A-BH": {
-        "x": 462,
-        "y": 183,
+        "x": 900,
+        "y": 160,
         "constellation": "WXB-RY",
         "lawn": True
     },
     "JM0A-4": {
-        "x": 443,
-        "y": 157,
+        "x": 1040,
+        "y": 160,
         "constellation": "WXB-RY",
         "lawn": True
     },
     "L-POLO": {
-        "x": 443,
-        "y": 125,
+        "x": 980,
+        "y": 180,
         "constellation": "WXB-RY",
         "lawn": True
     },
     "PT-2KR": {
-        "x": 462,
-        "y": 99,
+        "x": 820,
+        "y": 140,
         "constellation": "WXB-RY",
         "lawn": True
     },
     "6Q4-X6": {
-        "x": 768,
-        "y": 89,
+        "x": 660,
+        "y": 60,
         "constellation": "4LEZ-6"
     },
     "B9N2-2": {
-        "x": 813,
-        "y": 115,
+        "x": 720,
+        "y": 60,
         "constellation": "4LEZ-6"
     },
     "D-QJR9": {
-        "x": 813,
-        "y": 167,
+        "x": 740,
+        "y": 80,
         "constellation": "4LEZ-6"
     },
     "H-29TM": {
-        "x": 768,
-        "y": 193,
+        "x": 700,
+        "y": 120,
         "constellation": "4LEZ-6"
     },
     "KOI8-Z": {
-        "x": 722,
-        "y": 167,
+        "x": 760,
+        "y": 120,
         "constellation": "4LEZ-6"
     },
     "U4-V3J": {
-        "x": 722,
-        "y": 115,
+        "x": 640,
+        "y": 80,
         "constellation": "4LEZ-6"
     },
     "0FG-KS": {
-        "x": 1042,
-        "y": 89,
+        "x": 820,
+        "y": 440,
         "constellation": "B-MQ0Y"
     },
     "E-WMT7": {
-        "x": 1088,
-        "y": 115,
+        "x": 940,
+        "y": 400,
         "constellation": "B-MQ0Y"
     },
     "EF-QZK": {
-        "x": 1088,
-        "y": 167,
+        "x": 800,
+        "y": 400,
         "constellation": "B-MQ0Y"
     },
     "F-5WYK": {
-        "x": 1042,
-        "y": 193,
+        "x": 880,
+        "y": 400,
         "constellation": "B-MQ0Y"
     },
     "FLK-LJ": {
-        "x": 997,
-        "y": 167,
+        "x": 900,
+        "y": 440,
         "constellation": "B-MQ0Y"
     },
     "RZ3O-K": {
-        "x": 997,
-        "y": 115,
+        "x": 740,
+        "y": 460,
         "constellation": "B-MQ0Y"
     },
     "2-YO2K": {
-        "x": 218,
-        "y": 252,
+        "x": 240,
+        "y": 540,
         "constellation": "BXT7-V"
     },
     "M-SG47": {
-        "x": 263,
-        "y": 278,
+        "x": 140,
+        "y": 600,
         "constellation": "BXT7-V"
     },
     "QHY-RU": {
-        "x": 263,
-        "y": 330,
+        "x": 280,
+        "y": 580,
         "constellation": "BXT7-V"
     },
     "SR-10Z": {
-        "x": 218,
-        "y": 356,
+        "x": 220,
+        "y": 580,
         "constellation": "BXT7-V"
     },
     "TAL1-3": {
-        "x": 172,
-        "y": 330,
+        "x": 360,
+        "y": 600,
         "constellation": "BXT7-V"
     },
     "W-KXEX": {
-        "x": 172,
-        "y": 278,
+        "x": 60,
+        "y": 600,
         "constellation": "BXT7-V"
     },
     "4-1ECP": {
-        "x": 492,
-        "y": 252,
+        "x": 400,
+        "y": 100,
         "constellation": "L7-RDZ"
     },
     "5-U12M": {
-        "x": 533,
-        "y": 271,
+        "x": 320,
+        "y": 120,
         "constellation": "L7-RDZ"
     },
     "7AH-SF": {
-        "x": 543,
-        "y": 315,
+        "x": 460,
+        "y": 120,
         "constellation": "L7-RDZ"
     },
     "7MMJ-3": {
-        "x": 515,
-        "y": 351,
+        "x": 400,
+        "y": 180,
         "constellation": "L7-RDZ"
     },
     "9-EXU9": {
-        "x": 470,
-        "y": 351,
+        "x": 400,
+        "y": 140,
         "constellation": "L7-RDZ"
     },
     "PVF-N9": {
-        "x": 442,
-        "y": 315,
+        "x": 280,
+        "y": 160,
         "constellation": "L7-RDZ"
     },
     "UYOC-1": {
-        "x": 452,
-        "y": 271,
+        "x": 480,
+        "y": 100,
         "constellation": "L7-RDZ"
     },
     "7JRA-G": {
-        "x": 768,
-        "y": 252,
+        "x": 500,
+        "y": 340,
         "constellation": "LWMW-6"
     },
     "L5Y4-M": {
-        "x": 813,
-        "y": 278,
+        "x": 440,
+        "y": 340,
         "constellation": "LWMW-6"
     },
     "PFV-ZH": {
-        "x": 813,
-        "y": 330,
+        "x": 420,
+        "y": 380,
         "constellation": "LWMW-6"
     },
     "SY-OLX": {
-        "x": 768,
-        "y": 356,
+        "x": 560,
+        "y": 360,
         "constellation": "LWMW-6"
     },
     "W-CSFY": {
-        "x": 722,
-        "y": 330,
+        "x": 500,
+        "y": 380,
         "constellation": "LWMW-6"
     },
     "XY-ZCI": {
-        "x": 722,
-        "y": 278,
+        "x": 560,
+        "y": 320,
         "constellation": "LWMW-6"
     },
     "A9-F18": {
-        "x": 1042,
-        "y": 252,
+        "x": 300,
+        "y": 380,
         "constellation": "NT1-5Q"
     },
     "B-B0ME": {
-        "x": 1088,
-        "y": 278,
+        "x": 280,
+        "y": 280,
         "constellation": "NT1-5Q"
     },
     "DE-IHK": {
-        "x": 1088,
-        "y": 330,
+        "x": 500,
+        "y": 220,
         "constellation": "NT1-5Q"
     },
     "H-HGGJ": {
-        "x": 1042,
-        "y": 356,
+        "x": 280,
+        "y": 320,
         "constellation": "NT1-5Q"
     },
     "OJT-J3": {
-        "x": 997,
-        "y": 330,
+        "x": 400,
+        "y": 220,
         "constellation": "NT1-5Q"
     },
     "TDP-T3": {
-        "x": 997,
-        "y": 278,
+        "x": 320,
+        "y": 220,
         "constellation": "NT1-5Q"
     },
     "2V-ZHM": {
-        "x": 218,
-        "y": 414,
-        "constellation": "O5PO-O"
-    },
-    "AK-L0Z": {
-        "x": 263,
+        "x": 240,
         "y": 440,
         "constellation": "O5PO-O"
     },
+    "AK-L0Z": {
+        "x": 300,
+        "y": 460,
+        "constellation": "O5PO-O"
+    },
     "AY9X-Q": {
-        "x": 263,
-        "y": 492,
+        "x": 120,
+        "y": 400,
         "constellation": "O5PO-O"
     },
     "R-AG7W": {
-        "x": 218,
-        "y": 518,
+        "x": 120,
+        "y": 480,
         "constellation": "O5PO-O"
     },
     "V-3K7C": {
-        "x": 172,
-        "y": 492,
+        "x": 240,
+        "y": 400,
         "constellation": "O5PO-O"
     },
     "XU7-CH": {
-        "x": 172,
+        "x": 180,
         "y": 440,
         "constellation": "O5PO-O"
     },
     "9-ZA4Z": {
-        "x": 492,
-        "y": 414,
+        "x": 720,
+        "y": 340,
         "constellation": "Q0-4FU"
     },
     "IU-E9T": {
-        "x": 538,
-        "y": 440,
+        "x": 640,
+        "y": 320,
         "constellation": "Q0-4FU"
     },
     "NGM-OK": {
-        "x": 538,
-        "y": 492,
+        "x": 700,
+        "y": 300,
         "constellation": "Q0-4FU"
     },
     "O-QKSM": {
-        "x": 492,
-        "y": 518,
+        "x": 640,
+        "y": 300,
         "constellation": "Q0-4FU"
     },
     "QKQ3-L": {
-        "x": 447,
-        "y": 492,
+        "x": 580,
+        "y": 280,
         "constellation": "Q0-4FU"
     },
     "VWES-Y": {
-        "x": 447,
-        "y": 440,
+        "x": 520,
+        "y": 260,
         "constellation": "Q0-4FU"
     },
     "2AUL-X": {
-        "x": 768,
-        "y": 414,
+        "x": 1020,
+        "y": 300,
         "constellation": "S0X-O4"
     },
     "9IZ-HU": {
-        "x": 813,
-        "y": 440,
+        "x": 880,
+        "y": 280,
         "constellation": "S0X-O4"
     },
     "F-A3TR": {
-        "x": 813,
-        "y": 492,
+        "x": 940,
+        "y": 260,
         "constellation": "S0X-O4"
     },
     "F-HQWV": {
-        "x": 768,
-        "y": 518,
+        "x": 940,
+        "y": 220,
         "constellation": "S0X-O4"
     },
     "OBV-YC": {
-        "x": 722,
-        "y": 492,
+        "x": 1020,
+        "y": 280,
         "constellation": "S0X-O4"
     },
     "PA-ALN": {
-        "x": 722,
-        "y": 440,
+        "x": 1000,
+        "y": 340,
         "constellation": "S0X-O4"
     },
     "0-U2M4": {
-        "x": 1042,
-        "y": 414,
+        "x": 200,
+        "y": 100,
         "constellation": "TPB-KG"
     },
     "01B-88": {
-        "x": 1088,
-        "y": 440,
+        "x": 260,
+        "y": 120,
         "constellation": "TPB-KG"
     },
     "C3I-D5": {
-        "x": 1088,
-        "y": 492,
+        "x": 340,
+        "y": 60,
         "constellation": "TPB-KG"
     },
     "F18-AY": {
-        "x": 1042,
-        "y": 518,
+        "x": 300,
+        "y": 100,
         "constellation": "TPB-KG"
     },
     "MTO2-2": {
-        "x": 997,
-        "y": 492,
+        "x": 180,
+        "y": 60,
         "constellation": "TPB-KG"
     },
     "RZ8A-P": {
-        "x": 997,
-        "y": 440,
+        "x": 260,
+        "y": 80,
         "constellation": "TPB-KG"
     },
     "0XN-SK": {
-        "x": 218,
-        "y": 577,
+        "x": 680,
+        "y": 480,
         "constellation": "TY0-Q2"
     },
     "4F9Y-3": {
-        "x": 263,
-        "y": 603,
+        "x": 680,
+        "y": 440,
         "constellation": "TY0-Q2"
     },
     "5V-Q1R": {
-        "x": 263,
-        "y": 655,
+        "x": 600,
+        "y": 440,
         "constellation": "TY0-Q2"
     },
     "M4-KX5": {
-        "x": 218,
-        "y": 681,
+        "x": 600,
+        "y": 480,
         "constellation": "TY0-Q2"
     },
     "MS-RXH": {
-        "x": 172,
-        "y": 655,
+        "x": 620,
+        "y": 400,
         "constellation": "TY0-Q2"
     },
     "U-3FKL": {
-        "x": 172,
-        "y": 603,
+        "x": 640,
+        "y": 360,
         "constellation": "TY0-Q2"
     },
     "7M4-4C": {
-        "x": 492,
-        "y": 577,
+        "x": 60,
+        "y": 260,
         "constellation": "VT-LHB"
     },
     "972C-1": {
-        "x": 523,
-        "y": 587,
+        "x": 120,
+        "y": 320,
         "constellation": "VT-LHB"
     },
     "9WVY-F": {
-        "x": 542,
-        "y": 613,
+        "x": 60,
+        "y": 320,
         "constellation": "VT-LHB"
     },
     "BEG-RL": {
-        "x": 542,
-        "y": 645,
+        "x": 200,
+        "y": 300,
         "constellation": "VT-LHB"
     },
     "JPEZ-R": {
-        "x": 523,
-        "y": 671,
+        "x": 100,
+        "y": 200,
         "constellation": "VT-LHB"
     },
     "JZ-UQC": {
-        "x": 492,
-        "y": 681,
+        "x": 60,
+        "y": 300,
         "constellation": "VT-LHB"
     },
     "M5NO-B": {
-        "x": 462,
-        "y": 671,
+        "x": 100,
+        "y": 240,
         "constellation": "VT-LHB"
     },
     "MJ-5F9": {
-        "x": 443,
-        "y": 645,
+        "x": 180,
+        "y": 240,
         "constellation": "VT-LHB"
     },
     "U-W436": {
-        "x": 443,
-        "y": 613,
+        "x": 120,
+        "y": 300,
         "constellation": "VT-LHB"
     },
     "Z-ENUD": {
-        "x": 462,
-        "y": 587,
+        "x": 120,
+        "y": 260,
         "constellation": "VT-LHB"
     },
     "1A8-6G": {
-        "x": 768,
-        "y": 577,
+        "x": 380,
+        "y": 440,
         "constellation": "X7-FTR"
     },
     "4-M1TY": {
-        "x": 808,
-        "y": 596,
+        "x": 440,
+        "y": 520,
         "constellation": "X7-FTR"
     },
     "C6CG-W": {
-        "x": 818,
-        "y": 640,
+        "x": 540,
+        "y": 440,
         "constellation": "X7-FTR"
     },
     "H-FOYG": {
-        "x": 790,
-        "y": 676,
+        "x": 300,
+        "y": 400,
         "constellation": "X7-FTR"
     },
     "K-3PQW": {
-        "x": 745,
-        "y": 676,
+        "x": 460,
+        "y": 460,
         "constellation": "X7-FTR"
     },
     "PE-SAM": {
-        "x": 717,
-        "y": 640,
+        "x": 460,
+        "y": 440,
         "constellation": "X7-FTR"
     },
     "RY-2FX": {
-        "x": 727,
-        "y": 596,
+        "x": 380,
+        "y": 460,
         "constellation": "X7-FTR"
     },
     "Z-DRIY": {
-        "x": 20,
-        "y": 60,
+        "x": 200,
+        "y": 320,
         "constellation": "neighbor",
         "note": "Etherium Reach"
     },
     "IF-KD1": {
-        "x": 200,
-        "y": 10,
+        "x": 60,
+        "y": 480,
         "constellation": "neighbor",
         "note": "Malpais"
     },
     "O8W-5O": {
-        "x": 260,
-        "y": 10,
+        "x": 60,
+        "y": 400,
         "constellation": "neighbor",
         "note": "Malpais"
     },
     "QCGG-Q": {
-        "x": 320,
-        "y": 10,
+        "x": 340,
+        "y": 260,
         "constellation": "neighbor",
         "note": "Malpais"
     },
     "QZ1-OH": {
-        "x": 380,
-        "y": 10,
+        "x": 200,
+        "y": 160,
         "constellation": "neighbor",
         "note": "Malpais"
     },
     "DYS-CG": {
-        "x": 1180,
-        "y": 60,
+        "x": 900,
+        "y": 200,
         "constellation": "neighbor",
         "note": "Oasa"
     },
     "MTGF-2": {
-        "x": 1180,
-        "y": 100,
+        "x": 600,
+        "y": 160,
         "constellation": "neighbor",
         "note": "Oasa"
     },
     "QE2-FS": {
-        "x": 1180,
-        "y": 140,
+        "x": 500,
+        "y": 280,
         "constellation": "neighbor",
         "note": "Oasa"
     },
     "Y-0HVF": {
-        "x": 1180,
-        "y": 180,
+        "x": 440,
+        "y": 60,
         "constellation": "neighbor",
         "note": "Oasa"
     },
     "9S-GPT": {
-        "x": 200,
-        "y": 730,
+        "x": 360,
+        "y": 360,
         "constellation": "neighbor",
         "note": "Outer Passage"
     },
     "EU-WFW": {
-        "x": 20,
-        "y": 60,
+        "x": 980,
+        "y": 380,
         "constellation": "neighbor",
         "note": "The Spire"
     },
     "L-EUY2": {
-        "x": 20,
-        "y": 100,
+        "x": 900,
+        "y": 340,
         "constellation": "neighbor",
         "note": "The Spire"
     },
     "OTJ9-E": {
-        "x": 20,
-        "y": 140,
+        "x": 840,
+        "y": 380,
         "constellation": "neighbor",
         "note": "The Spire"
     },
     "HD-JVQ": {
-        "x": 200,
-        "y": 10,
+        "x": 100,
+        "y": 60,
         "constellation": "neighbor",
         "note": "Venal"
     }
