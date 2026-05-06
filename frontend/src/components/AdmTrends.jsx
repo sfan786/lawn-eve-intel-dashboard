@@ -57,7 +57,7 @@ export default function AdmTrends({ admHistory, config, sovereignty }) {
                                         fontFamily: 'Share Tech Mono, monospace',
                                         fontSize: 11, color: '#c8d8e8',
                                     }}>{sys.name}</span>
-                                    {currentAdm > 0 && currentAdm < 4 && (
+                                    {sov.is_friendly && currentAdm > 0 && currentAdm < 4 && (
                                         <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
                                             <div style={{
                                                 width: 4, height: 4, borderRadius: '50%',
