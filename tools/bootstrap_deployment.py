@@ -440,7 +440,27 @@ def load_inherited(path):
         raise SystemExit(f"--inherit-from path not found: {abs_path}")
     namespace = {}
     with open(abs_path) as f:
-        exec(compile(f.read(), abs_path, "exec"), namespace)
+import importlib.util
+import os
+
+def load_inherited(path):
+    """Read FRIENDLY_*/NEIGHBOR_ENTITIES from a Python module path using importlib."""
+    if not path:
+        return {}
+    abs_path = os.path.abspath(path)
+    if not os.path.exists(abs_path):
+        raise SystemExit(f"--inherit-from path not found: {abs_path}")
+
+    spec = importlib.util.spec_from_file_location("inherited_config", abs_path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+
+    return {
+        "friendly_alliance_ids": getattr(module, "FRIENDLY_ALLIANCE_IDS", []),
+        "friendly_alliances": getattr(module, "FRIENDLY_ALLIANCES", []),
+        "friendly_corporations": getattr(module, "FRIENDLY_CORPORATIONS", []),
+        "neighbor_entities": getattr(module, "NEIGHBOR_ENTITIES", []),
+    }
     return {
         "friendly_alliance_ids": namespace.get("FRIENDLY_ALLIANCE_IDS", []),
         "friendly_alliances": namespace.get("FRIENDLY_ALLIANCES", []),
