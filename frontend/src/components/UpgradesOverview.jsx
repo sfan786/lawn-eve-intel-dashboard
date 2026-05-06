@@ -1,14 +1,7 @@
-import React from 'react'
-import { getUpgradeSummary, UPGRADE_CATEGORY_COLORS } from '../utils/upgradeHelpers'
+import React, { useMemo } from 'react'
+import { UPGRADE_CATEGORY_COLORS } from '../utils/upgradeHelpers'
 import CornerBrackets from './common/CornerBrackets'
 import UpgradeBadges from './common/UpgradeBadges'
-
-const LAWN_SYSTEMS_ORDER = [
-    // 6-CBBM
-    "UDVW-O", "UJXC-B", "F48K-D", "1-KCSA", "XTJ-5Q", "JT2I-7", "N-JK02",
-    // 2Q-8WA
-    "FB5U-I", "BZ-BCK", "J-OAH2", "O5-YNW", "86L-9F", "5-VFC6", "IUU3-L", "S-LHPJ"
-]
 
 export default function UpgradesOverview({ config }) {
     if (!config || !config.system_upgrades || !config.upgrade_types) return null
@@ -16,10 +9,27 @@ export default function UpgradesOverview({ config }) {
     const upgradeTypes = config.upgrade_types
     const systemUpgrades = config.system_upgrades
 
+    const primarySystems = useMemo(() => config.primary_systems || [], [config])
+
+    // Map system name → constellation name so each card can show which
+    // constellation it belongs to. Derived from config so it stays correct
+    // for any deployment.
+    const systemConstellation = useMemo(() => {
+        const lookup = {}
+        if (config.constellations) {
+            Object.values(config.constellations).forEach(c => {
+                Object.values(c.systems || {}).forEach(s => {
+                    lookup[s.name] = c.name
+                })
+            })
+        }
+        return lookup
+    }, [config])
+
     let totalUpgrades = 0
     let systemsWithUpgrades = 0
     const categoryCounts = { military: 0, industry: 0, strategic: 0 }
-    LAWN_SYSTEMS_ORDER.forEach(name => {
+    primarySystems.forEach(name => {
         const ups = systemUpgrades[name] || []
         if (ups.length > 0) systemsWithUpgrades++
         totalUpgrades += ups.length
@@ -34,7 +44,7 @@ export default function UpgradesOverview({ config }) {
             <CornerBrackets />
             <div className="panel-header">
                 <span className="panel-title">Sovereignty Upgrades</span>
-                <span className="panel-badge">{totalUpgrades} upgrades across {systemsWithUpgrades}/{LAWN_SYSTEMS_ORDER.length} systems</span>
+                <span className="panel-badge">{totalUpgrades} upgrades across {systemsWithUpgrades}/{primarySystems.length} systems</span>
             </div>
             <div style={{ display: 'flex', gap: 16, marginBottom: 8, fontSize: 11, fontFamily: 'Share Tech Mono, monospace' }}>
                 <span style={{ color: '#ff6677' }}>Military: {categoryCounts.military}</span>
@@ -42,10 +52,10 @@ export default function UpgradesOverview({ config }) {
                 <span style={{ color: '#00d4ff' }}>Strategic: {categoryCounts.strategic}</span>
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 6 }}>
-                {LAWN_SYSTEMS_ORDER.map(name => {
+                {primarySystems.map(name => {
                     const ups = systemUpgrades[name] || []
                     const isEmpty = ups.length === 0
-                    const constellation = ["UDVW-O", "UJXC-B", "F48K-D", "1-KCSA", "XTJ-5Q", "JT2I-7", "N-JK02"].includes(name) ? "6-CBBM" : "2Q-8WA"
+                    const constellation = systemConstellation[name] || ''
                     return (
                         <div key={name} style={{
                             background: isEmpty ? 'rgba(255,51,85,0.03)' : 'rgba(0,212,255,0.03)',

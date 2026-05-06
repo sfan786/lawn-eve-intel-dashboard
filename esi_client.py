@@ -6,7 +6,7 @@ Handles all data fetching from ESI and zKillboard.
 import time
 import requests
 from typing import Optional
-from config import ESI_BASE, ESI_DATASOURCE, CACHE_TTL, ZKILL_BASE
+from eve_constants import ESI_BASE, ESI_DATASOURCE, CACHE_TTL, ZKILL_BASE
 
 # Simple in-memory cache
 _cache = {}

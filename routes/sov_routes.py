@@ -118,7 +118,7 @@ def api_campaigns():
         sys_id = campaign.get("solar_system_id")
         struct_id = campaign.get("structure_id")
         struct_data = structure_by_id.get(struct_id, {})
-        is_lawn = sys_id in state.lawn_system_ids
+        is_primary = sys_id in state.primary_system_ids
 
         enriched.append({
             **campaign,
@@ -126,7 +126,8 @@ def api_campaigns():
             "vulnerable_start_time": struct_data.get("vulnerable_start_time"),
             "vulnerable_end_time": struct_data.get("vulnerable_end_time"),
             "structure_type_id": struct_data.get("structure_type_id"),
-            "is_lawn": is_lawn,
+            "is_primary": is_primary,
+            "is_lawn": is_primary,  # legacy alias for any frontend not yet migrated
         })
 
     return jsonify(enriched)

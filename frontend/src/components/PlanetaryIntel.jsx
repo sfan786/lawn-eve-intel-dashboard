@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import CornerBrackets from './common/CornerBrackets'
 
 const PLANET_TYPES = {
@@ -51,11 +51,6 @@ for (const type of Object.keys(PLANET_TYPES)) {
 // high-only types: Storm, Plasma, Barren, Oceanic → cyan ◆
 const IMPORTANCE_COLOR = { critical: '#ffaa00', high: '#00d4ff' }
 
-const LAWN_SYSTEMS_ORDER = [
-    "UDVW-O", "UJXC-B", "F48K-D", "1-KCSA", "XTJ-5Q", "JT2I-7", "N-JK02",
-    "FB5U-I", "BZ-BCK", "J-OAH2", "O5-YNW", "86L-9F", "5-VFC6", "IUU3-L", "S-LHPJ"
-]
-const CBBM_SYSTEMS = new Set(["UDVW-O", "UJXC-B", "F48K-D", "1-KCSA", "XTJ-5Q", "JT2I-7", "N-JK02"])
 const TYPE_SORT_ORDER = ["Oceanic", "Storm", "Plasma", "Ice", "Lava", "Temperate", "Gas", "Barren"]
 
 function extractType(typeStr) {
@@ -103,8 +98,7 @@ function TypeBadge({ type, count, selectedProduct }) {
     )
 }
 
-function SystemCard({ name, planets, selectedProduct }) {
-    const constellation = CBBM_SYSTEMS.has(name) ? "6-CBBM" : "2Q-8WA"
+function SystemCard({ name, planets, selectedProduct, constellation }) {
 
     const typeCounts = {}
     planets.forEach(p => {
@@ -310,10 +304,26 @@ function Legend({ selectedProduct }) {
     )
 }
 
-export default function PlanetaryIntel() {
+export default function PlanetaryIntel({ config }) {
     const [piData, setPiData] = useState(null)
     const [error, setError] = useState(null)
     const [selectedProduct, setSelectedProduct] = useState(null)
+
+    // Map system name → constellation name, derived from config so the
+    // constellation label on each card stays accurate per deployment.
+    const systemConstellation = useMemo(() => {
+        const lookup = {}
+        if (config?.constellations) {
+            Object.values(config.constellations).forEach(c => {
+                Object.values(c.systems || {}).forEach(s => {
+                    lookup[s.name] = c.name
+                })
+            })
+        }
+        return lookup
+    }, [config])
+
+    const primarySystemOrder = useMemo(() => config?.primary_systems || [], [config])
 
     useEffect(() => {
         fetch('/api/pi_data')
@@ -344,8 +354,8 @@ export default function PlanetaryIntel() {
     const totalPlanets = Object.values(piData).reduce((s, p) => s + p.length, 0)
     const systemCount = Object.keys(piData).length
     const orderedSystems = [
-        ...LAWN_SYSTEMS_ORDER.filter(s => piData[s]),
-        ...Object.keys(piData).filter(s => !LAWN_SYSTEMS_ORDER.includes(s)).sort()
+        ...primarySystemOrder.filter(s => piData[s]),
+        ...Object.keys(piData).filter(s => !primarySystemOrder.includes(s)).sort()
     ]
 
     return (
@@ -358,7 +368,13 @@ export default function PlanetaryIntel() {
             <CoverageRow piData={piData} selectedProduct={selectedProduct} onSelect={setSelectedProduct} />
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 6, marginBottom: 8 }}>
                 {orderedSystems.map(name => (
-                    <SystemCard key={name} name={name} planets={piData[name]} selectedProduct={selectedProduct} />
+                    <SystemCard
+                        key={name}
+                        name={name}
+                        planets={piData[name]}
+                        selectedProduct={selectedProduct}
+                        constellation={systemConstellation[name] || ''}
+                    />
                 ))}
             </div>
             <TypeSummary piData={piData} selectedProduct={selectedProduct} />
