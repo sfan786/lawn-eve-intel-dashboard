@@ -99,6 +99,10 @@ def init():
         CREATE TABLE IF NOT EXISTS system_annotations (
             id          INTEGER PRIMARY KEY AUTOINCREMENT,
             deployment_id TEXT NOT NULL DEFAULT '{LEGACY_DEPLOYMENT_ID}',
+            system_name TEXT NOT NULL,
+            note        TEXT NOT NULL,
+            updated_at  TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')),
+            UNIQUE(deployment_id, system_name)
             system_name TEXT NOT NULL UNIQUE,
             note        TEXT NOT NULL,
             updated_at  TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))
