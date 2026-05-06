@@ -109,7 +109,15 @@ def init():
 
         CREATE TABLE IF NOT EXISTS jump_bridges (
             id         INTEGER PRIMARY KEY AUTOINCREMENT,
+        CREATE TABLE IF NOT EXISTS jump_bridges (
+            id         INTEGER PRIMARY KEY AUTOINCREMENT,
             deployment_id TEXT NOT NULL DEFAULT '{LEGACY_DEPLOYMENT_ID}',
+            system_a   TEXT NOT NULL,
+            system_b   TEXT NOT NULL,
+            label      TEXT,
+            created_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')),
+            UNIQUE(deployment_id, system_a, system_b)
+        );
             system_a   TEXT NOT NULL,
             system_b   TEXT NOT NULL,
             label      TEXT,
