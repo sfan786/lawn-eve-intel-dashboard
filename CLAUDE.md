@@ -63,13 +63,19 @@ lawn-eve-intel-dashboard/
 │   ├── mock_data.py         # All mock constants and builder functions
 │   └── mock_*_routes.py     # One file per route group
 │
+├── deployments/             # One module per (alliance, region) pair
+│   ├── __init__.py          # Loader: picks ACTIVE from DEPLOYMENT env var
+│   ├── lawn_perrigen.py     # Active deployment (LAWN in Perrigen Falls)
+│   └── example.py           # Commented template for new deployments
+│
+├── eve_constants.py         # Game-wide constants (ESI URLs, TTLs, upgrade catalog, planet types)
+│
 ├── frontend/                # Vite + React project
 │   ├── package.json
 │   ├── vite.config.js       # Proxy /api → Flask, build → static/dist/
 │   └── src/
 │       ├── App.jsx          # Root component — state, fetching, tab nav
-│       ├── data/mapData.js  # MAP_LAYOUT, MAP_LAYOUT_SUBWAY, MAP_CONNECTIONS
-│       ├── utils/           # admHelpers, campaignHelpers, formatters, upgradeHelpers
+│       ├── utils/           # admHelpers, campaignHelpers, formatters, upgradeHelpers, mapHelpers
 │       └── components/      # 14 feature components + 3 common components
 │
 ├── static/
@@ -77,7 +83,8 @@ lawn-eve-intel-dashboard/
 │   └── dist/                # Vite build output (gitignored, served by Flask in prod)
 │
 ├── tools/
-│   └── esi_lookup.py        # CLI: resolve system/alliance/corp names to IDs
+│   ├── esi_lookup.py        # CLI: resolve system/alliance/corp names to IDs
+│   └── bootstrap_deployment.py  # CLI: scaffold a new deployment from ESI
 │
 ├── Dockerfile               # Multi-stage: Node (Vite build) → Python (gunicorn)
 ├── docker-compose.yml
@@ -87,14 +94,15 @@ lawn-eve-intel-dashboard/
 ```
 
 ## Key Technical Decisions
-1. **Flask Blueprints** — Backend is split into `routes/` (live ESI) and `mock/` (demo) Blueprint packages. All blueprints share a `SystemState` singleton from `routes/system_state.py` that is populated at startup by `resolve_all_systems()`.
-2. **Vite build** — Frontend source lives in `frontend/src/`, built to `static/dist/`. `routes/static_routes.py` serves `static/dist/index.html` in production, falling back to `static/index.html` (legacy CDN version) if no build exists. Never use `render_template` — Jinja2's `{{ }}` conflicts with JSX.
-3. **Map layout is manual** — Two layout modes: `MAP_LAYOUT` (traditional Dotlan-style) and `MAP_LAYOUT_SUBWAY` (abstract metro-style). Gate connections are in `MAP_CONNECTIONS` array with types: `internal` (same constellation), `cross` (different TKE constellations), `regional` (to other regions), `neighbor` (neighbor region systems). Subway mode prioritizes readability over geometric accuracy.
-4. **Demo mode** — `demo.py` registers mock blueprints from `mock/` that return hardcoded data (no ESI calls). Reads `FLASK_PORT` from env so it can run on :5001 alongside live mode. Always test UI changes against demo first.
-5. **In-memory caching** — `esi_client.py` caches responses in a dict with per-category TTLs
-6. **SQLite persistence** — `db.py` snapshots ADM and activity data hourly (deduplicated). WAL mode for concurrent reads. History API serves sparkline data to frontend
-7. **Sov upgrades are manual** — ESI doesn't expose iHub upgrade fittings without SSO auth, so `config.py` has `SYSTEM_UPGRADES` (per-system upgrade list) and `UPGRADE_TYPES` (metadata/categories). Served via `/api/config` response. Update manually when upgrades change in-game
-8. **Docker volume gotcha** — The `./intel.db:/app/intel.db` volume mount requires `intel.db` to exist as a file on the host before `docker-compose up`. If it doesn't exist, Docker creates it as a directory and SQLite fails. The update scripts run `touch intel.db` to prevent this.
+1. **Deployment loader** — `deployments/__init__.py` picks the active module from the `DEPLOYMENT` env var (default `lawn_perrigen`). `config.py` is a thin re-export of `deployments.ACTIVE.*` plus game-wide constants from `eve_constants.py`. To switch deployments, set `DEPLOYMENT=other_deployment` and restart — no code changes.
+2. **Flask Blueprints** — Backend is split into `routes/` (live ESI) and `mock/` (demo) Blueprint packages. All blueprints share a `SystemState` singleton from `routes/system_state.py` that is populated at startup by `resolve_all_systems()`.
+3. **Vite build** — Frontend source lives in `frontend/src/`, built to `static/dist/`. `routes/static_routes.py` serves `static/dist/index.html` in production, falling back to `static/index.html` (legacy CDN version) if no build exists. Never use `render_template` — Jinja2's `{{ }}` conflicts with JSX.
+4. **Map layout is API-served** — `MAP_LAYOUT` (traditional Dotlan-style) and `MAP_LAYOUT_SUBWAY` (abstract metro-style) live in the active deployment module and are served to the frontend via `/api/config`. Gate connections (`MAP_CONNECTIONS`) have four types: `internal` (same constellation), `cross` (different constellations same region), `regional` (to other regions), `neighbor` (between two neighbor-region systems). Subway mode prioritizes readability over geometric accuracy.
+5. **Demo mode** — `demo.py` registers mock blueprints from `mock/`. `mock/mock_data.py` derives system list, sov, and activity from the active deployment, so demo and live always reflect the same alliance/region. Reads `FLASK_PORT` from env so it can run on :5001 alongside live mode.
+6. **In-memory caching** — `esi_client.py` caches ESI responses in a dict with per-category TTLs from `eve_constants.CACHE_TTL`.
+7. **SQLite persistence** — `db.py` snapshots ADM and activity data hourly (deduplicated). All rows tagged with `deployment_id`; reads filter to the active deployment so history doesn't bleed between deployments. WAL mode for concurrent reads.
+8. **Sov upgrades are manual** — ESI doesn't expose iHub upgrade fittings without SSO auth. The active deployment's `SYSTEM_UPGRADES` dict (initially empty after bootstrap) is updated by hand as upgrades come online. `UPGRADE_TYPES` lives in `eve_constants.py` since it's universal across EVE.
+9. **Docker volume gotcha** — The `./intel.db:/app/intel.db` volume mount requires `intel.db` to exist as a file on the host before `docker-compose up`. If it doesn't exist, Docker creates it as a directory and SQLite fails. The update scripts run `touch intel.db` to prevent this.
 
 ## Development
 
@@ -122,7 +130,7 @@ cd frontend && npm run dev        # or: npm run dev:demo
 ```bash
 python tools/esi_lookup.py alliance "Some Alliance Name"
 python tools/esi_lookup.py corporation "Some Corp"
-python tools/esi_lookup.py system "UDVW-O"
+python tools/esi_lookup.py system "9BGY-6"
 python tools/esi_lookup.py zkill "Partial Name"
 ```
 Resolves names to numeric IDs for `config.py`. Uses ESI `POST /universe/ids/` for exact match with zKill autocomplete fallback for fuzzy search.
@@ -151,7 +159,7 @@ Resolves names to numeric IDs for `config.py`. Uses ESI `POST /universe/ids/` fo
 - `POST /api/timers` — add timer (requires `X-Timer-Auth` header)
 - `DELETE /api/timers/<id>` — delete timer (requires `X-Timer-Auth` header)
 - `POST /api/auth/check` — verify timer password
-- `GET /api/pi_data` — planetary interaction data (125 planets across 15 LAWN systems, planet type per planet)
+- `GET /api/pi_data` — planetary interaction data (per-planet `type_id`/`type` for every planet in the active deployment's primary systems)
 - `GET /api/status` — health check
 
 ### Map Implementation Details
@@ -183,7 +191,7 @@ Resolves names to numeric IDs for `config.py`. Uses ESI `POST /universe/ids/` fo
 
 ## Map Visualization & Visual Indicators
 
-The constellation map shows The Kalevala Expanse with multiple visual indicators that stack to show system status at a glance:
+The constellation map shows the active deployment's region with multiple visual indicators that stack to show system status at a glance:
 
 ### Visual Priority Hierarchy (outermost to innermost)
 1. **Reffed Ring** (r=16, amber dashed) - Pulsing amber warning ring for systems with active sov campaigns
@@ -233,7 +241,7 @@ Updated legend shows all indicators:
 - Reffed (active timer) - amber dashed ring
 - Critical (ADM < 2) - thick red border
 - Caution (ADM 2-4) - amber border
-- LAWN Sov - green dot
+- Primary Sov - green dot
 - NPC ratting - cyan ring
 - PVP danger - red dot
 - Neighbor region - dimmed
@@ -242,7 +250,7 @@ Updated legend shows all indicators:
 
 ### Sovereignty Upgrades
 
-Manually maintained iHub/Sov Hub upgrade data per LAWN system, defined in `config.py`:
+Manually maintained iHub/Sov Hub upgrade data per primary system, defined in `deployments/<name>.py:SYSTEM_UPGRADES`:
 
 **Upgrade Types** (6 types across 3 categories):
 - **Military** (red): mTD (Minor Threat Detection), MTD (Major Threat Detection) — increase ratting anomaly spawns
@@ -251,12 +259,12 @@ Manually maintained iHub/Sov Hub upgrade data per LAWN system, defined in `confi
 
 **Where upgrades appear in the UI:**
 1. **Map nodes** — small colored dots (red=military, green=industry, cyan=strategic) below ADM value
-2. **Map tooltips** — full upgrade badge list when hovering LAWN systems
+2. **Map tooltips** — full upgrade badge list when hovering primary systems
 3. **System table** — compact upgrade badges in "Upgrades" column
 4. **Grinding plan** — MIL/IND/STR coverage indicators + upgrade badges per target
-5. **Upgrades overview panel** — dedicated grid showing all 15 LAWN systems with installed upgrades, category totals, and legend
+5. **Upgrades overview panel** — dedicated grid showing every primary system with installed upgrades, category totals, and legend
 
-**Updating upgrades**: Edit `SYSTEM_UPGRADES` dict in `config.py` when upgrades change in-game. ESI does not expose iHub fittings without SSO auth.
+**Updating upgrades**: Edit `SYSTEM_UPGRADES` dict in the active deployment module (`deployments/<name>.py`) when upgrades change in-game. ESI does not expose iHub fittings without SSO auth.
 
 ### Enhanced Tooltips
 
@@ -265,7 +273,7 @@ Hovering over systems shows detailed status with priority warnings:
 - ADM status warnings for systems below safe threshold
 - Active campaign status (if reffed)
 - Grinding priority (critical or caution)
-- Installed sov upgrades (LAWN systems only)
+- Installed sov upgrades (primary systems only)
 - Activity metrics (PVP, NPC, jumps)
 - Sov holder and corporation
 
@@ -284,7 +292,9 @@ See [ROADMAP.md](ROADMAP.md) for full details and backlog.
 - [x] Vite + React build system (replaced CDN Babel single-file HTML)
 - [x] Flask Blueprint refactor (routes/ + mock/ packages, thin app.py/demo.py)
 - [x] Multi-stage Docker build (Node Vite build → Python gunicorn)
-- [x] Planetary Interaction Industry tab — 125 planets across 15 LAWN systems; per-system type badges; interactive product filter (Fuel Blocks / BSC / P4 Advanced) highlights relevant types across all cards; ◆ priority indicators (amber=critical chain, cyan=high chain); strategic coverage check per product
+- [x] Planetary Interaction Industry tab — per-system planet-type badges; interactive product filter (Fuel Blocks / BSC / P4 Advanced); ◆ priority indicators (amber=critical chain, cyan=high chain); strategic coverage check per product
+- [x] **Alliance/region-agnostic deployment system** — `deployments/` directory + `tools/bootstrap_deployment.py` bootstrap; `DEPLOYMENT` env var picks active deployment; per-deployment scoping in `intel.db` via `deployment_id` column
+- [x] **Perrigen Falls migration** — LAWN relocated from Kalevala to Perrigen Falls (constellations 9BGY-6, WXB-RY); old Kalevala history preserved but inert
 
 **Priority 1 — Immediate tactical value:**
 - [x] zKillboard feed panel enhancements (filtering, ship class breakdowns)
