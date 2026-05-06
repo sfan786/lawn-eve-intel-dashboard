@@ -369,7 +369,7 @@ def add_jump_bridge(system_a, system_b, label=None):
     a, b = sorted([system_a.strip(), system_b.strip()])
     conn = get_connection()
     cur = conn.execute(
-        "INSERT OR IGNORE INTO jump_bridges (deployment_id, system_a, system_b, label) VALUES (?, ?, ?, ?)",
+            UNIQUE(deployment_id, system_a, system_b)
         (DEPLOYMENT_ID, a, b, label.strip() if label else None),
     )
     new_id = cur.lastrowid
