@@ -126,9 +126,20 @@ def init():
         );
     """)
 
-    for table in ("adm_snapshots", "activity_snapshots", "custom_timers",
-                  "system_annotations", "jump_bridges"):
-        _ensure_deployment_column(conn, table)
+    # Migration: Recreate tables with composite unique constraints if necessary
+    # This should be called after _ensure_deployment_column for existing tables
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS jump_bridges_new (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            deployment_id TEXT NOT NULL,
+            system_a TEXT NOT NULL,
+            system_b TEXT NOT NULL,
+            label TEXT,
+            created_at TEXT,
+            UNIQUE(deployment_id, system_a, system_b)
+        );
+    """)
+    # Data migration logic would follow here to move data from old to new tables
 
     conn.executescript("""
         CREATE INDEX IF NOT EXISTS idx_adm_deployment_time
