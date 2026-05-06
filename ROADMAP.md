@@ -1,14 +1,16 @@
-# ROADMAP — LAWN Eve Intel Dashboard
+# ROADMAP — EVE Alliance Intel Dashboard
 
-**Current situation (May 2026):** LAWN is being evicted from The Kalevala Expanse and is consolidating for a move. Destination is likely Perrigen Falls but unconfirmed. Dashboard migration is Priority 1 once a destination is locked in.
+**Current situation (May 2026):** LAWN has relocated to **Perrigen Falls** (constellations 9BGY-6 and WXB-RY). The dashboard codebase is now alliance/region agnostic — see `deployments/` and `tools/bootstrap_deployment.py`.
 
 ## Completed
 
-- [x] **SQLite persistence** — hourly ADM + activity snapshots with deduplication
+- [x] **Alliance/region-agnostic deployment system** — `deployments/` modules + `tools/bootstrap_deployment.py` bootstrap; `DEPLOYMENT` env var picks active deployment; per-deployment scoping in `intel.db` via `deployment_id`
+- [x] **Perrigen Falls migration** — LAWN relocated from Kalevala to Perrigen Falls; mock data, frontend, and CLAUDE.md all updated; old Kalevala history preserved but inert
+- [x] **SQLite persistence** — hourly ADM + activity snapshots with deduplication, scoped per deployment
 - [x] **ADM trend sparklines** — 7-day history per system with 24h change indicators
-- [x] **Constellation map** — full TKE region with subway/traditional modes, grinding indicators
+- [x] **Constellation map** — full region with subway/traditional modes, grinding indicators; map data served from `/api/config`
 - [x] **Sov campaign tracking** — reinforced/nodes phases, countdown timers, progress bars
-- [x] **Kill feed** — zKillboard integration with LAWN/regional tagging
+- [x] **Kill feed** — zKillboard integration with primary-space/regional tagging
 - [x] **Vulnerability windows** — ADM-based vuln duration calculation per system
 - [x] **Alliance activity summary** — LAWN-wide kills/NPC/jumps totals (always visible regardless of tab selection)
 - [x] **Enhanced data timestamp** — full date/time display for ESI data freshness indicator
@@ -33,20 +35,6 @@
 ---
 
 ## Priority 1 — Immediate Tactical Value
-
-### ⚠ Dashboard Migration — New Space
-**Why:** LAWN is relocating. The dashboard is hardcoded for TKE geography — map layout, constellation IDs, neighbor systems, and PI data all need replacing once the destination is confirmed.
-- [ ] **Confirm destination** — waiting on leadership (likely Perrigen Falls, unconfirmed)
-- [ ] Update `config.py` — new `LAWN_CONSTELLATION_IDS`, `ALL_MONITORED_CONSTELLATION_IDS`, `FRIENDLY_ALLIANCES`, region ID
-- [ ] Rebuild `frontend/src/data/mapData.js` — new `MAP_LAYOUT`, `MAP_LAYOUT_SUBWAY`, `MAP_CONNECTIONS` for new constellations + neighbor systems (ESI-verified gate data)
-- [ ] Update neighbor system list — new adjacent regions/constellations with correct gate connections
-- [ ] Reset `SYSTEM_UPGRADES` in `config.py` — start fresh, fill in as upgrades go online
-- [ ] Update `PI_DATA` in `config.py` — planet types for new LAWN systems
-- [ ] Update `CLAUDE.md` game situation section — new region, sov holders, threat landscape
-- [ ] Smoke test all tabs against new ESI data (sov, campaigns, activity, neighbors)
-- **Blocked on:** Destination confirmation from leadership
-
----
 
 ### zKillboard Feed Enhancements
 **Why:** Current feed is basic — need better filtering and analysis for fleet intel.
@@ -92,7 +80,7 @@
 
 ### Regional Intel Aggregation
 **Why:** Need early warning from neighboring regions before hostiles reach LAWN.
-- Monitor Vale of the Silent (north gate — UDVW-O), Geminate (northwest), Etherium Reach (south), Malpais (east)
+- Monitor Perrigen's neighbour regions: Etherium Reach, Malpais, Oasa, Outer Passage, The Spire, Venal — all auto-resolved from the bootstrap's gate walk
 - Track large fleet movements via jump spikes
 - Flag new sovereignty changes in adjacent constellations
 - "Threat corridor" view — show activity along the 2 entry routes into LAWN space

@@ -1,6 +1,6 @@
-# LAWN Eve Intel Dashboard
+# EVE Alliance Intel Dashboard
 
-Real-time sovereignty and intel monitoring for EVE Online nullsec space. Built for **Get Off My Lawn [LAWN]** alliance in The Kalevala Expanse.
+Real-time sovereignty and intel monitoring for EVE Online nullsec space. Currently configured for **Get Off My Lawn [LAWN]** in **Perrigen Falls**, but the codebase is alliance/region agnostic — bootstrap a new deployment for any alliance in any region with `tools/bootstrap_deployment.py`.
 
 ## Features
 
@@ -26,8 +26,13 @@ Real-time sovereignty and intel monitoring for EVE Online nullsec space. Built f
 lawn-eve-intel-dashboard/
 ├── app.py                   # Live entry point — registers ESI-backed blueprints
 ├── demo.py                  # Demo entry point — registers mock blueprints
-├── config.py                # Alliance IDs, constellation IDs, upgrade data
-├── db.py                    # SQLite persistence (ADM + activity snapshots)
+├── config.py                # Thin re-export of the active deployment + game-wide constants
+├── eve_constants.py         # Game-wide constants (ESI URLs, TTLs, upgrade catalog, planet types)
+├── deployments/             # One module per (alliance, region) pair
+│   ├── __init__.py          # Loader: picks ACTIVE from DEPLOYMENT env var
+│   ├── lawn_perrigen.py     # Active deployment (LAWN in Perrigen Falls)
+│   └── example.py           # Commented template for new deployments
+├── db.py                    # SQLite persistence (deployment-scoped via deployment_id)
 ├── esi_client.py            # ESI API wrapper with TTL caching
 │
 ├── routes/                  # Live Flask blueprints
@@ -53,9 +58,9 @@ lawn-eve-intel-dashboard/
 │       ├── main.jsx
 │       ├── App.jsx          # Root component — state, fetching, tab nav
 │       ├── styles/global.css
-│       ├── data/mapData.js  # MAP_LAYOUT, MAP_LAYOUT_SUBWAY, MAP_CONNECTIONS
-│       ├── utils/           # admHelpers, campaignHelpers, formatters, upgradeHelpers
+│       ├── utils/           # admHelpers, campaignHelpers, formatters, upgradeHelpers, mapHelpers
 │       └── components/      # 14 feature components + 3 common components
+│   (map layout is served by `/api/config` — no static map module)
 │
 ├── static/
 │   ├── index.html           # Legacy CDN-React fallback (no build step required)
@@ -63,7 +68,8 @@ lawn-eve-intel-dashboard/
 │   └── dist/                # Vite build output (gitignored, served by Flask in prod)
 │
 ├── tools/
-│   └── esi_lookup.py        # CLI: resolve system/alliance/corp names to IDs
+│   ├── esi_lookup.py        # CLI: resolve system/alliance/corp names to IDs
+│   └── bootstrap_deployment.py  # CLI: scaffold a new deployment from ESI
 │
 ├── Dockerfile               # Multi-stage: Node (Vite build) → Python (gunicorn)
 ├── docker-compose.yml       # Production container config
@@ -264,30 +270,36 @@ Certbot auto-renews via a systemd timer — no manual action needed after setup.
 
 ## Configuration
 
-### Monitored systems (`config.py`)
+### Switching deployments
 
-```python
-LAWN_CONSTELLATION_IDS = [
-    20000414,  # 6-CBBM
-    20000423,  # 2Q-8WA
-]
-LAWN_ALLIANCE_ID = 150097440          # Get Off My Lawn [LAWN]
-FRIENDLY_ALLIANCE_IDS = [
-    99012845,   # BorderZone [BOZON]
-    99013982,   # Gnomes Rising HoA [GNOME]
-    99008788,   # The Skeleton Crew [MEAN]
-    99010468,   # Weapons Of Mass Production [WOMP]
-]
+The dashboard ships with one deployment configured (`deployments/lawn_perrigen.py`). To run a different one:
+
+```fish
+DEPLOYMENT=other_deployment python app.py
 ```
 
-### Sovereignty upgrades (`config.py`)
+To create a new deployment for any alliance/region, run the bootstrap tool:
 
-`SYSTEM_UPGRADES` maps system names to installed iHub upgrades. Update manually when upgrades change in-game — ESI doesn't expose iHub fittings without SSO auth.
+```fish
+python tools/bootstrap_deployment.py \
+    --name some-alliance-region \
+    --alliance "Some Alliance Name" \
+    --region "Some Region" \
+    --constellations "AAAA-A,BBBB-B" \
+    --inherit-from deployments/lawn_perrigen.py    # copies friendlies / NEIGHBOR_ENTITIES
+```
+
+It resolves ESI IDs, walks the gate graph for the whole region, fetches PI data per primary system, generates an auto-layout for `MAP_LAYOUT` / `MAP_LAYOUT_SUBWAY`, and writes a complete deployment module to `deployments/<name>.py`. Hand-tune `MAP_LAYOUT` positions afterwards — auto-layout produces something usable but not pretty.
+
+### Sovereignty upgrades
+
+`SYSTEM_UPGRADES` in the active deployment module maps system names to installed iHub upgrades. Update manually when upgrades change in-game — ESI doesn't expose iHub fittings without SSO auth.
 
 ```python
+# in deployments/lawn_perrigen.py
 SYSTEM_UPGRADES = {
-    "1-KCSA": [{"type": "mTD", "level": 1}, {"type": "MTD", "level": 3}],
-    ...
+    "9BGY-6 I": [{"type": "mTD", "level": 1}, {"type": "MTD", "level": 3}],
+    # ...
 }
 ```
 
@@ -295,6 +307,7 @@ SYSTEM_UPGRADES = {
 
 | Variable | Default | Description |
 |----------|---------|-------------|
+| `DEPLOYMENT` | `lawn_perrigen` | Active deployment module under `deployments/` |
 | `FLASK_DEBUG` | `false` | Enable Flask debug/reloader (never true in production) |
 | `FLASK_PORT` | `5000` | Port Flask listens on (overridden to 5001 for demo alongside live) |
 | `TIMER_PASSWORD` | `REDACTED` | Password for timerboard add/delete |
@@ -308,7 +321,7 @@ Resolve names to numeric IDs for `config.py`:
 ```fish
 source .venv/bin/activate.fish
 python tools/esi_lookup.py alliance  "Get Off My Lawn"
-python tools/esi_lookup.py system    "UDVW-O"
+python tools/esi_lookup.py system    "9BGY-6"
 python tools/esi_lookup.py zkill     "Deepwater Hooligans"
 ```
 
