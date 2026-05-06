@@ -26,6 +26,8 @@ const checkedFetch = (url) => fetch(url).then(r => {
     return r.json()
 })
 
+const isPrimaryConst = (c) => c.is_primary ?? c.is_lawn
+
 export default function App() {
     const [config, setConfig] = useState(null)
     const [sovereignty, setSovereignty] = useState({})
@@ -39,7 +41,7 @@ export default function App() {
     const [error, setError] = useState(null)
     const [refreshing, setRefreshing] = useState(false)
     const [lastUpdate, setLastUpdate] = useState(null)
-    const [activeConst, setActiveConst] = useState("lawn")
+    const [activeConst, setActiveConst] = useState("primary")
     const [selectedSystem, setSelectedSystem] = useState(null)
     const [mapMode, setMapMode] = useState("subway")
     const [isMobile, setIsMobile] = useState(() => window.innerWidth < 640)
@@ -63,17 +65,18 @@ export default function App() {
             checkedFetch("/api/jumpbridges").then(setJumpBridges).catch(e => console.warn("Jump bridges unavailable:", e.message))
             setLastUpdate(new Date()); setError(null)
 
-            // Build LAWN sys lookup from fresh config and check for alert-worthy changes
+            // Build primary sys lookup from fresh config and check for alert-worthy changes
             if (cfg && cfg.constellations) {
-                const lawnIds = new Set()
+                const primaryIds = new Set()
                 const names = {}
                 Object.values(cfg.constellations).forEach(c => {
                     Object.values(c.systems).forEach(s => {
                         names[s.system_id] = s.name
-                        if (c.is_lawn) lawnIds.add(String(s.system_id))
+                        if (isPrimaryConst(c)) primaryIds.add(String(s.system_id))
                     })
                 })
-                checkAndNotify(camp, sov, act, lawnIds, names)
+                const allianceShort = cfg?.alliance?.short_name || cfg?.alliance?.ticker || 'PRIMARY'
+                checkAndNotify(camp, sov, act, primaryIds, names, allianceShort)
             }
         } catch (err) { if (init) setError(err.message) }
         finally { setLoading(false); setRefreshing(false) }
@@ -91,10 +94,10 @@ export default function App() {
         return () => window.removeEventListener('resize', handler)
     }, [])
 
-    const lawnSysIdSet = useMemo(() => {
+    const primarySysIdSet = useMemo(() => {
         if (!config?.constellations) return new Set()
         const s = new Set()
-        Object.values(config.constellations).filter(c => c.is_lawn).forEach(c =>
+        Object.values(config.constellations).filter(isPrimaryConst).forEach(c =>
             Object.values(c.systems).forEach(sys => s.add(String(sys.system_id)))
         )
         return s
@@ -110,17 +113,23 @@ export default function App() {
     if (error || !config || !config.constellations) return (
         <div className="error-panel">
             <h3>{error ? "CONNECTION FAILED" : "NO DATA"}</h3>
-            <p>{error || "Check config.py"}</p>
+            <p>{error || "Check the active deployment in deployments/"}</p>
         </div>
     )
 
+    const alliance = config.alliance || {}
+    const allianceShort = alliance.short_name || alliance.ticker || "PRIMARY"
+    const allianceDisplay = alliance.display_name || alliance.name || allianceShort
+    const regionName = config.region?.name || ""
     const consts = config.constellations
     const cids = Object.keys(consts)
-    const lawnCids = cids.filter(c => consts[c].is_lawn)
+    const primaryCids = cids.filter(c => isPrimaryConst(consts[c]))
+    const totalRegionSystems = Object.values(consts).reduce((s, c) => s + Object.keys(c.systems || {}).length, 0)
+    const totalNeighborSystems = Object.keys(config.neighbor_systems || {}).length
 
     let visible = []
-    if (activeConst === "lawn") {
-        lawnCids.forEach(c => Object.values(consts[c].systems).forEach(s => visible.push(s)))
+    if (activeConst === "primary") {
+        primaryCids.forEach(c => Object.values(consts[c].systems).forEach(s => visible.push(s)))
     } else if (activeConst === "all") {
         cids.forEach(c => Object.values(consts[c].systems).forEach(s => visible.push(s)))
     } else {
@@ -133,13 +142,17 @@ export default function App() {
     const hostile = visible.filter(s => { const sv = sovereignty[s.system_id]; return sv && sv.alliance_name && !sv.is_friendly }).length
     const criticalSystems = visible.filter(s => {
         const sov = sovereignty[s.system_id]
-        return lawnSysIdSet.has(String(s.system_id)) && sov && sov.adm > 0 && sov.adm < 2
+        return primarySysIdSet.has(String(s.system_id)) && sov && sov.adm > 0 && sov.adm < 2
     }).length
 
-    const lawnSystems = Object.values(consts).filter(c => c.is_lawn).flatMap(c => Object.values(c.systems))
-    const lawnPVP = lawnSystems.reduce((s, v) => { const a = activity[v.system_id] || {}; return s + (a.ship_kills || 0) + (a.pod_kills || 0) }, 0)
-    const lawnNPC = lawnSystems.reduce((s, v) => s + ((activity[v.system_id] || {}).npc_kills || 0), 0)
-    const lawnJumps = lawnSystems.reduce((s, v) => s + ((activity[v.system_id] || {}).jumps || 0), 0)
+    const primarySystems = Object.values(consts).filter(isPrimaryConst).flatMap(c => Object.values(c.systems))
+    const { primaryPVP, primaryNPC, primaryJumps } = primarySystems.reduce((acc, v) => {
+        const a = activity[v.system_id] || {}
+        acc.primaryPVP += (a.ship_kills || 0) + (a.pod_kills || 0)
+        acc.primaryNPC += (a.npc_kills || 0)
+        acc.primaryJumps += (a.jumps || 0)
+        return acc
+    }, { primaryPVP: 0, primaryNPC: 0, primaryJumps: 0 })
 
     // Panels grouped for conditional rendering
     const summaryPanels = (
@@ -172,14 +185,14 @@ export default function App() {
             <div className="panel panel-wide">
                 <CornerBrackets />
                 <div className="panel-header">
-                    <span className="panel-title">LAWN Alliance Activity</span>
-                    <span className="panel-badge">15 systems · Last hour</span>
+                    <span className="panel-title">{allianceShort} Alliance Activity</span>
+                    <span className="panel-badge">{primarySystems.length} systems · Last hour</span>
                 </div>
                 <div className="summary-row">
-                    <SummaryCard label="Alliance PVP" value={lawnPVP} type={lawnPVP > 15 ? "danger" : lawnPVP > 5 ? "warn" : "safe"} />
-                    <SummaryCard label="Alliance NPC" value={lawnNPC.toLocaleString()} />
-                    <SummaryCard label="Alliance Jumps" value={lawnJumps.toLocaleString()} type={lawnJumps > 300 ? "warn" : "default"} />
-                    <SummaryCard label="Avg Activity" value={lawnSystems.length > 0 ? Math.round((lawnPVP + lawnNPC / 10 + lawnJumps / 20) / lawnSystems.length) : 0} />
+                    <SummaryCard label="Alliance PVP" value={primaryPVP} type={primaryPVP > 15 ? "danger" : primaryPVP > 5 ? "warn" : "safe"} />
+                    <SummaryCard label="Alliance NPC" value={primaryNPC.toLocaleString()} />
+                    <SummaryCard label="Alliance Jumps" value={primaryJumps.toLocaleString()} type={primaryJumps > 300 ? "warn" : "default"} />
+                    <SummaryCard label="Avg Activity" value={primarySystems.length > 0 ? Math.round((primaryPVP + primaryNPC / 10 + primaryJumps / 20) / primarySystems.length) : 0} />
                 </div>
             </div>
         </>
@@ -195,7 +208,7 @@ export default function App() {
                         <button className={`map-mode-btn ${mapMode === 'traditional' ? 'active' : ''}`} onClick={() => setMapMode('traditional')}>Traditional</button>
                         <button className={`map-mode-btn ${mapMode === 'subway' ? 'active' : ''}`} onClick={() => setMapMode('subway')}>Subway</button>
                     </div>
-                    <span className="panel-badge">69 systems + 18 neighbors</span>
+                    <span className="panel-badge">{totalRegionSystems} systems + {totalNeighborSystems} neighbors</span>
                 </div>
             </div>
             <ConstellationMap
@@ -222,17 +235,17 @@ export default function App() {
             </div>
             <div className="const-tabs">
                 <button
-                    className={`const-tab ${activeConst === 'lawn' ? 'active' : ''}`}
-                    onClick={() => setActiveConst('lawn')}
-                    style={activeConst === 'lawn' ? { borderColor: 'var(--green-dim)', color: 'var(--green)' } : {}}
-                >LAWN</button>
-                <button className={`const-tab ${activeConst === 'all' ? 'active' : ''}`} onClick={() => setActiveConst('all')}>ALL TKE</button>
+                    className={`const-tab ${activeConst === 'primary' ? 'active' : ''}`}
+                    onClick={() => setActiveConst('primary')}
+                    style={activeConst === 'primary' ? { borderColor: 'var(--green-dim)', color: 'var(--green)' } : {}}
+                >{allianceShort}</button>
+                <button className={`const-tab ${activeConst === 'all' ? 'active' : ''}`} onClick={() => setActiveConst('all')}>ALL {regionName ? regionName.toUpperCase() : 'REGION'}</button>
                 {cids.map(c => (
                     <button
                         key={c}
                         className={`const-tab ${activeConst === c ? 'active' : ''}`}
                         onClick={() => setActiveConst(c)}
-                        style={consts[c].is_lawn ? { borderLeftColor: 'var(--green-dim)', borderLeftWidth: 2 } : {}}
+                        style={isPrimaryConst(consts[c]) ? { borderLeftColor: 'var(--green-dim)', borderLeftWidth: 2 } : {}}
                     >{consts[c].name}</button>
                 ))}
             </div>
@@ -242,7 +255,7 @@ export default function App() {
                 activity={activity}
                 selectedSystem={selectedSystem}
                 onSelectSystem={setSelectedSystem}
-                lawnSystemIds={lawnSysIdSet}
+                lawnSystemIds={primarySysIdSet}
                 config={config}
                 annotations={annotations}
             />
@@ -255,8 +268,8 @@ export default function App() {
                 <div className="header-left">
                     <img src="/static/logo.png" alt="" style={{ height: 40, marginRight: 12, display: 'block' }} onError={(e) => { e.target.style.display = 'none' }} />
                     <div>
-                        <div className="logo-text">GET OFF MY LAWN</div>
-                        <div className="logo-sub" style={{ marginTop: '4px' }}>KALEVALA EXPANSE — INTEL DASHBOARD</div>
+                        <div className="logo-text">{allianceDisplay}</div>
+                        <div className="logo-sub" style={{ marginTop: '4px' }}>{regionName.toUpperCase()} — INTEL DASHBOARD</div>
                     </div>
                 </div>
                 <div className="status-bar">
@@ -291,7 +304,7 @@ export default function App() {
                 {(!isMobile || mobileTab === 1) && systemStatusPanel}
 
                 {/* Tab 2: Kills — kill feed */}
-                {(!isMobile || mobileTab === 2) && <KillFeed kills={killFeed} />}
+                {(!isMobile || mobileTab === 2) && <KillFeed kills={killFeed} config={config} />}
 
                 {/* Tab 3+4: Campaign alerts + Timers — side by side on tablet+ */}
                 {(!isMobile || mobileTab === 3 || mobileTab === 4) && (
@@ -302,7 +315,7 @@ export default function App() {
                 )}
 
                 {/* Tab 5: Industry — PI */}
-                {(!isMobile || mobileTab === 5) && <PlanetaryIntel />}
+                {(!isMobile || mobileTab === 5) && <PlanetaryIntel config={config} />}
 
                 {/* Tab 2: Kills — activity heatmap */}
                 {(!isMobile || mobileTab === 2) && <ActivityHeatmap config={config} sovereignty={sovereignty} lastUpdate={lastUpdate} />}

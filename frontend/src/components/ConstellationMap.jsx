@@ -1,9 +1,18 @@
-import React, { useState, useRef, useEffect } from 'react'
-import { MAP_LAYOUT, MAP_LAYOUT_SUBWAY, MAP_CONNECTIONS } from '../data/mapData'
+import React, { useState, useRef, useEffect, useMemo } from 'react'
 import { getAdmColor } from '../utils/admHelpers'
 import { getCampaignPhase, formatCountdown, formatVulnWindow } from '../utils/campaignHelpers'
 import { getSystemUpgrades, getUpgradeSummary, UPGRADE_CATEGORY_COLORS } from '../utils/upgradeHelpers'
+import {
+    constellationColor,
+    constellationBounds,
+    viewBoxFor,
+    neighbourRegionGroups,
+    gatewayDestinations,
+} from '../utils/mapHelpers'
 import UpgradeBadges from './common/UpgradeBadges'
+
+const EMPTY_LAYOUT = {}
+const EMPTY_CONNECTIONS = []
 
 export default function ConstellationMap({ config, sovereignty, activity, campaigns, selectedSystem, onSelectSystem, mapMode = "subway", annotations = {}, onAnnotationChange, jumpBridges = [] }) {
     const [tooltip, setTooltip] = useState(null)
@@ -13,6 +22,13 @@ export default function ConstellationMap({ config, sovereignty, activity, campai
     const touchStateRef = useRef(null)
     const mapContainerRef = useRef(null)
 
+    const allianceShort = config?.alliance?.short_name || config?.alliance?.ticker || "PRIMARY"
+    const regionLabel = config?.region?.name || ""
+    const layoutTraditional = config?.map_layout || EMPTY_LAYOUT
+    const layoutSubway = config?.map_layout_subway || EMPTY_LAYOUT
+    const connections = config?.map_connections || EMPTY_CONNECTIONS
+    const borderSystems = config?.border_systems || []
+
     useEffect(() => {
         if (!annotationEditor) return
         const handler = (e) => { if (e.key === 'Escape') setAnnotationEditor(null) }
@@ -20,7 +36,6 @@ export default function ConstellationMap({ config, sovereignty, activity, campai
         return () => window.removeEventListener('keydown', handler)
     }, [annotationEditor])
 
-    // Attach non-passive touchmove listener to prevent page scroll while panning
     useEffect(() => {
         const el = mapContainerRef.current
         if (!el) return
@@ -88,23 +103,23 @@ export default function ConstellationMap({ config, sovereignty, activity, campai
     const isTouchTransformed = touchTransform.scale !== 1 || touchTransform.x !== 0 || touchTransform.y !== 0
 
     const isSubway = mapMode === "subway"
-    const activeLayout = isSubway ? MAP_LAYOUT_SUBWAY : MAP_LAYOUT
-    const activeViewBox = isSubway ? "-10 -30 1180 1000" : "-40 -20 1220 790"
-    const vbWidth = isSubway ? 1180 : 1220
-    const vbHeight = isSubway ? 1000 : 790
+    const activeLayout = isSubway ? layoutSubway : layoutTraditional
+    const { vb: activeViewBox, w: vbWidth, h: vbHeight } = useMemo(
+        () => viewBoxFor(activeLayout, mapMode),
+        [activeLayout, mapMode]
+    )
 
-    // Build name<->ID mappings from ALL constellations + neighbors
     const nameToId = {}
     const idToName = {}
-    const lawnConstellationIds = new Set((config && config.lawn_constellation_ids || []).map(String))
-    const lawnSystemIds = new Set()
+    const primaryConstIds = new Set((config?.primary_constellation_ids || []).map(String))
+    const primarySystemIds = new Set()
     if (config && config.constellations) {
         Object.entries(config.constellations).forEach(([cid, c]) => {
-            const isLawn = c.is_lawn || lawnConstellationIds.has(String(cid))
+            const isPrimary = c.is_primary || c.is_lawn || primaryConstIds.has(String(cid))
             Object.values(c.systems).forEach(sys => {
                 nameToId[sys.name] = String(sys.system_id)
                 idToName[String(sys.system_id)] = sys.name
-                if (isLawn) lawnSystemIds.add(String(sys.system_id))
+                if (isPrimary) primarySystemIds.add(String(sys.system_id))
             })
         })
     }
@@ -115,28 +130,24 @@ export default function ConstellationMap({ config, sovereignty, activity, campai
         })
     }
 
+    const primaryConstellationNames = useMemo(() => {
+        const set = new Set()
+        Object.values(activeLayout).forEach(p => {
+            if (p.lawn && p.constellation) set.add(p.constellation)
+        })
+        return [...set].sort()
+    }, [activeLayout])
+
+    const neighbourRegions = useMemo(() => neighbourRegionGroups(activeLayout), [activeLayout])
+    const gatewayLabels = useMemo(() => gatewayDestinations(activeLayout, connections), [activeLayout, connections])
+    const gatewaySystems = useMemo(() => new Set(borderSystems), [borderSystems])
+
     function getColor(name) {
         const layout = activeLayout[name]
         if (!layout) return "#3a5060"
-
-        if (layout.constellation === "neighbor") {
-            return "#444455"
-        }
-
-        if (layout.lawn || layout.constellation === "6-CBBM" || layout.constellation === "2Q-8WA") {
-            return "#00ff88"
-        }
-
-        if (layout.constellation === "S4S-SD") return "#668844"
-        if (layout.constellation === "3NA-Z1") return "#667744"
-        if (layout.constellation === "78-6RI") return "#446688"
-        if (layout.constellation === "U-HSM3") return "#445577"
-        if (layout.constellation === "2O-VY7") return "#444466"
-        if (layout.constellation === "8UD2-J") return "#554466"
-        if (layout.constellation === "XPG-HE") return "#664455"
-        if (layout.constellation === "P-B2NE") return "#553355"
-
-        return "#555555"
+        if (layout.constellation === "neighbor") return "#444455"
+        if (layout.lawn) return "#00ff88"
+        return constellationColor(layout.constellation)
     }
 
     function getPvpGlow(name) {
@@ -184,8 +195,6 @@ export default function ConstellationMap({ config, sovereignty, activity, campai
         return adm >= 2 && adm < 4
     }
 
-    const GATEWAY_SYSTEMS = ["UDVW-O", "N-JK02"]
-
     function getConnectionStyle(from, to, type) {
         if (!isSubway) {
             const styles = {
@@ -196,13 +205,13 @@ export default function ConstellationMap({ config, sovereignty, activity, campai
             }
             return styles[type] || styles.internal
         }
-        const fromLawn = activeLayout[from]?.lawn
-        const toLawn = activeLayout[to]?.lawn
-        const bothLawn = fromLawn && toLawn
+        const fromPrimary = activeLayout[from]?.lawn
+        const toPrimary = activeLayout[to]?.lawn
+        const bothPrimary = fromPrimary && toPrimary
 
-        if (bothLawn && type === "internal") return { stroke: "#00ff88", width: 3, dash: "none", opacity: 1.0, cap: "round" }
-        if (bothLawn && type === "cross") return { stroke: "#00d4ff", width: 2.5, dash: "8 4", opacity: 1.0, cap: "round" }
-        if ((fromLawn || toLawn) && !bothLawn) return { stroke: "#ffaa00", width: 2.5, dash: "6 4", opacity: 0.9, cap: "round" }
+        if (bothPrimary && type === "internal") return { stroke: "#00ff88", width: 3, dash: "none", opacity: 1.0, cap: "round" }
+        if (bothPrimary && type === "cross") return { stroke: "#00d4ff", width: 2.5, dash: "8 4", opacity: 1.0, cap: "round" }
+        if ((fromPrimary || toPrimary) && !bothPrimary) return { stroke: "#ffaa00", width: 2.5, dash: "6 4", opacity: 0.9, cap: "round" }
 
         if (type === "neighbor") return { stroke: "#252535", width: 0.8, dash: "none", opacity: 0.4 }
         if (type === "regional") return { stroke: "#774466", width: 1, dash: "6 4", opacity: 0.5 }
@@ -251,7 +260,7 @@ export default function ConstellationMap({ config, sovereignty, activity, campai
             npc: act.npc_kills || 0,
             jumps: act.jumps || 0,
             isNeighbor: layout.constellation === "neighbor",
-            isLawn: !!layout.lawn,
+            isPrimary: !!layout.lawn,
             note: layout.note || (neighborInfo ? neighborInfo.region_name : null),
             vulnerable_start_time: sov.vulnerable_start_time || null,
             vulnerable_end_time: sov.vulnerable_end_time || null,
@@ -259,12 +268,12 @@ export default function ConstellationMap({ config, sovereignty, activity, campai
     }
 
     const sortedConnections = isSubway
-        ? [...MAP_CONNECTIONS].sort((a, b) => {
-            const aLawn = (activeLayout[a[0]]?.lawn && activeLayout[a[1]]?.lawn) ? 1 : 0
-            const bLawn = (activeLayout[b[0]]?.lawn && activeLayout[b[1]]?.lawn) ? 1 : 0
-            return aLawn - bLawn
+        ? [...connections].sort((a, b) => {
+            const aPrimary = (activeLayout[a[0]]?.lawn && activeLayout[a[1]]?.lawn) ? 1 : 0
+            const bPrimary = (activeLayout[b[0]]?.lawn && activeLayout[b[1]]?.lawn) ? 1 : 0
+            return aPrimary - bPrimary
         })
-        : MAP_CONNECTIONS
+        : connections
 
     return (
         <div style={{ position: 'relative' }}>
@@ -298,40 +307,53 @@ export default function ConstellationMap({ config, sovereignty, activity, campai
                         <filter id="glow-amber"><feGaussianBlur stdDeviation="3" result="b" /><feMerge><feMergeNode in="b" /><feMergeNode in="SourceGraphic" /></feMerge></filter>
                         <filter id="glow-green"><feGaussianBlur stdDeviation="5" result="b" /><feMerge><feMergeNode in="b" /><feMergeNode in="SourceGraphic" /></feMerge></filter>
                     </defs>
-                    <rect x={isSubway ? -10 : -40} y={isSubway ? -30 : -20} width={vbWidth} height={vbHeight} fill="#030608" />
-                    <rect x={isSubway ? -10 : -40} y={isSubway ? -10 : -20} width={vbWidth} height={vbHeight} fill="url(#grid)" />
+                    <rect x={-2000} y={-2000} width={6000} height={6000} fill="#030608" />
+                    <rect x={-2000} y={-2000} width={6000} height={6000} fill="url(#grid)" />
 
-                    {isSubway ? (
-                        <>
-                            <rect x="270" y="-15" width="370" height="470" rx="6" fill="rgba(0,255,136,0.015)" stroke="rgba(0,255,136,0.06)" strokeWidth="1" strokeDasharray="6 4" />
-                            <text x="282" y="450" fontFamily="Orbitron, sans-serif" fontSize="11" fill="rgba(0,255,136,0.2)" letterSpacing="2">6-CBBM</text>
-                            <rect x="670" y="-15" width="460" height="270" rx="6" fill="rgba(0,255,136,0.015)" stroke="rgba(0,255,136,0.06)" strokeWidth="1" strokeDasharray="6 4" />
-                            <text x="682" y="250" fontFamily="Orbitron, sans-serif" fontSize="11" fill="rgba(0,255,136,0.2)" letterSpacing="2">2Q-8WA</text>
-                        </>
-                    ) : (
-                        <>
-                            <rect x="460" y="30" width="210" height="162" rx="4" fill="none" stroke="#0a3020" strokeWidth="1.5" strokeDasharray="4 4" />
-                            <text x="470" y="44" fontFamily="Orbitron, sans-serif" fontSize="9" fill="#0d3828" letterSpacing="2">6-CBBM</text>
-                            <rect x="748" y="0" width="360" height="132" rx="4" fill="none" stroke="#0a3020" strokeWidth="1.5" strokeDasharray="4 4" />
-                            <text x="758" y="14" fontFamily="Orbitron, sans-serif" fontSize="9" fill="#0d3828" letterSpacing="2">2Q-8WA</text>
-                        </>
-                    )}
+                    {primaryConstellationNames.map(cname => {
+                        const bounds = constellationBounds(activeLayout, cname)
+                        if (!bounds) return null
+                        return (
+                            <g key={`const-${cname}`}>
+                                <rect
+                                    x={bounds.x} y={bounds.y}
+                                    width={bounds.width} height={bounds.height}
+                                    rx={6}
+                                    fill={isSubway ? "rgba(0,255,136,0.015)" : "none"}
+                                    stroke={isSubway ? "rgba(0,255,136,0.06)" : "#0a3020"}
+                                    strokeWidth={isSubway ? 1 : 1.5}
+                                    strokeDasharray={isSubway ? "6 4" : "4 4"}
+                                />
+                                <text
+                                    x={bounds.x + 12}
+                                    y={bounds.y + bounds.height - 8}
+                                    fontFamily="Orbitron, sans-serif"
+                                    fontSize={isSubway ? 11 : 9}
+                                    fill={isSubway ? "rgba(0,255,136,0.25)" : "#0d3828"}
+                                    letterSpacing="2"
+                                >{cname}</text>
+                            </g>
+                        )
+                    })}
 
-                    {isSubway ? (
-                        <>
-                            <text x="50" y="50" fontFamily="Share Tech Mono, monospace" fontSize="7" fill="#222233" letterSpacing="1" fontStyle="italic">Geminate</text>
-                            <text x="100" y="8" fontFamily="Share Tech Mono, monospace" fontSize="7" fill="#222233" letterSpacing="1" fontStyle="italic">Vale of the Silent</text>
-                            <text x="720" y="440" fontFamily="Share Tech Mono, monospace" fontSize="7" fill="#222233" letterSpacing="1" fontStyle="italic">Etherium Reach</text>
-                            <text x="940" y="620" fontFamily="Share Tech Mono, monospace" fontSize="7" fill="#222233" letterSpacing="1" fontStyle="italic">Malpais</text>
-                        </>
-                    ) : (
-                        <>
-                            <text x="90" y="25" fontFamily="Share Tech Mono, monospace" fontSize="8" fill="#333344" letterSpacing="1" fontStyle="italic">Geminate</text>
-                            <text x="245" y="-4" fontFamily="Share Tech Mono, monospace" fontSize="8" fill="#333344" letterSpacing="1" fontStyle="italic">Vale of the Silent</text>
-                        </>
-                    )}
+                    {Object.entries(neighbourRegions).map(([rname, members]) => {
+                        const xs = members.map(m => m.x)
+                        const ys = members.map(m => m.y)
+                        return (
+                            <text
+                                key={`nb-${rname}`}
+                                x={Math.min(...xs)}
+                                y={Math.min(...ys) - 12}
+                                fontFamily="Share Tech Mono, monospace"
+                                fontSize={isSubway ? 7 : 8}
+                                fill={isSubway ? "#222233" : "#333344"}
+                                letterSpacing="1"
+                                fontStyle="italic"
+                            >{rname}</text>
+                        )
+                    })}
 
-                    {sortedConnections.map(([from, to, type], i) => {
+                    {sortedConnections.map(([from, to, type]) => {
                         const a = activeLayout[from], b = activeLayout[to]
                         if (!a || !b) return null
                         const s = getConnectionStyle(from, to, type)
@@ -357,8 +379,8 @@ export default function ConstellationMap({ config, sovereignty, activity, campai
 
                     {Object.entries(activeLayout).map(([name, pos]) => {
                         const isN = pos.constellation === "neighbor"
-                        const isLawn = pos.lawn
-                        const isGateway = isSubway && GATEWAY_SYSTEMS.includes(name)
+                        const isPrimary = pos.lawn
+                        const isGateway = isSubway && gatewaySystems.has(name)
                         const color = getColor(name)
                         const pvp = getPvpGlow(name)
                         const npc = getNpcRing(name)
@@ -381,27 +403,25 @@ export default function ConstellationMap({ config, sovereignty, activity, campai
                         } else if (isN) {
                             r = 3; nameSize = 7; nameOff = 8; admSize = 0; admOff = 0
                             nodeOpacity = 0.55; nameFill = "#555565"; nodeStroke = 1; nodeFill = "#080810"
-                        } else if (isLawn) {
+                        } else if (isPrimary) {
                             r = isGateway ? 12 : 10
                             nameSize = 13; nameOff = isGateway ? 22 : 18
                             admSize = 11; admOff = isGateway ? 28 : 24
                             nodeOpacity = 1; nameFill = "#e0fff0"; nodeStroke = isGateway ? 3 : 2.5; nodeFill = "#0a1a10"
-                        } else if (pos.constellation === "S4S-SD") {
-                            r = 4.5; nameSize = 8; nameOff = 10; admSize = 0; admOff = 0
-                            nodeOpacity = 0.85; nameFill = color; nodeStroke = 1.2; nodeFill = "#060a0f"
                         } else {
                             r = 4; nameSize = 7.5; nameOff = 9; admSize = 0; admOff = 0
-                            nodeOpacity = 0.7; nameFill = color; nodeStroke = 1; nodeFill = "#060a0f"
+                            nodeOpacity = 0.8; nameFill = color; nodeStroke = 1; nodeFill = "#060a0f"
                         }
 
                         const critGrind = needsCriticalGrinding(name)
                         const cautGrind = needsCautionGrinding(name)
                         const strokeColor = critGrind ? "#ff3355" : cautGrind ? "#ffaa00" : color
-                        const strokeW = critGrind ? (isSubway && isLawn ? 4 : 3) : cautGrind ? (isSubway && isLawn ? 3 : 2) : nodeStroke
-                        const nodeFilter = critGrind ? "url(#glow-r)" : cautGrind ? "url(#glow-amber)" : (isSubway && isLawn ? "url(#glow-green)" : undefined)
+                        const strokeW = critGrind ? (isSubway && isPrimary ? 4 : 3) : cautGrind ? (isSubway && isPrimary ? 3 : 2) : nodeStroke
+                        const nodeFilter = critGrind ? "url(#glow-r)" : cautGrind ? "url(#glow-amber)" : (isSubway && isPrimary ? "url(#glow-green)" : undefined)
 
-                        const reffedR = isSubway ? (isLawn ? r + 8 : r + 6) : 16
-                        const selR = isSubway ? (isLawn ? r + 4 : r + 3) : 11
+                        const reffedR = isSubway ? (isPrimary ? r + 8 : r + 6) : 16
+                        const selR = isSubway ? (isPrimary ? r + 4 : r + 3) : 11
+                        const gatewayDest = isGateway ? gatewayLabels[name] : null
 
                         return (
                             <g key={name}
@@ -446,8 +466,8 @@ export default function ConstellationMap({ config, sovereignty, activity, campai
                                         />
                                     )
                                 })()}
-                                {npc && <circle cx={pos.x} cy={pos.y} r={isSubway && isLawn ? npc.r * 1.3 : npc.r} fill={`rgba(0,212,255,${npc.o})`} />}
-                                {pvp > 0 && <circle cx={pos.x} cy={pos.y} r={isSubway && isLawn ? pvp * 1.3 : pvp} fill="rgba(255,51,85,0.3)" filter="url(#glow-r)" />}
+                                {npc && <circle cx={pos.x} cy={pos.y} r={isSubway && isPrimary ? npc.r * 1.3 : npc.r} fill={`rgba(0,212,255,${npc.o})`} />}
+                                {pvp > 0 && <circle cx={pos.x} cy={pos.y} r={isSubway && isPrimary ? pvp * 1.3 : pvp} fill="rgba(255,51,85,0.3)" filter="url(#glow-r)" />}
                                 {isSel && <circle cx={pos.x} cy={pos.y} r={selR} fill="none" stroke="#00d4ff" strokeWidth="1.5" strokeDasharray="3 2" opacity={0.8} filter="url(#glow-c)" />}
                                 <circle cx={pos.x} cy={pos.y} r={r}
                                     fill={nodeFill}
@@ -459,10 +479,10 @@ export default function ConstellationMap({ config, sovereignty, activity, campai
                                 />
                                 {critGrind && (
                                     <text
-                                        x={pos.x + (isSubway && isLawn ? 14 : 9)}
-                                        y={pos.y - (isSubway && isLawn ? 12 : 8)}
+                                        x={pos.x + (isSubway && isPrimary ? 14 : 9)}
+                                        y={pos.y - (isSubway && isPrimary ? 12 : 8)}
                                         fontFamily="Orbitron, sans-serif"
-                                        fontSize={isSubway && isLawn ? "14" : "11"}
+                                        fontSize={isSubway && isPrimary ? "14" : "11"}
                                         fill="#ff3355"
                                         fontWeight="bold"
                                         opacity={0.95}
@@ -471,7 +491,7 @@ export default function ConstellationMap({ config, sovereignty, activity, campai
                                 {!isN && annotations[name] && (
                                     <circle
                                         cx={pos.x + r + 2} cy={pos.y - r - 2}
-                                        r={isSubway && isLawn ? 3.5 : 2.5}
+                                        r={isSubway && isPrimary ? 3.5 : 2.5}
                                         fill="#ffaa00" opacity={0.9}
                                     />
                                 )}
@@ -480,18 +500,18 @@ export default function ConstellationMap({ config, sovereignty, activity, campai
                                     fontFamily="Share Tech Mono, monospace"
                                     fontSize={nameSize}
                                     fill={nameFill}
-                                    opacity={isSubway ? (isN ? 0.4 : isLawn ? 1 : 0.7) : (isN ? 0.6 : 0.9)}
-                                    letterSpacing={isSubway && isLawn ? "1" : "0.5"}
-                                    fontWeight={isSubway && isLawn ? "bold" : "normal"}
-                                    stroke={isSubway && isLawn ? "#060a0f" : "none"}
-                                    strokeWidth={isSubway && isLawn ? 3 : 0}
-                                    paintOrder={isSubway && isLawn ? "stroke" : "normal"}
+                                    opacity={isSubway ? (isN ? 0.4 : isPrimary ? 1 : 0.7) : (isN ? 0.6 : 0.9)}
+                                    letterSpacing={isSubway && isPrimary ? "1" : "0.5"}
+                                    fontWeight={isSubway && isPrimary ? "bold" : "normal"}
+                                    stroke={isSubway && isPrimary ? "#060a0f" : "none"}
+                                    strokeWidth={isSubway && isPrimary ? 3 : 0}
+                                    paintOrder={isSubway && isPrimary ? "stroke" : "normal"}
                                 >{name}</text>
                                 {!isN && adm > 0 && admSize > 0 && (() => {
                                     const admText = adm.toFixed(1)
                                     const admCol = getAdmColor(adm)
                                     const admX = pos.x
-                                    const admY = pos.y + admOff + (isSubway && isLawn ? 2 : 0)
+                                    const admY = pos.y + admOff + (isSubway && isPrimary ? 2 : 0)
                                     if (isSubway) {
                                         const charW = admSize * 0.62
                                         const pillPadX = 4, pillPadY = 3
@@ -524,7 +544,7 @@ export default function ConstellationMap({ config, sovereignty, activity, campai
                                         >{admText}</text>
                                     )
                                 })()}
-                                {isLawn && (() => {
+                                {isPrimary && (() => {
                                     const upSummary = getUpgradeSummary(name, config)
                                     const cats = []
                                     if (upSummary.military > 0) cats.push(UPGRADE_CATEGORY_COLORS.military)
@@ -539,11 +559,8 @@ export default function ConstellationMap({ config, sovereignty, activity, campai
                                         <circle key={ci} cx={baseX + ci * dotGap} cy={baseY} r={dotR} fill={c} opacity={0.8} />
                                     ))
                                 })()}
-                                {isGateway && name === "UDVW-O" && (
-                                    <text x={pos.x - 25} y={pos.y} textAnchor="end" fontFamily="Orbitron, sans-serif" fontSize="9" fill="#ffaa00" opacity={0.85} letterSpacing="1">{'\u2192'} VALE</text>
-                                )}
-                                {isGateway && name === "N-JK02" && (
-                                    <text x={pos.x - 20} y={pos.y + 25} textAnchor="end" fontFamily="Orbitron, sans-serif" fontSize="9" fill="#ffaa00" opacity={0.85} letterSpacing="1">{'\u2192'} TKE</text>
+                                {isGateway && gatewayDest && (
+                                    <text x={pos.x} y={pos.y + r + 16} textAnchor="middle" fontFamily="Orbitron, sans-serif" fontSize="9" fill="#ffaa00" opacity={0.85} letterSpacing="1">{'→'} {gatewayDest.toUpperCase()}</text>
                                 )}
                                 {isN && pos.holder && (
                                     <text x={pos.x} y={pos.y + (isSubway ? 8 : 14)} textAnchor="middle" fontFamily="Share Tech Mono, monospace" fontSize="6" fill="#443300" opacity={isSubway ? 0.3 : 0.5}>{pos.holder}</text>
@@ -569,7 +586,7 @@ export default function ConstellationMap({ config, sovereignty, activity, campai
                             {tooltip.adm > 0 ? tooltip.adm.toFixed(1) : '—'}
                         </span>
                     </div>
-                    {tooltip.isLawn && tooltip.adm > 0 && tooltip.adm < 4 && (
+                    {tooltip.isPrimary && tooltip.adm > 0 && tooltip.adm < 4 && (
                         <div style={{
                             fontSize: 10,
                             color: tooltip.adm < 2 ? '#ff3355' : '#ffaa00',
@@ -626,7 +643,7 @@ export default function ConstellationMap({ config, sovereignty, activity, campai
                             </span>
                         </div>
                     )}
-                    {tooltip.isLawn && (() => {
+                    {tooltip.isPrimary && (() => {
                         const upgrades = getSystemUpgrades(tooltip.name, config)
                         if (upgrades.length === 0) return null
                         return (
@@ -720,7 +737,7 @@ export default function ConstellationMap({ config, sovereignty, activity, campai
                     <div style={{ width: 8, height: 8, background: 'transparent', border: '2px solid #ffaa00', borderRadius: '50%' }} />
                     <span>Caution (ADM 2-4)</span>
                 </div>
-                <div className="map-legend-item"><div className="map-legend-dot" style={{ background: '#00ff88' }} /><span>LAWN Sov</span></div>
+                <div className="map-legend-item"><div className="map-legend-dot" style={{ background: '#00ff88' }} /><span>{allianceShort} Sov</span></div>
                 <div className="map-legend-item"><div className="map-legend-dot" style={{ background: 'rgba(0,212,255,0.3)', border: '1px solid rgba(0,212,255,0.2)' }} /><span>NPC ratting</span></div>
                 <div className="map-legend-item"><div className="map-legend-dot" style={{ background: '#ff3355' }} /><span>PVP danger</span></div>
                 <div className="map-legend-item">
@@ -745,10 +762,10 @@ export default function ConstellationMap({ config, sovereignty, activity, campai
                             <div style={{ width: 10, height: 10, background: 'transparent', border: '2px solid #ffaa00', borderRadius: '50%', boxShadow: '0 0 0 2px transparent, 0 0 0 3px #ffaa0066' }} />
                             <span>Gateway (exit)</span>
                         </div>
-                        <div className="map-legend-item"><div style={{ width: 16, height: 0, borderTop: '3px solid #00ff88' }} /><span>LAWN gate</span></div>
-                        <div className="map-legend-item"><div style={{ width: 16, height: 0, borderTop: '2.5px dashed #00d4ff' }} /><span>LAWN bridge</span></div>
-                        <div className="map-legend-item"><div style={{ width: 16, height: 0, borderTop: '2.5px dashed #ffaa00' }} /><span>LAWN exit</span></div>
-                        <div className="map-legend-item"><div style={{ width: 16, height: 0, borderTop: '1px solid #1a2a35', opacity: 0.6 }} /><span>TKE gate</span></div>
+                        <div className="map-legend-item"><div style={{ width: 16, height: 0, borderTop: '3px solid #00ff88' }} /><span>{allianceShort} gate</span></div>
+                        <div className="map-legend-item"><div style={{ width: 16, height: 0, borderTop: '2.5px dashed #00d4ff' }} /><span>{allianceShort} bridge</span></div>
+                        <div className="map-legend-item"><div style={{ width: 16, height: 0, borderTop: '2.5px dashed #ffaa00' }} /><span>{allianceShort} exit</span></div>
+                        <div className="map-legend-item"><div style={{ width: 16, height: 0, borderTop: '1px solid #1a2a35', opacity: 0.6 }} /><span>{regionLabel || 'Region'} gate</span></div>
                         <div className="map-legend-item"><div style={{ width: 16, height: 0, borderTop: '1px dashed #663355', opacity: 0.5 }} /><span>Regional gate</span></div>
                     </>
                 ) : (

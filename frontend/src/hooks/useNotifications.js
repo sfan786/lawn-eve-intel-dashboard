@@ -63,18 +63,20 @@ export function useNotifications() {
 
     // Call after each non-init data fetch.
     // Compares new data vs last snapshot and fires notifications for changes.
-    const checkAndNotify = useCallback((campaigns, sovereignty, activity, lawnSysIds, sysNames) => {
+    // `allianceShort` is the active deployment's alliance ticker — used in the
+    // notification copy so alerts read correctly for any alliance.
+    const checkAndNotify = useCallback((campaigns, sovereignty, activity, primarySysIds, sysNames, allianceShort = 'PRIMARY') => {
         // Build current snapshot
         const campaignIds = new Set(campaigns.map(c => c.campaign_id))
         const admBySystem = {}
-        lawnSysIds.forEach(id => {
+        primarySysIds.forEach(id => {
             const sov = sovereignty[id]
             if (sov) admBySystem[id] = sov.adm
         })
-        let lawnPVP = 0
-        lawnSysIds.forEach(id => {
+        let primaryPVP = 0
+        primarySysIds.forEach(id => {
             const a = activity[id] || {}
-            lawnPVP += (a.ship_kills || 0) + (a.pod_kills || 0)
+            primaryPVP += (a.ship_kills || 0) + (a.pod_kills || 0)
         })
 
         const prev = prevRef.current
@@ -88,31 +90,32 @@ export function useNotifications() {
                                       c.event_type === 'tcu_defense' ? 'TCU' :
                                       c.event_type === 'station_defense' ? 'STATION' :
                                       (c.event_type || 'STRUCTURE').toUpperCase()
-                        const inLawn = c.is_lawn ? ' — LAWN SPACE' : ''
+                        const isPrimaryCampaign = c.is_primary ?? c.is_lawn
+                        const tag = isPrimaryCampaign ? ` — ${allianceShort} SPACE` : ''
                         sendNotif(
                             `⚠ SOV CAMPAIGN — ${c.system_name}`,
-                            `${label} contested${inLawn}`,
+                            `${label} contested${tag}`,
                             `campaign-${c.campaign_id}`
                         )
                     }
                 })
             }
 
-            // 2. LAWN PVP spike
+            // 2. Primary-space PVP spike
             if (settings.pvp) {
-                const delta = lawnPVP - prev.lawnPVP
+                const delta = primaryPVP - prev.primaryPVP
                 if (delta >= settings.pvpThreshold) {
                     sendNotif(
-                        `💀 PVP IN LAWN SPACE — ${delta} kills`,
-                        `${lawnPVP} total ship kills this hour in LAWN sov`,
-                        'lawn-pvp-spike'
+                        `💀 PVP IN ${allianceShort} SPACE — ${delta} kills`,
+                        `${primaryPVP} total ship kills this hour in ${allianceShort} sov`,
+                        'primary-pvp-spike'
                     )
                 }
             }
 
             // 3. ADM critical drop (system crosses below 2.0)
             if (settings.admCritical) {
-                lawnSysIds.forEach(id => {
+                primarySysIds.forEach(id => {
                     const prevAdm = prev.admBySystem[id]
                     const newAdm = admBySystem[id]
                     if (prevAdm !== undefined && prevAdm >= 2.0 && newAdm !== undefined && newAdm < 2.0) {
@@ -128,7 +131,7 @@ export function useNotifications() {
         }
 
         // Always update snapshot (including on init)
-        prevRef.current = { campaignIds, admBySystem, lawnPVP }
+        prevRef.current = { campaignIds, admBySystem, primaryPVP }
     }, [settings, sendNotif])
 
     return { settings, saveSettings, permStatus, requestPermission, checkAndNotify }

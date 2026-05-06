@@ -1,5 +1,10 @@
 """
 Demo mode - Run the dashboard with mock data for UI testing.
+
+Picks up the active deployment (DEPLOYMENT env var, default lawn_perrigen) so
+the demo always reflects the same alliance/region as live mode. Mock numbers
+are synthesized in mock/mock_data.py from the deployment's system list.
+
 Usage: python demo.py
        FLASK_PORT=5001 python demo.py   # run alongside live mode
 """
@@ -33,10 +38,13 @@ app = create_demo_app()
 
 if __name__ == "__main__":
     port = int(os.environ.get("FLASK_PORT", 5000))
-    tke = sum(len(c["systems"]) for c in MOCK_CONFIG["constellations"].values())
+    region_systems = sum(len(c["systems"]) for c in MOCK_CONFIG["constellations"].values())
     neighbors = len(MOCK_CONFIG["neighbor_systems"])
+    region_name = MOCK_CONFIG["region"]["name"]
+    alliance = MOCK_CONFIG["alliance"]["display_name"]
     print("\n[*] \u2550\u2550\u2550 DEMO MODE \u2550\u2550\u2550")
+    print(f"[*] {alliance} \u2014 {region_name}")
     print("[*] Running with mock data \u2014 no ESI connection needed")
-    print(f"[*] {len(MOCK_CONFIG['constellations'])} constellations, {tke} TKE + {neighbors} neighbors")
+    print(f"[*] {len(MOCK_CONFIG['constellations'])} constellations, {region_systems} region + {neighbors} neighbors")
     print(f"[*] Open http://localhost:{port}\n")
     app.run(host="0.0.0.0", port=port, debug=True)
