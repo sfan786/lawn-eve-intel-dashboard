@@ -34,26 +34,15 @@ def get_connection():
     return conn
 
 
-def _ensure_deployment_column(conn, table):
-    """Add deployment_id column to a pre-existing table, tagging old rows as legacy."""
-    cols = {row["name"] for row in conn.execute(f"PRAGMA table_info({table})")}
-    if "deployment_id" not in cols:
-        conn.execute(
-            f"ALTER TABLE {table} ADD COLUMN deployment_id TEXT NOT NULL "
-            f"DEFAULT '{LEGACY_DEPLOYMENT_ID}'"
-        )
-
-
 def init():
     """Initialize database schema and run migrations.
 
     Three-step ordering: (1) ensure tables exist, (2) ALTER any pre-migration
-    tables to add deployment_id, (3) create indexes that reference deployment_id.
-    Step 3 has to run last because indexes on a column that was just ALTERed
-    in cannot be created in the same executescript block as the CREATE TABLE.
+    tables to add deployment_id, (3) rebuild tables for updated constraints, (4) create indexes.
     """
     conn = get_connection()
 
+    # 1. Create tables with CURRENT schema (for fresh installs)
     conn.executescript(f"""
         CREATE TABLE IF NOT EXISTS adm_snapshots (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -64,9 +53,6 @@ def init():
             alliance_name TEXT,
             timestamp TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))
         );
-
-        CREATE INDEX IF NOT EXISTS idx_adm_system_time
-            ON adm_snapshots(system_id, timestamp);
 
         CREATE TABLE IF NOT EXISTS activity_snapshots (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -79,9 +65,6 @@ def init():
             timestamp TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))
         );
 
-        CREATE INDEX IF NOT EXISTS idx_activity_system_time
-            ON activity_snapshots(system_id, timestamp);
-
         CREATE TABLE IF NOT EXISTS custom_timers (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             deployment_id TEXT NOT NULL DEFAULT '{LEGACY_DEPLOYMENT_ID}',
@@ -93,9 +76,6 @@ def init():
             notes TEXT
         );
 
-        CREATE INDEX IF NOT EXISTS idx_timer_time
-            ON custom_timers(timestamp);
-
         CREATE TABLE IF NOT EXISTS system_annotations (
             id          INTEGER PRIMARY KEY AUTOINCREMENT,
             deployment_id TEXT NOT NULL DEFAULT '{LEGACY_DEPLOYMENT_ID}',
@@ -104,9 +84,6 @@ def init():
             updated_at  TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')),
             UNIQUE(deployment_id, system_name)
         );
-
-        CREATE INDEX IF NOT EXISTS idx_annotation_system
-            ON system_annotations(system_name);
 
         CREATE TABLE IF NOT EXISTS jump_bridges (
             id         INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -119,28 +96,61 @@ def init():
         );
     """)
 
-    # Migration: Recreate tables with composite unique constraints if necessary
-    # This should be called after _ensure_deployment_column for existing tables
-    conn.execute("""
-        CREATE TABLE IF NOT EXISTS jump_bridges_new (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            deployment_id TEXT NOT NULL,
-            system_a TEXT NOT NULL,
-            system_b TEXT NOT NULL,
-            label TEXT,
-            created_at TEXT,
-            UNIQUE(deployment_id, system_a, system_b)
-        );
-    """)
-    # Data migration logic would follow here to move data from old to new tables
+    # 2. Add deployment_id column to existing tables if missing (for legacy updates)
+    for table in ["adm_snapshots", "activity_snapshots", "custom_timers", "system_annotations", "jump_bridges"]:
+        cols = {row["name"] for row in conn.execute(f"PRAGMA table_info({table})")}
+        if "deployment_id" not in cols:
+            conn.execute(f"ALTER TABLE {table} ADD COLUMN deployment_id TEXT NOT NULL DEFAULT '{LEGACY_DEPLOYMENT_ID}'")
 
+    # 3. Migrate system_annotations to composite unique constraint
+    row = conn.execute("SELECT sql FROM sqlite_master WHERE type='table' AND name='system_annotations'").fetchone()
+    if row and "UNIQUE(deployment_id, system_name)" not in row["sql"].replace(" ", "").replace("\n", ""):
+        conn.executescript(f"""
+            DROP TABLE IF EXISTS system_annotations_new;
+            CREATE TABLE system_annotations_new (
+                id          INTEGER PRIMARY KEY AUTOINCREMENT,
+                deployment_id TEXT NOT NULL DEFAULT '{LEGACY_DEPLOYMENT_ID}',
+                system_name TEXT NOT NULL,
+                note        TEXT NOT NULL,
+                updated_at  TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')),
+                UNIQUE(deployment_id, system_name)
+            );
+            INSERT INTO system_annotations_new (id, deployment_id, system_name, note, updated_at)
+            SELECT id, deployment_id, system_name, note, updated_at FROM system_annotations;
+            DROP TABLE system_annotations;
+            ALTER TABLE system_annotations_new RENAME TO system_annotations;
+        """)
+
+    # 4. Migrate jump_bridges to composite unique constraint
+    row = conn.execute("SELECT sql FROM sqlite_master WHERE type='table' AND name='jump_bridges'").fetchone()
+    if row and "UNIQUE(deployment_id, system_a, system_b)" not in row["sql"].replace(" ", "").replace("\n", ""):
+        conn.executescript(f"""
+            DROP TABLE IF EXISTS jump_bridges_new;
+            CREATE TABLE jump_bridges_new (
+                id         INTEGER PRIMARY KEY AUTOINCREMENT,
+                deployment_id TEXT NOT NULL DEFAULT '{LEGACY_DEPLOYMENT_ID}',
+                system_a   TEXT NOT NULL,
+                system_b   TEXT NOT NULL,
+                label      TEXT,
+                created_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')),
+                UNIQUE(deployment_id, system_a, system_b)
+            );
+            INSERT INTO jump_bridges_new (id, deployment_id, system_a, system_b, label, created_at)
+            SELECT id, deployment_id, system_a, system_b, label, created_at FROM jump_bridges;
+            DROP TABLE jump_bridges;
+            ALTER TABLE jump_bridges_new RENAME TO jump_bridges;
+        """)
+
+    # 5. Create indexes
     conn.executescript("""
-        CREATE INDEX IF NOT EXISTS idx_adm_deployment_time
-            ON adm_snapshots(deployment_id, timestamp);
-        CREATE INDEX IF NOT EXISTS idx_activity_deployment_time
-            ON activity_snapshots(deployment_id, timestamp);
-        CREATE INDEX IF NOT EXISTS idx_timer_deployment_time
-            ON custom_timers(deployment_id, timestamp);
+        CREATE INDEX IF NOT EXISTS idx_adm_system_time ON adm_snapshots(system_id, timestamp);
+        CREATE INDEX IF NOT EXISTS idx_activity_system_time ON activity_snapshots(system_id, timestamp);
+        CREATE INDEX IF NOT EXISTS idx_timer_time ON custom_timers(timestamp);
+        CREATE INDEX IF NOT EXISTS idx_annotation_system ON system_annotations(system_name);
+        
+        CREATE INDEX IF NOT EXISTS idx_adm_deployment_time ON adm_snapshots(deployment_id, timestamp);
+        CREATE INDEX IF NOT EXISTS idx_activity_deployment_time ON activity_snapshots(deployment_id, timestamp);
+        CREATE INDEX IF NOT EXISTS idx_timer_deployment_time ON custom_timers(deployment_id, timestamp);
     """)
 
     conn.commit()
