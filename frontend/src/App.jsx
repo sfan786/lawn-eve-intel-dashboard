@@ -142,7 +142,7 @@ export default function App() {
     const hostile = visible.filter(s => { const sv = sovereignty[s.system_id]; return sv && sv.alliance_name && !sv.is_friendly }).length
     const criticalSystems = visible.filter(s => {
         const sov = sovereignty[s.system_id]
-        return primarySysIdSet.has(String(s.system_id)) && sov && sov.adm > 0 && sov.adm < 2
+        return primarySysIdSet.has(String(s.system_id)) && sov && sov.is_friendly && sov.adm > 0 && sov.adm < 2
     }).length
 
     const primarySystems = Object.values(consts).filter(isPrimaryConst).flatMap(c => Object.values(c.systems))
