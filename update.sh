@@ -20,6 +20,10 @@ echo "   Takes ~2-3 minutes on first run, faster after..."
 docker-compose build --no-cache
 
 echo "🗄️  Ensuring intel.db exists as a file (not directory)..."
+if [ -d "intel.db" ]; then
+    echo "⚠️  Found intel.db as a directory (docker-compose glitch). Fixing..."
+    sudo rm -rf intel.db
+fi
 touch intel.db
 
 echo "🚀 Starting containers..."
