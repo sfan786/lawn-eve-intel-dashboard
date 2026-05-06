@@ -103,16 +103,11 @@ def init():
             note        TEXT NOT NULL,
             updated_at  TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')),
             UNIQUE(deployment_id, system_name)
-            system_name TEXT NOT NULL UNIQUE,
-            note        TEXT NOT NULL,
-            updated_at  TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))
         );
 
         CREATE INDEX IF NOT EXISTS idx_annotation_system
             ON system_annotations(system_name);
 
-        CREATE TABLE IF NOT EXISTS jump_bridges (
-            id         INTEGER PRIMARY KEY AUTOINCREMENT,
         CREATE TABLE IF NOT EXISTS jump_bridges (
             id         INTEGER PRIMARY KEY AUTOINCREMENT,
             deployment_id TEXT NOT NULL DEFAULT '{LEGACY_DEPLOYMENT_ID}',
@@ -121,12 +116,6 @@ def init():
             label      TEXT,
             created_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')),
             UNIQUE(deployment_id, system_a, system_b)
-        );
-            system_a   TEXT NOT NULL,
-            system_b   TEXT NOT NULL,
-            label      TEXT,
-            created_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')),
-            UNIQUE(system_a, system_b)
         );
     """)
 
@@ -348,8 +337,8 @@ def upsert_annotation(system_name, note):
     conn.execute(
         "INSERT INTO system_annotations (deployment_id, system_name, note, updated_at) "
         "VALUES (?, ?, ?, strftime('%Y-%m-%dT%H:%M:%SZ', 'now')) "
-        "ON CONFLICT(system_name) DO UPDATE SET "
         "ON CONFLICT(deployment_id, system_name) DO UPDATE SET "
+        "note=excluded.note, updated_at=strftime('%Y-%m-%dT%H:%M:%SZ', 'now')",
         (DEPLOYMENT_ID, system_name, note.strip()),
     )
     conn.commit()
@@ -384,7 +373,9 @@ def add_jump_bridge(system_a, system_b, label=None):
     a, b = sorted([system_a.strip(), system_b.strip()])
     conn = get_connection()
     cur = conn.execute(
-            UNIQUE(deployment_id, system_a, system_b)
+        "INSERT INTO jump_bridges (deployment_id, system_a, system_b, label) "
+        "VALUES (?, ?, ?, ?) "
+        "ON CONFLICT(deployment_id, system_a, system_b) DO UPDATE SET label=excluded.label",
         (DEPLOYMENT_ID, a, b, label.strip() if label else None),
     )
     new_id = cur.lastrowid

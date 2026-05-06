@@ -52,6 +52,7 @@ export default function GrindingPlan({ config, sovereignty, activity, admHistory
         const sysId = sys.system_id
         const sov = sovereignty[sysId] || {}
         const adm = sov.adm || 0
+        const is_friendly = sov.is_friendly || false
         const histData = admHistory && admHistory[sysId] ? admHistory[sysId].history : []
 
         const change24h = compute24hChange(histData, adm)
@@ -75,15 +76,18 @@ export default function GrindingPlan({ config, sovereignty, activity, admHistory
             rate,
             score,
             tierLabel: tier.label,
+            is_friendly,
         }
     })
 
     const targets = plannedSystems
-        .filter(s => s.adm > 0 && s.adm < 4.5)
+        .filter(s => s.is_friendly && s.adm > 0 && s.adm < 4.5)
         .sort((a, b) => b.score - a.score)
         .slice(0, 6)
 
-    const allSorted = [...plannedSystems].sort((a, b) => b.score - a.score)
+    const allSorted = [...plannedSystems]
+        .filter(s => s.is_friendly)
+        .sort((a, b) => b.score - a.score)
     const [showTable, setShowTable] = useState(false)
     const [targetAdms, setTargetAdms] = useState(() => {
         try { return JSON.parse(localStorage.getItem('adm_targets')) || {} }

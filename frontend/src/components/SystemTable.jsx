@@ -61,7 +61,7 @@ export default function SystemTable({ systems, sovereignty, activity, selectedSy
                             <td><span className={`sov-holder ${sc}`}>{sov.alliance_name || "—"}</span></td>
                             <td className="stat-num" style={{ color: adm > 0 ? getAdmColor(adm) : 'var(--text-muted)' }}>{adm > 0 ? adm.toFixed(1) : "—"}</td>
                             <td>
-                                {lawnSystemIds && lawnSystemIds.has(String(sys.system_id)) && adm > 0 && adm < 2 && (
+                                {lawnSystemIds && lawnSystemIds.has(String(sys.system_id)) && sov.is_friendly && adm > 0 && adm < 2 && (
                                     <span style={{
                                         background: '#ff335530',
                                         border: '1px solid #ff3355',
@@ -74,7 +74,7 @@ export default function SystemTable({ systems, sovereignty, activity, selectedSy
                                         ⚠ CRITICAL
                                     </span>
                                 )}
-                                {lawnSystemIds && lawnSystemIds.has(String(sys.system_id)) && adm >= 2 && adm < 4 && (
+                                {lawnSystemIds && lawnSystemIds.has(String(sys.system_id)) && sov.is_friendly && adm >= 2 && adm < 4 && (
                                     <span style={{
                                         background: '#ffaa0020',
                                         border: '1px solid #ffaa00',
