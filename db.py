@@ -334,7 +334,7 @@ def upsert_annotation(system_name, note):
         "INSERT INTO system_annotations (deployment_id, system_name, note, updated_at) "
         "VALUES (?, ?, ?, strftime('%Y-%m-%dT%H:%M:%SZ', 'now')) "
         "ON CONFLICT(system_name) DO UPDATE SET "
-        "note=excluded.note, updated_at=excluded.updated_at, deployment_id=excluded.deployment_id",
+        "ON CONFLICT(deployment_id, system_name) DO UPDATE SET "
         (DEPLOYMENT_ID, system_name, note.strip()),
     )
     conn.commit()
