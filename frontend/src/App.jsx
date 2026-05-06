@@ -146,9 +146,13 @@ export default function App() {
     }).length
 
     const primarySystems = Object.values(consts).filter(isPrimaryConst).flatMap(c => Object.values(c.systems))
-    const primaryPVP = primarySystems.reduce((s, v) => { const a = activity[v.system_id] || {}; return s + (a.ship_kills || 0) + (a.pod_kills || 0) }, 0)
-    const primaryNPC = primarySystems.reduce((s, v) => s + ((activity[v.system_id] || {}).npc_kills || 0), 0)
-    const primaryJumps = primarySystems.reduce((s, v) => s + ((activity[v.system_id] || {}).jumps || 0), 0)
+    const { primaryPVP, primaryNPC, primaryJumps } = primarySystems.reduce((acc, v) => {
+        const a = activity[v.system_id] || {}
+        acc.primaryPVP += (a.ship_kills || 0) + (a.pod_kills || 0)
+        acc.primaryNPC += (a.npc_kills || 0)
+        acc.primaryJumps += (a.jumps || 0)
+        return acc
+    }, { primaryPVP: 0, primaryNPC: 0, primaryJumps: 0 })
 
     // Panels grouped for conditional rendering
     const summaryPanels = (
