@@ -20,10 +20,20 @@ export default function KillFeed({ kills, config }) {
 
     // Stats always computed from full kill set
     const allKills = kills || []
-    const primaryPvpKills = allKills.filter(k => inPrimary(k) && !k.is_npc)
-    const iskKilled = primaryPvpKills.reduce((s, k) => s + (k.total_value || 0), 0)
-    const ourLosses = allKills.filter(k => allianceName && k.victim?.alliance_name === allianceName && !k.is_npc)
-    const iskLost = ourLosses.reduce((s, k) => s + (k.total_value || 0), 0)
+    const { primaryPvpKills, iskKilled, ourLosses, iskLost } = allKills.reduce((acc, k) => {
+        const isNpc = k.is_npc
+        if (!isNpc) {
+            if (inPrimary(k)) {
+                acc.primaryPvpKills.push(k)
+                acc.iskKilled += (k.total_value || 0)
+            }
+            if (allianceName && k.victim?.alliance_name === allianceName) {
+                acc.ourLosses.push(k)
+                acc.iskLost += (k.total_value || 0)
+            }
+        }
+        return acc
+    }, { primaryPvpKills: [], iskKilled: 0, ourLosses: [], iskLost: 0 })
 
     const roamers = {}
     primaryPvpKills.forEach(k => {
