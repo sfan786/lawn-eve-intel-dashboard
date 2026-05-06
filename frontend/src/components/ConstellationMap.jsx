@@ -181,6 +181,7 @@ export default function ConstellationMap({ config, sovereignty, activity, campai
         const sysId = nameToId[name]
         if (!sysId) return false
         const sov = sovereignty[sysId] || {}
+        if (!sov.is_friendly) return false
         const adm = sov.adm || 0
         return adm > 0 && adm < 2
     }
@@ -191,6 +192,7 @@ export default function ConstellationMap({ config, sovereignty, activity, campai
         const sysId = nameToId[name]
         if (!sysId) return false
         const sov = sovereignty[sysId] || {}
+        if (!sov.is_friendly) return false
         const adm = sov.adm || 0
         return adm >= 2 && adm < 4
     }
@@ -261,6 +263,7 @@ export default function ConstellationMap({ config, sovereignty, activity, campai
             jumps: act.jumps || 0,
             isNeighbor: layout.constellation === "neighbor",
             isPrimary: !!layout.lawn,
+            is_friendly: sov.is_friendly || false,
             note: layout.note || (neighborInfo ? neighborInfo.region_name : null),
             vulnerable_start_time: sov.vulnerable_start_time || null,
             vulnerable_end_time: sov.vulnerable_end_time || null,
@@ -586,7 +589,7 @@ export default function ConstellationMap({ config, sovereignty, activity, campai
                             {tooltip.adm > 0 ? tooltip.adm.toFixed(1) : '—'}
                         </span>
                     </div>
-                    {tooltip.isPrimary && tooltip.adm > 0 && tooltip.adm < 4 && (
+                    {tooltip.isPrimary && tooltip.adm > 0 && tooltip.adm < 4 && tooltip.is_friendly && (
                         <div style={{
                             fontSize: 10,
                             color: tooltip.adm < 2 ? '#ff3355' : '#ffaa00',

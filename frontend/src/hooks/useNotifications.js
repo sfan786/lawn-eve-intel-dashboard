@@ -71,7 +71,7 @@ export function useNotifications() {
         const admBySystem = {}
         primarySysIds.forEach(id => {
             const sov = sovereignty[id]
-            if (sov) admBySystem[id] = sov.adm
+            if (sov && sov.is_friendly) admBySystem[id] = sov.adm
         })
         let primaryPVP = 0
         primarySysIds.forEach(id => {
