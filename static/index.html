@@ -1161,6 +1161,7 @@
                 const sysId = nameToId[name];
                 if (!sysId) return false;
                 const sov = sovereignty[sysId] || {};
+                if (!sov.is_friendly) return false;
                 const adm = sov.adm || 0;
                 return adm > 0 && adm < 2;
             }
@@ -1171,6 +1172,7 @@
                 const sysId = nameToId[name];
                 if (!sysId) return false;
                 const sov = sovereignty[sysId] || {};
+                if (!sov.is_friendly) return false;
                 const adm = sov.adm || 0;
                 return adm >= 2 && adm < 4;
             }
@@ -1229,6 +1231,7 @@
                     jumps: act.jumps || 0,
                     isNeighbor: layout.constellation === "neighbor",
                     isLawn: !!layout.lawn,
+                    is_friendly: sov.is_friendly || false,
                     note: layout.note || (neighborInfo ? neighborInfo.region_name : null),
                     vulnerable_start_time: sov.vulnerable_start_time || null,
                     vulnerable_end_time: sov.vulnerable_end_time || null,
@@ -1522,7 +1525,7 @@
                                 </span>
                             </div>
                             {/* Grinding warnings — LAWN only */}
-                            {tooltip.isLawn && tooltip.adm > 0 && tooltip.adm < 4 && (
+                            {tooltip.isLawn && tooltip.adm > 0 && tooltip.adm < 4 && tooltip.is_friendly && (
                                 <div style={{
                                     fontSize: 10,
                                     color: tooltip.adm < 2 ? '#ff3355' : '#ffaa00',
@@ -1696,7 +1699,7 @@
                                     <td><span className={`sov-holder ${sc}`}>{sov.alliance_name || "—"}</span></td>
                                     <td className="stat-num" style={{ color: adm > 0 ? getAdmColor(adm) : 'var(--text-muted)' }}>{adm > 0 ? adm.toFixed(1) : "—"}</td>
                                     <td>
-                                        {lawnSystemIds && lawnSystemIds.has(String(sys.system_id)) && adm > 0 && adm < 2 && (
+                                        {lawnSystemIds && lawnSystemIds.has(String(sys.system_id)) && sov.is_friendly && adm > 0 && adm < 2 && (
                                             <span style={{
                                                 background: '#ff335530',
                                                 border: '1px solid #ff3355',
@@ -1709,7 +1712,7 @@
                                                 ⚠ CRITICAL
                                             </span>
                                         )}
-                                        {lawnSystemIds && lawnSystemIds.has(String(sys.system_id)) && adm >= 2 && adm < 4 && (
+                                        {lawnSystemIds && lawnSystemIds.has(String(sys.system_id)) && sov.is_friendly && adm >= 2 && adm < 4 && (
                                             <span style={{
                                                 background: '#ffaa0020',
                                                 border: '1px solid #ffaa00',
@@ -1948,7 +1951,7 @@
                                                 fontSize: 11, color: '#c8d8e8',
                                             }}>{sys.name}</span>
                                             {/* Grinding Status Dot for Trends Panel */}
-                                            {currentAdm > 0 && currentAdm < 4 && (
+                                            {sov.is_friendly && currentAdm > 0 && currentAdm < 4 && (
                                                 <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
                                                     <div style={{
                                                         width: 4, height: 4, borderRadius: '50%',
@@ -2040,8 +2043,8 @@
                 let score = 0;
 
                 // Base importance
-                if (adm > 0 && adm < 2.0) score += 1000;
-                else if (adm >= 2.0 && adm < 4.0) score += 200;
+                if (sov.is_friendly && adm > 0 && adm < 2.0) score += 1000;
+                else if (sov.is_friendly && adm >= 2.0 && adm < 4.0) score += 200;
 
                 // Strategic bonus
                 if (strategicSystems.has(sys.name)) score += 500;
@@ -2057,13 +2060,14 @@
                     adm,
                     change24h,
                     score,
+                    is_friendly: sov.is_friendly || false,
                     isStrategic: strategicSystems.has(sys.name)
                 };
             });
 
             // Filter out safe systems and sort by score
             const targets = plannedSystems
-                .filter(s => s.adm > 0 && s.adm < 4.5) // Only show systems that need work (below 4.5)
+                .filter(s => s.is_friendly && s.adm > 0 && s.adm < 4.5) // Only show friendly systems that need work
                 .sort((a, b) => b.score - a.score)
                 .slice(0, 6); // Top 6 targets
 
@@ -2835,10 +2839,7 @@
             const totNPC = visible.reduce((s, v) => s + ((activity[v.system_id] || {}).npc_kills || 0), 0);
             const totJ = visible.reduce((s, v) => s + ((activity[v.system_id] || {}).jumps || 0), 0);
             const hostile = visible.filter(s => { const sv = sovereignty[s.system_id]; return sv && sv.alliance_name && !sv.is_friendly; }).length;
-            const criticalSystems = visible.filter(s => {
-                const sov = sovereignty[s.system_id];
-                return lawnSysIdSet.has(String(s.system_id)) && sov && sov.adm > 0 && sov.adm < 2;
-            }).length;
+            const criticalSystems = visible.filter(s => lawnSysIdSet.has(String(s.system_id)) && (sovereignty[s.system_id] || {}).is_friendly && (sovereignty[s.system_id] || {}).adm > 0 && (sovereignty[s.system_id] || {}).adm < 2).length;
 
             // Alliance-wide activity (LAWN systems only, always visible)
             const lawnSystems = Object.values(consts).filter(c => c.is_lawn).flatMap(c => Object.values(c.systems));
