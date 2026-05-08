@@ -557,7 +557,7 @@ export default function ConstellationMap({ config, sovereignty, activity, campai
                                     const dotR = isSubway ? 1.5 : 1.2
                                     const dotGap = isSubway ? 4 : 3.5
                                     const baseX = pos.x - (cats.length - 1) * dotGap / 2
-                                    const baseY = pos.y + (adm > 0 && admSize > 0 ? admOff + (isSubway ? 14 : 8) : 14)
+                                    const baseY = pos.y + (adm > 0 ? admOff + (isSubway ? 14 : 8) : nameOff)
                                     return cats.map((c, ci) => (
                                         <circle key={ci} cx={baseX + ci * dotGap} cy={baseY} r={dotR} fill={c} opacity={0.8} />
                                     ))
