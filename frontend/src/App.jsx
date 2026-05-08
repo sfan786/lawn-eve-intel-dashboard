@@ -13,6 +13,7 @@ import CampaignAlerts from './components/CampaignAlerts'
 import TimerBoard from './components/TimerBoard'
 import PlanetaryIntel from './components/PlanetaryIntel'
 import NeighborIntel from './components/NeighborIntel'
+import RegionalIntel from './components/RegionalIntel'
 import ActivityHeatmap from './components/ActivityHeatmap'
 import MobileNav from './components/MobileNav'
 import DscanParser from './components/DscanParser'
@@ -327,6 +328,7 @@ export default function App() {
                         onJbChange={() => checkedFetch("/api/jumpbridges").then(setJumpBridges).catch(() => {})}
                     />
                 )}
+                {(!isMobile || mobileTab === 3) && <RegionalIntel lastUpdate={lastUpdate} />}
                 {(!isMobile || mobileTab === 3) && <NeighborIntel lastUpdate={lastUpdate} />}
                 {(!isMobile || mobileTab === 3) && <DscanParser />}
                 {(!isMobile || mobileTab === 3) && <LocalScanner />}

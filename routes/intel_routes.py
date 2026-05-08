@@ -2,6 +2,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from flask import Blueprint, jsonify, request
 from config import NEIGHBOR_ENTITIES, LAWN_ALLIANCE_ID, FRIENDLY_ALLIANCE_IDS, FRIENDLY_CORPORATIONS
 import esi_client
+from routes.system_state import state
 
 intel_bp = Blueprint("intel", __name__)
 
@@ -158,3 +159,68 @@ def api_local_scan():
     results.sort(key=lambda r: order.get(r["standing"], 99))
 
     return jsonify(results)
+
+
+@intel_bp.route("/api/intel/regional")
+def api_regional_intel():
+    if not state.neighbor_systems:
+        return jsonify({"regions": []})
+
+    try:
+        kills_data = esi_client.get_system_kills()
+        jumps_data = esi_client.get_system_jumps()
+    except Exception as e:
+        return jsonify({"error": f"ESI unavailable: {e}"}), 503
+
+    kills_by_system = {entry["system_id"]: entry for entry in kills_data}
+    jumps_by_system = {entry["system_id"]: entry for entry in jumps_data}
+
+    # Build per-region aggregates from neighbor systems
+    regions = {}
+    for sys_id, sys_info in state.neighbor_systems.items():
+        region_name = sys_info.get("region_name", "Unknown")
+        kills = kills_by_system.get(sys_id, {})
+        ship_kills = kills.get("ship_kills", 0)
+        pod_kills = kills.get("pod_kills", 0)
+        npc_kills = kills.get("npc_kills", 0)
+        jumps = jumps_by_system.get(sys_id, {}).get("ship_jumps", 0)
+
+        if region_name not in regions:
+            regions[region_name] = {"name": region_name, "systems": [], "total_kills": 0, "total_jumps": 0}
+
+        # Per-system threat level
+        if ship_kills >= 10 or jumps >= 50:
+            sys_threat = "high"
+        elif ship_kills >= 3 or jumps >= 20:
+            sys_threat = "elevated"
+        else:
+            sys_threat = "quiet"
+
+        regions[region_name]["systems"].append({
+            "system_id": sys_id,
+            "name": sys_info["name"],
+            "ship_kills": ship_kills,
+            "pod_kills": pod_kills,
+            "npc_kills": npc_kills,
+            "jumps": jumps,
+            "threat": sys_threat,
+        })
+        regions[region_name]["total_kills"] += ship_kills
+        regions[region_name]["total_jumps"] += jumps
+
+    # Per-region threat level
+    for r in regions.values():
+        if r["total_kills"] >= 15 or r["total_jumps"] >= 80:
+            r["threat"] = "high"
+        elif r["total_kills"] >= 5 or r["total_jumps"] >= 30:
+            r["threat"] = "elevated"
+        else:
+            r["threat"] = "quiet"
+        # Sort systems by kills desc
+        r["systems"].sort(key=lambda s: s["ship_kills"], reverse=True)
+
+    # Sort regions: high first, then elevated, then quiet; alphabetical within tier
+    tier_order = {"high": 0, "elevated": 1, "quiet": 2}
+    sorted_regions = sorted(regions.values(), key=lambda r: (tier_order.get(r["threat"], 9), r["name"]))
+
+    return jsonify({"regions": sorted_regions})

@@ -476,3 +476,57 @@ def _build_neighbor_intel():
 
 
 MOCK_NEIGHBOR_INTEL = _build_neighbor_intel()
+
+
+# ============ Regional Intel (mock) ============
+
+def _build_regional_intel():
+    """Simulate hourly ESI kills/jumps for the neighbor systems grouped by region."""
+    region_samples = {
+        "Malpais":        {"threat": "high",     "sys_data": [("DYS-CG", 12, 1, 80, 55), ("HD-JVQ", 5, 1, 20, 22), ("IF-KD1", 1, 0, 45, 8)]},
+        "Etherium Reach": {"threat": "elevated",  "sys_data": [("9S-GPT", 3, 0, 30, 18)]},
+        "Oasa":           {"threat": "elevated",  "sys_data": [("EU-WFW", 2, 1, 15, 14), ("L-EUY2", 0, 0, 90, 5)]},
+        "The Spire":      {"threat": "quiet",     "sys_data": [("MTGF-2", 0, 0, 12, 3), ("O8W-5O", 1, 0, 8, 6)]},
+        "Outer Passage":  {"threat": "quiet",     "sys_data": [("OTJ9-E", 0, 0, 5, 2)]},
+        "Venal":          {"threat": "quiet",     "sys_data": [("QE2-FS", 0, 0, 3, 1), ("QZ1-OH", 0, 0, 7, 2)]},
+    }
+
+    def sys_threat(ship_kills, jumps):
+        if ship_kills >= 10 or jumps >= 50:
+            return "high"
+        if ship_kills >= 3 or jumps >= 20:
+            return "elevated"
+        return "quiet"
+
+    tier_order = {"high": 0, "elevated": 1, "quiet": 2}
+    regions = []
+    for region_name, info in region_samples.items():
+        systems = []
+        total_kills = 0
+        total_jumps = 0
+        for name, sk, pk, npc, jmp in info["sys_data"]:
+            systems.append({
+                "system_id": 0,
+                "name": name,
+                "ship_kills": sk,
+                "pod_kills": pk,
+                "npc_kills": npc,
+                "jumps": jmp,
+                "threat": sys_threat(sk, jmp),
+            })
+            total_kills += sk
+            total_jumps += jmp
+        systems.sort(key=lambda s: s["ship_kills"], reverse=True)
+        regions.append({
+            "name": region_name,
+            "threat": info["threat"],
+            "total_kills": total_kills,
+            "total_jumps": total_jumps,
+            "systems": systems,
+        })
+
+    regions.sort(key=lambda r: (tier_order.get(r["threat"], 9), r["name"]))
+    return {"regions": regions}
+
+
+MOCK_REGIONAL_INTEL = _build_regional_intel()
