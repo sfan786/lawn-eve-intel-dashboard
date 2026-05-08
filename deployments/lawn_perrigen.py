@@ -774,153 +774,153 @@ MAP_LAYOUT = {
 # over geometric accuracy.
 MAP_LAYOUT_SUBWAY = {
     "5T-A3D": {
-        "x": 560,
-        "y": 400,
+        "x": 500,
+        "y": 380,
         "constellation": "9BGY-6",
         "lawn": True
     },
     "5ZU-VG": {
-        "x": 620,
-        "y": 400,
+        "x": 560,
+        "y": 380,
         "constellation": "9BGY-6",
         "lawn": True
     },
     "6-1T6Z": {
-        "x": 620,
-        "y": 340,
+        "x": 560,
+        "y": 320,
         "constellation": "9BGY-6",
         "lawn": True
     },
     "6-8QLA": {
-        "x": 500,
-        "y": 460,
+        "x": 380,
+        "y": 440,
         "constellation": "9BGY-6",
         "lawn": True
     },
     "EH2I-P": {
-        "x": 560,
-        "y": 460,
+        "x": 440,
+        "y": 440,
         "constellation": "9BGY-6",
         "lawn": True
     },
     "G-GRSZ": {
-        "x": 560,
-        "y": 580,
+        "x": 440,
+        "y": 560,
         "constellation": "9BGY-6",
         "lawn": True
     },
     "HB-KSF": {
-        "x": 500,
-        "y": 340,
+        "x": 440,
+        "y": 320,
         "constellation": "9BGY-6",
         "lawn": True
     },
     "LW-YEW": {
-        "x": 500,
-        "y": 400,
+        "x": 440,
+        "y": 380,
         "constellation": "9BGY-6",
         "lawn": True
     },
     "OP7-BP": {
-        "x": 620,
-        "y": 460,
+        "x": 560,
+        "y": 440,
         "constellation": "9BGY-6",
         "lawn": True
     },
     "R-AYGT": {
-        "x": 560,
-        "y": 520,
+        "x": 440,
+        "y": 500,
         "constellation": "9BGY-6",
         "lawn": True
     },
     "3LL-O0": {
-        "x": 860,
-        "y": 400,
+        "x": 920,
+        "y": 440,
         "constellation": "WXB-RY",
         "lawn": True
     },
     "49V-E4": {
-        "x": 680,
-        "y": 520,
+        "x": 620,
+        "y": 500,
         "constellation": "WXB-RY",
         "lawn": True
     },
     "4F6-VZ": {
-        "x": 800,
-        "y": 460,
+        "x": 740,
+        "y": 440,
         "constellation": "WXB-RY",
         "lawn": True
     },
     "8B-A4E": {
-        "x": 800,
-        "y": 580,
+        "x": 740,
+        "y": 560,
         "constellation": "WXB-RY",
         "lawn": True
     },
     "A1F-22": {
-        "x": 920,
-        "y": 460,
+        "x": 860,
+        "y": 440,
         "constellation": "WXB-RY",
         "lawn": True
     },
     "B-7LYC": {
-        "x": 680,
-        "y": 460,
+        "x": 620,
+        "y": 440,
         "constellation": "WXB-RY",
         "lawn": True
     },
     "J9A-BH": {
-        "x": 740,
-        "y": 460,
+        "x": 680,
+        "y": 440,
         "constellation": "WXB-RY",
         "lawn": True
     },
     "JM0A-4": {
-        "x": 860,
-        "y": 460,
+        "x": 800,
+        "y": 440,
         "constellation": "WXB-RY",
         "lawn": True
     },
     "L-POLO": {
-        "x": 800,
-        "y": 520,
+        "x": 740,
+        "y": 500,
         "constellation": "WXB-RY",
         "lawn": True
     },
     "PT-2KR": {
         "x": 680,
-        "y": 400,
+        "y": 380,
         "constellation": "WXB-RY",
         "lawn": True
     },
     "6Q4-X6": {
-        "x": 600,
-        "y": 300,
+        "x": 580,
+        "y": 260,
         "constellation": "4LEZ-6"
     },
     "B9N2-2": {
-        "x": 660,
-        "y": 300,
+        "x": 640,
+        "y": 260,
         "constellation": "4LEZ-6"
     },
     "D-QJR9": {
-        "x": 640,
-        "y": 380,
+        "x": 700,
+        "y": 280,
         "constellation": "4LEZ-6"
     },
     "H-29TM": {
-        "x": 640,
-        "y": 360,
+        "x": 620,
+        "y": 300,
         "constellation": "4LEZ-6"
     },
     "KOI8-Z": {
-        "x": 660,
-        "y": 420,
+        "x": 720,
+        "y": 360,
         "constellation": "4LEZ-6"
     },
     "U4-V3J": {
-        "x": 580,
-        "y": 320,
+        "x": 540,
+        "y": 260,
         "constellation": "4LEZ-6"
     },
     "0FG-KS": {
@@ -994,8 +994,8 @@ MAP_LAYOUT_SUBWAY = {
         "constellation": "L7-RDZ"
     },
     "7AH-SF": {
-        "x": 440,
-        "y": 300,
+        "x": 480,
+        "y": 260,
         "constellation": "L7-RDZ"
     },
     "7MMJ-3": {
@@ -1019,7 +1019,7 @@ MAP_LAYOUT_SUBWAY = {
         "constellation": "L7-RDZ"
     },
     "7JRA-G": {
-        "x": 440,
+        "x": 480,
         "y": 580,
         "constellation": "LWMW-6"
     },
@@ -1059,8 +1059,8 @@ MAP_LAYOUT_SUBWAY = {
         "constellation": "NT1-5Q"
     },
     "DE-IHK": {
-        "x": 440,
-        "y": 460,
+        "x": 360,
+        "y": 380,
         "constellation": "NT1-5Q"
     },
     "H-HGGJ": {
@@ -1069,8 +1069,8 @@ MAP_LAYOUT_SUBWAY = {
         "constellation": "NT1-5Q"
     },
     "OJT-J3": {
-        "x": 380,
-        "y": 400,
+        "x": 340,
+        "y": 440,
         "constellation": "NT1-5Q"
     },
     "TDP-T3": {
@@ -1134,7 +1134,7 @@ MAP_LAYOUT_SUBWAY = {
         "constellation": "Q0-4FU"
     },
     "VWES-Y": {
-        "x": 460,
+        "x": 500,
         "y": 500,
         "constellation": "Q0-4FU"
     },
@@ -1154,8 +1154,8 @@ MAP_LAYOUT_SUBWAY = {
         "constellation": "S0X-O4"
     },
     "F-HQWV": {
-        "x": 760,
-        "y": 560,
+        "x": 800,
+        "y": 540,
         "constellation": "S0X-O4"
     },
     "OBV-YC": {
@@ -1344,19 +1344,19 @@ MAP_LAYOUT_SUBWAY = {
         "note": "Malpais"
     },
     "DYS-CG": {
-        "x": 740,
-        "y": 500,
-        "constellation": "neighbor",
-        "note": "Oasa"
-    },
-    "MTGF-2": {
-        "x": 520,
+        "x": 780,
         "y": 380,
         "constellation": "neighbor",
         "note": "Oasa"
     },
+    "MTGF-2": {
+        "x": 500,
+        "y": 300,
+        "constellation": "neighbor",
+        "note": "Oasa"
+    },
     "QE2-FS": {
-        "x": 440,
+        "x": 500,
         "y": 520,
         "constellation": "neighbor",
         "note": "Oasa"
