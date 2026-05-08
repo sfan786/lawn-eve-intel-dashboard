@@ -1035,7 +1035,7 @@ MAP_LAYOUT_SUBWAY = {
         "constellation": "B-MQ0Y"
     },
     "F-A3TR": {
-        "x": 806,
+        "x": 850,
         "y": 649,
         "constellation": "S0X-O4"
     },
@@ -1131,7 +1131,7 @@ MAP_LAYOUT_SUBWAY = {
         "constellation": "4LEZ-6"
     },
     "L-EUY2": {
-        "x": 832,
+        "x": 875,
         "y": 727,
         "constellation": "neighbor",
         "note": "The Spire"
@@ -1228,7 +1228,7 @@ MAP_LAYOUT_SUBWAY = {
         "note": "The Spire"
     },
     "PA-ALN": {
-        "x": 806,
+        "x": 850,
         "y": 805,
         "constellation": "S0X-O4"
     },
