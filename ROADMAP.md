@@ -78,13 +78,13 @@
 - [x] ALERTS button in header status bar — pulsing amber dot when active
 - **Data sources:** Existing API endpoints, polled client-side
 
-### Regional Intel Aggregation
+### Regional Intel Aggregation *(in progress)*
 **Why:** Need early warning from neighboring regions before hostiles reach LAWN.
-- Monitor Perrigen's neighbour regions: Etherium Reach, Malpais, Oasa, Outer Passage, The Spire, Venal — all auto-resolved from the bootstrap's gate walk
-- Track large fleet movements via jump spikes
-- Flag new sovereignty changes in adjacent constellations
-- "Threat corridor" view — show activity along the 2 entry routes into LAWN space
-- **Data sources:** ESI sovereignty/jumps/kills (public), zKillboard regional feeds
+- [x] `/api/intel/regional` endpoint — neighbor system kills/jumps grouped by region, threat level per system and region
+- [x] `RegionalIntel.jsx` component — per-region cards with per-system rows, color-coded threat tiers
+- [ ] Spike detection vs historical baseline (need a few days of data first)
+- [ ] Sov change tracking in adjacent constellations
+- **Data sources:** ESI system_kills + system_jumps (already fetched for neighbor systems)
 
 ### Jump Bridge Route Overlay *(on hold — see Priority 4)*
 **Why:** On hold pending new sov stabilization. Moving to new space resets JB infrastructure. With 1-2 constellations likely at destination, mechanics probably allow at most 1 JB total (Ansiblex requires iHub + sov upgrades per constellation). No guarantee of a viable ally link either. Config UI and map rendering are already built — revisit when sov is established.
@@ -95,14 +95,6 @@
 ---
 
 ## Priority 3 — Long-Term / Requires Auth
-
-### Discord Webhook Alerts
-**Why:** Most of LAWN lives in Discord. Push critical alerts there.
-- Configurable webhook URL(s) per alert type
-- Alert types: ADM drop below threshold, new sov campaign, high PVP spike, structure timer
-- Rich embeds with system info, map snippet, and action links
-- Rate limiting to avoid spam
-- **Data sources:** Existing backend data, outbound webhooks
 
 ### EVE SSO Auth
 **Why:** Unlocks character-specific and corp-level data.
@@ -161,3 +153,4 @@
 - **SRP (Ship Replacement) integration** — track losses eligible for reimbursement
 - **Multi-alliance view** — if LAWN blues other groups, show their space too *(partially addressed via friendly IDs)*
 - **Wormhole connection tracker** — integration with Pathfinder/Tripwire APIs
+- **Discord webhook alerts** — ADM drops, sov campaigns, PVP spikes pushed to Discord (no current plans)
