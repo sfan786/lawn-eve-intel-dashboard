@@ -557,13 +557,13 @@ export default function ConstellationMap({ config, sovereignty, activity, campai
                                     const dotR = isSubway ? 1.5 : 1.2
                                     const dotGap = isSubway ? 4 : 3.5
                                     const baseX = pos.x - (cats.length - 1) * dotGap / 2
-                                    const baseY = pos.y + (isSubway ? (adm > 0 ? 19 : 12) : (adm > 0 ? 17 : 12))
+                                    const baseY = pos.y + (adm > 0 ? admOff + (isSubway ? 14 : 8) : nameOff)
                                     return cats.map((c, ci) => (
                                         <circle key={ci} cx={baseX + ci * dotGap} cy={baseY} r={dotR} fill={c} opacity={0.8} />
                                     ))
                                 })()}
                                 {isGateway && gatewayDest && (
-                                    <text x={pos.x} y={pos.y + r + 16} textAnchor="middle" fontFamily="Orbitron, sans-serif" fontSize="9" fill="#ffaa00" opacity={0.85} letterSpacing="1">{'→'} {gatewayDest.toUpperCase()}</text>
+                                    <text x={pos.x} y={pos.y + r + 44} textAnchor="middle" fontFamily="Orbitron, sans-serif" fontSize="9" fill="#ffaa00" opacity={0.85} letterSpacing="1">{'→'} {gatewayDest.toUpperCase()}</text>
                                 )}
                                 {isN && pos.holder && (
                                     <text x={pos.x} y={pos.y + (isSubway ? 8 : 14)} textAnchor="middle" fontFamily="Share Tech Mono, monospace" fontSize="6" fill="#443300" opacity={isSubway ? 0.3 : 0.5}>{pos.holder}</text>
