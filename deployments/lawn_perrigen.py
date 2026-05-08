@@ -910,7 +910,7 @@ MAP_LAYOUT_SUBWAY = {
     },
     "H-29TM": {
         "x": 620,
-        "y": 300,
+        "y": 320,
         "constellation": "4LEZ-6"
     },
     "KOI8-Z": {
@@ -994,7 +994,7 @@ MAP_LAYOUT_SUBWAY = {
         "constellation": "L7-RDZ"
     },
     "7AH-SF": {
-        "x": 480,
+        "x": 500,
         "y": 260,
         "constellation": "L7-RDZ"
     },
@@ -1344,7 +1344,7 @@ MAP_LAYOUT_SUBWAY = {
         "note": "Malpais"
     },
     "DYS-CG": {
-        "x": 780,
+        "x": 740,
         "y": 380,
         "constellation": "neighbor",
         "note": "Oasa"
@@ -1356,8 +1356,8 @@ MAP_LAYOUT_SUBWAY = {
         "note": "Oasa"
     },
     "QE2-FS": {
-        "x": 500,
-        "y": 520,
+        "x": 480,
+        "y": 540,
         "constellation": "neighbor",
         "note": "Oasa"
     },
