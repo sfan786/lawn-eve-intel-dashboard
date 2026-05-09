@@ -21,6 +21,7 @@ from routes.activity_routes import activity_bp
 from routes.zkill_routes import zkill_bp
 from routes.history_routes import history_bp
 from routes.intel_routes import intel_bp
+from routes.hostile_routes import hostile_bp
 from routes.timer_routes import timer_bp
 from routes.annotation_routes import annotation_bp
 from routes.jb_routes import jb_bp
@@ -30,7 +31,7 @@ import db
 
 def create_app():
     app = Flask(__name__)
-    for bp in [config_bp, sov_bp, activity_bp, zkill_bp, history_bp, intel_bp, timer_bp, annotation_bp, jb_bp, static_bp]:
+    for bp in [config_bp, sov_bp, activity_bp, zkill_bp, history_bp, intel_bp, hostile_bp, timer_bp, annotation_bp, jb_bp, static_bp]:
         app.register_blueprint(bp)
     return app
 

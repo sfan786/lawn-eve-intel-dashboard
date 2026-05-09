@@ -18,6 +18,8 @@ import ActivityHeatmap from './components/ActivityHeatmap'
 import MobileNav from './components/MobileNav'
 import DscanParser from './components/DscanParser'
 import LocalScanner from './components/LocalScanner'
+import IntelChannelParser from './components/IntelChannelParser'
+import ActiveHostileTracker from './components/ActiveHostileTracker'
 import JumpBridgeManager from './components/JumpBridgeManager'
 import NotificationBell from './components/NotificationBell'
 import { useNotifications } from './hooks/useNotifications'
@@ -321,7 +323,9 @@ export default function App() {
                 {/* Tab 2: Kills — activity heatmap */}
                 {(!isMobile || mobileTab === 2) && <ActivityHeatmap config={config} sovereignty={sovereignty} lastUpdate={lastUpdate} />}
 
-                {/* Tab 3: Intel — JB manager + neighbor intel + dscan + local scanner */}
+                {/* Tab 3: Intel — channel parser + hostile tracker + JB + neighbor intel + dscan + local scanner */}
+                {(!isMobile || mobileTab === 3) && <IntelChannelParser config={config} />}
+                {(!isMobile || mobileTab === 3) && <ActiveHostileTracker lastUpdate={lastUpdate} />}
                 {(!isMobile || mobileTab === 3) && (
                     <JumpBridgeManager
                         jumpBridges={jumpBridges}
