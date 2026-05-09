@@ -126,6 +126,7 @@ export default function IntelChannelParser({ config }) {
     const [expireMin, setExpireMin] = useState(DEFAULT_EXPIRE_MIN)
     const [board, setBoard] = useState(new Map()) // system_name → entry
     const [now, setNow] = useState(() => new Date())
+    const [copied, setCopied] = useState(false)
     const tickRef = useRef(null)
 
     useEffect(() => {
@@ -134,6 +135,7 @@ export default function IntelChannelParser({ config }) {
     }, [])
 
     const lookup = useMemo(() => buildSystemLookup(config), [config])
+    const borderSet = useMemo(() => new Set((config?.border_systems || []).map(s => s.toLowerCase())), [config])
 
     const applyEntries = useCallback((entries) => {
         if (!entries.length) return
@@ -165,18 +167,42 @@ export default function IntelChannelParser({ config }) {
         const arr = []
         for (const [, e] of board) {
             const age = now - e.timestamp
-            arr.push({ ...e, age, expired: age > expireMs })
+            const isBorder = borderSet.has(e.system.toLowerCase())
+            arr.push({ ...e, age, expired: age > expireMs, isBorder })
         }
         arr.sort((a, b) => {
-            if (a.isPrimary !== b.isPrimary) return b.isPrimary - a.isPrimary
+            // border+primary first, then other primaries, then non-primary
+            const rankA = a.isPrimary ? (a.isBorder ? 2 : 1) : 0
+            const rankB = b.isPrimary ? (b.isBorder ? 2 : 1) : 0
+            if (rankA !== rankB) return rankB - rankA
             if (a.expired !== b.expired) return a.expired - b.expired
             return b.timestamp - a.timestamp
         })
         return arr
-    }, [board, now, expireMs])
+    }, [board, now, expireMs, borderSet])
 
     const primaryAlerts = rows.filter(r => !r.expired && r.isPrimary && !r.isClear && (r.count ?? 0) > 0).length
     const activeCount = rows.filter(r => !r.expired && !r.isClear).length
+
+    const copyBoard = useCallback(async () => {
+        const lines = rows
+            .filter(r => !r.expired)
+            .map(r => {
+                const tags = [r.isBorder && 'GATE', r.isPrimary && !r.isBorder && 'PRIMARY'].filter(Boolean).join('/')
+                const prefix = tags ? `[${tags}] ` : ''
+                const status = r.isClear ? 'CLEAR' : r.count != null ? `${r.count} neuts` : 'sighted'
+                const ships = r.ships.length ? ` (${r.ships.join(', ')})` : ''
+                return `${prefix}${r.system}: ${status}${ships} — ${formatAge(r.age)} ago`
+            })
+        const text = lines.join('\n')
+        try { await navigator.clipboard.writeText(text) } catch {
+            const el = document.createElement('textarea')
+            el.value = text; document.body.appendChild(el); el.select()
+            document.execCommand('copy'); document.body.removeChild(el)
+        }
+        setCopied(true)
+        setTimeout(() => setCopied(false), 2000)
+    }, [rows])
 
     function rowBg(r) {
         if (r.expired) return 'transparent'
@@ -217,6 +243,16 @@ export default function IntelChannelParser({ config }) {
                             <option key={m} value={m}>EXPIRE {m}m</option>
                         ))}
                     </select>
+                    {rows.some(r => !r.expired) && (
+                        <button onClick={copyBoard} style={{
+                            background: 'none',
+                            border: `1px solid ${copied ? '#00ff8866' : 'var(--border-dim)'}`,
+                            color: copied ? '#00ff88' : 'var(--text-secondary)', cursor: 'pointer',
+                            fontFamily: 'Share Tech Mono, monospace', fontSize: 10,
+                            padding: '2px 8px', letterSpacing: 1,
+                            transition: 'color 0.2s, border-color 0.2s',
+                        }}>{copied ? 'COPIED!' : 'COPY'}</button>
+                    )}
                     {board.size > 0 && (
                         <button onClick={clearAll} style={{
                             background: 'none', border: '1px solid var(--border-dim)',
@@ -269,10 +305,17 @@ export default function IntelChannelParser({ config }) {
                                 <td style={{ padding: '5px 8px' }}>
                                     <span style={{
                                         fontFamily: 'Share Tech Mono, monospace', fontSize: 11,
-                                        color: r.isPrimary ? '#00ff88' : 'var(--text-primary)',
+                                        color: r.isBorder ? '#ffcc44' : r.isPrimary ? '#00ff88' : 'var(--text-primary)',
                                         fontWeight: r.isPrimary ? 700 : 400,
                                     }}>{r.system}</span>
-                                    {r.isPrimary && (
+                                    {r.isBorder && (
+                                        <span style={{
+                                            marginLeft: 5, fontSize: 7,
+                                            fontFamily: 'Orbitron, sans-serif', letterSpacing: 1,
+                                            color: '#ffcc4499',
+                                        }}>GATE</span>
+                                    )}
+                                    {r.isPrimary && !r.isBorder && (
                                         <span style={{
                                             marginLeft: 5, fontSize: 7,
                                             fontFamily: 'Orbitron, sans-serif', letterSpacing: 1,
