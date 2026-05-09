@@ -17,6 +17,7 @@ from mock.mock_activity_routes import mock_activity_bp
 from mock.mock_zkill_routes import mock_zkill_bp
 from mock.mock_history_routes import mock_history_bp
 from mock.mock_intel_routes import mock_intel_bp
+from mock.mock_hostile_routes import mock_hostile_bp
 from mock.mock_timer_routes import mock_timer_bp
 from mock.mock_annotation_routes import mock_annotation_bp
 from mock.mock_jb_routes import mock_jb_bp
@@ -28,7 +29,7 @@ def create_demo_app():
     app = Flask(__name__)
     for bp in [
         mock_config_bp, mock_sov_bp, mock_activity_bp, mock_zkill_bp,
-        mock_history_bp, mock_intel_bp, mock_timer_bp, mock_annotation_bp, mock_jb_bp, static_bp,
+        mock_history_bp, mock_intel_bp, mock_hostile_bp, mock_timer_bp, mock_annotation_bp, mock_jb_bp, static_bp,
     ]:
         app.register_blueprint(bp)
     return app
