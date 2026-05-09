@@ -31,7 +31,7 @@ export default function ActiveHostileTracker({ lastUpdate }) {
     }, [lastUpdate])
 
     if (loading) return null
-    if (error || !hostiles.length) return null
+    if (error) return null
 
     const primaryActive = hostiles.filter(h => h.primary_kills > 0).length
 
@@ -46,11 +46,24 @@ export default function ActiveHostileTracker({ lastUpdate }) {
                             {primaryActive} IN PRIMARY
                         </span>
                     )}
-                    <span className="panel-badge">{hostiles.length} entities · recent kills</span>
+                    <span className="panel-badge">
+                        {hostiles.length > 0 ? `${hostiles.length} entities · recent kills` : 'recent kills'}
+                    </span>
                 </div>
             </div>
 
-            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            {hostiles.length === 0 && (
+                <div style={{
+                    padding: '10px 12px', background: 'rgba(0,255,136,0.06)',
+                    border: '1px solid rgba(0,255,136,0.2)',
+                    fontFamily: 'Orbitron, sans-serif', fontSize: 10,
+                    letterSpacing: 2, color: '#00ff88',
+                }}>
+                    REGION CLEAR — no hostile kill activity detected in recent feed
+                </div>
+            )}
+
+            {hostiles.length > 0 && <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                 <thead>
                     <tr style={{ borderBottom: '1px solid var(--border-dim)' }}>
                         {['ENTITY', 'THREAT', 'KILLS', 'ACTIVE IN', 'SHIPS', 'LAST SEEN'].map(h => (
@@ -148,7 +161,7 @@ export default function ActiveHostileTracker({ lastUpdate }) {
                         )
                     })}
                 </tbody>
-            </table>
+            </table>}
         </div>
     )
 }

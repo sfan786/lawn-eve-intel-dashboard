@@ -170,7 +170,6 @@ const GROUP_CATEGORIES = {
     'Rifter': 'FRIGATE', 'Breacher': 'FRIGATE', 'Slasher': 'FRIGATE',
     // Rookie / Civilian ships
     'Reaper': 'FRIGATE', 'Ibis': 'FRIGATE', 'Velator': 'FRIGATE', 'Impairor': 'FRIGATE',
-    'Capsule': 'POD',
     // Mining ships (sometimes on dscan)
     'Venture': 'FRIGATE', 'Endurance': 'FRIGATE',
     'Procurer': 'CRUISER', 'Retriever': 'CRUISER', 'Covetor': 'CRUISER',
