@@ -431,6 +431,25 @@ def get_zkill_corporation(corp_id: int) -> list:
         return []
 
 
+def get_zkill_char_stats(char_id: int) -> dict:
+    """Get lifetime kill stats for a character from zKillboard stats API."""
+    cache_key = f"zkill_stats_{char_id}"
+    cached = _get_cached(cache_key, "zkill_stats")
+    if cached is not None:
+        return cached
+    try:
+        headers = {"Accept": "application/json", "User-Agent": "AstrumMechanica-IntelDash/1.0"}
+        url = f"{ZKILL_BASE}/stats/characterID/{char_id}/"
+        resp = requests.get(url, headers=headers, timeout=10)
+        resp.raise_for_status()
+        data = resp.json() or {}
+        _set_cache(cache_key, data)
+        return data
+    except Exception as e:
+        print(f"zKill stats error for char {char_id}: {e}")
+        return {}
+
+
 def get_killmail(killmail_id: int, killmail_hash: str) -> dict:
     """Get full killmail details from ESI."""
     cache_key = f"killmail_{killmail_id}"

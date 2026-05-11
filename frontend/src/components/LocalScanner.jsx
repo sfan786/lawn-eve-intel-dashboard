@@ -10,6 +10,28 @@ const STANDING_CONFIG = {
 
 const STANDING_ORDER = { unknown: 0, friendly: 1, lawn: 2, unresolved: 3 }
 
+const RISK_COLOR = {
+    very_dangerous: '#ff2244',
+    dangerous:      '#ff3355',
+    moderate:       '#ffaa00',
+    snuggly:        '#00d4ff',
+    newbie:         '#6a8090',
+    nodata:         '#334455',
+}
+
+const ROLE_COLOR = {
+    TITAN:   '#ff2244',
+    SUPER:   '#ff5500',
+    DREAD:   '#ff7744',
+    CARRIER: '#ffaa44',
+    FAX:     '#ffdd00',
+    BLOPS:   '#cc44ff',
+    RECON:   '#aa55ff',
+    BOMBER:  '#8855dd',
+    T3C:     '#7755cc',
+    COVOPS:  '#6644aa',
+}
+
 function parseNames(raw) {
     if (!raw.trim()) return []
     const names = raw.includes('\n')
@@ -21,6 +43,7 @@ function parseNames(raw) {
 export default function LocalScanner() {
     const [rawInput, setRawInput] = useState('')
     const [results, setResults] = useState(null)
+    const [riskMap, setRiskMap] = useState({}) // character_id → risk tier data
     const [scanning, setScanning] = useState(false)
     const [error, setError] = useState(null)
     const debounceTimer = useRef(null)
@@ -47,9 +70,17 @@ export default function LocalScanner() {
             })
             if (!resp.ok) throw new Error(`Server error: ${resp.status}`)
             const data = await resp.json()
-            // Sort: unknown first, then friendly, then lawn, then unresolved
             data.sort((a, b) => (STANDING_ORDER[a.standing] ?? 99) - (STANDING_ORDER[b.standing] ?? 99))
             setResults(data)
+
+            const charIds = data.filter(r => r.character_id).map(r => r.character_id)
+            if (charIds.length) {
+                fetch('/api/chars/analyze', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ char_ids: charIds }),
+                }).then(r => r.ok ? r.json() : {}).then(setRiskMap).catch(() => {})
+            }
         } catch (e) {
             setError(e.message)
         } finally {
@@ -60,6 +91,7 @@ export default function LocalScanner() {
     function handleClear() {
         setRawInput('')
         setResults(null)
+        setRiskMap({})
         setError(null)
     }
 
@@ -149,6 +181,7 @@ export default function LocalScanner() {
                                 <th style={{ padding: '4px 8px', textAlign: 'left', fontFamily: 'Orbitron, sans-serif', fontSize: 9, letterSpacing: 2, color: 'var(--text-muted)', fontWeight: 500 }}>PILOT</th>
                                 <th style={{ padding: '4px 8px', textAlign: 'left', fontFamily: 'Orbitron, sans-serif', fontSize: 9, letterSpacing: 2, color: 'var(--text-muted)', fontWeight: 500 }}>CORP / ALLIANCE</th>
                                 <th style={{ padding: '4px 8px', textAlign: 'right', fontFamily: 'Orbitron, sans-serif', fontSize: 9, letterSpacing: 2, color: 'var(--text-muted)', fontWeight: 500 }}>STANDING</th>
+                                <th style={{ padding: '4px 8px', textAlign: 'right', fontFamily: 'Orbitron, sans-serif', fontSize: 9, letterSpacing: 2, color: 'var(--text-muted)', fontWeight: 500 }}>RISK</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -181,6 +214,38 @@ export default function LocalScanner() {
                                                 fontFamily: 'Orbitron, sans-serif', fontSize: 9,
                                                 fontWeight: 600, letterSpacing: 2, color: cfg.color,
                                             }}>{cfg.label}</span>
+                                        </td>
+                                        <td style={{ padding: '5px 8px', textAlign: 'right', whiteSpace: 'nowrap' }}>
+                                            {(() => {
+                                                const risk = r.character_id ? riskMap[String(r.character_id)] : null
+                                                if (!risk) return <span style={{ color: '#334455', fontFamily: 'Share Tech Mono, monospace', fontSize: 9 }}>—</span>
+                                                const rc = RISK_COLOR[risk.tier] ?? '#334455'
+                                                const kills = risk.kills >= 1000 ? `${(risk.kills/1000).toFixed(1)}k` : String(risk.kills)
+                                                const roles = risk.roles || []
+                                                return (
+                                                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 1 }}>
+                                                        <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                                                            <span style={{ fontFamily: 'Orbitron, sans-serif', fontSize: 9, fontWeight: 700, letterSpacing: 1, color: rc }}>{risk.label}</span>
+                                                            {roles.map(role => (
+                                                                <span key={role} style={{
+                                                                    fontFamily: 'Orbitron, sans-serif', fontSize: 7, fontWeight: 700,
+                                                                    letterSpacing: 1, color: ROLE_COLOR[role] ?? '#aaaaaa',
+                                                                    border: `1px solid ${ROLE_COLOR[role] ?? '#aaaaaa'}44`,
+                                                                    padding: '0 3px', borderRadius: 2,
+                                                                }}>{role}</span>
+                                                            ))}
+                                                        </div>
+                                                        {risk.tier !== 'nodata' && risk.tier !== 'newbie' && (
+                                                            <span style={{ fontFamily: 'Share Tech Mono, monospace', fontSize: 8, color: '#6a8090' }}>
+                                                                {kills} kills · {risk.isk_eff}% eff · {risk.danger}% danger
+                                                            </span>
+                                                        )}
+                                                        {risk.tier === 'newbie' && (
+                                                            <span style={{ fontFamily: 'Share Tech Mono, monospace', fontSize: 8, color: '#6a8090' }}>{kills} kills</span>
+                                                        )}
+                                                    </div>
+                                                )
+                                            })()}
                                         </td>
                                     </tr>
                                 )

@@ -33,3 +33,20 @@ MOCK_LOCAL_SCAN = [
 @mock_intel_bp.route("/api/local/scan", methods=["POST"])
 def api_local_scan():
     return jsonify(MOCK_LOCAL_SCAN)
+
+
+MOCK_RISK = {
+    "90000001": {"tier": "lawn",           "label": "LAWN",          "kills": 0,   "losses": 0,  "danger": 0,  "gang_ratio": 0,  "solo_kills": 0, "isk_eff": 0,  "roles": []},
+    "90000006": {"tier": "very_dangerous", "label": "VERY DANGEROUS","kills": 2341,"losses": 87, "danger": 91, "gang_ratio": 72, "solo_kills": 120,"isk_eff": 88, "roles": ["DREAD", "BLOPS"]},
+    "90000007": {"tier": "dangerous",      "label": "DANGEROUS",     "kills": 412, "losses": 55, "danger": 63, "gang_ratio": 58, "solo_kills": 34, "isk_eff": 71, "roles": ["CARRIER"]},
+    "90000008": {"tier": "moderate",       "label": "MODERATE",      "kills": 88,  "losses": 40, "danger": 38, "gang_ratio": 45, "solo_kills": 8,  "isk_eff": 56, "roles": []},
+}
+
+
+@mock_intel_bp.route("/api/chars/analyze", methods=["POST"])
+def api_chars_analyze():
+    char_ids = [str(cid) for cid in (request.json.get("char_ids") or [])]
+    results = {}
+    for cid in char_ids:
+        results[cid] = MOCK_RISK.get(cid, {"tier": "newbie", "label": "NEWBIE", "kills": 4, "losses": 12, "danger": 8, "gang_ratio": 20, "solo_kills": 0, "isk_eff": 22, "roles": []})
+    return jsonify(results)

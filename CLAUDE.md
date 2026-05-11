@@ -301,6 +301,8 @@ See [ROADMAP.md](ROADMAP.md) for full details and backlog.
 - [x] ADM grinding planner (priority ranking, rate estimation, daily targets)
 - [x] DScan parser — paste D-scan output → ship categories, threat tier banner, structures section (`DscanParser.jsx`, pure frontend)
 - [x] Local chat scanner — paste pilot names → ESI affiliation lookup → lawn/friendly/unknown/unresolved classification with zKill links (`LocalScanner.jsx`, `POST /api/local/scan`)
+- [x] PLH-style pilot risk ratings — `POST /api/chars/analyze` classifies VERY DANGEROUS / DANGEROUS / MODERATE / SNUGGLY / NEWBIE with kills + ISK efficiency; shown in Local Scanner RISK column and Intel Channel Parser char rows
+- [x] Capital/dropper/covert role detection — `_detect_roles()` reads zkill stats `groups` dict; role badges TITAN/SUPER/DREAD/CARRIER/FAX/BLOPS/RECON/BOMBER/T3C/COVOPS displayed next to risk tier in both scanner panels; `THREAT_SHIP_GROUPS` in `eve_constants.py`
 - [x] Ally expansion — The Skeleton Crew [MEAN] (99008788) and Weapons Of Mass Production [WOMP] (99010468) added as friendly alliances
 - [x] Wide screen layout — dashboard expands to max-width 2000px at 1400px+ (all panels remain full-width)
 

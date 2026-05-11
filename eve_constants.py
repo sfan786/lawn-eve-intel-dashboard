@@ -20,6 +20,7 @@ CACHE_TTL = {
     "system_info": 86400,              # 24h — static
     "region_info": 86400,              # 24h — static
     "zkill": 120,                      # 2 min — kills change fast
+    "zkill_stats": 3600,               # 1h — char kill stats don't change fast
     "entity_info": 3600,               # 1h — alliance/corp/character names
 }
 
@@ -33,6 +34,21 @@ PLANET_TYPE_NAMES = {
     2016: "Planet (Barren)",
     2017: "Planet (Storm)",
     2063: "Planet (Plasma)",
+}
+
+# ===== Threat ship groups (used for capital/dropper role detection via zkill stats) =====
+# Keys are EVE ship group IDs (verified via ESI /universe/types/{id}/)
+THREAT_SHIP_GROUPS = {
+    30:   "TITAN",
+    659:  "SUPER",
+    485:  "DREAD",
+    547:  "CARRIER",
+    1538: "FAX",
+    898:  "BLOPS",   # Black Ops BS — covert cyno + jump bridge
+    833:  "RECON",   # Force Recon Ships (Arazu/Pilgrim/Rapier/Falcon) — covert cyno
+    834:  "BOMBER",  # Stealth Bombers — covert cyno
+    830:  "COVOPS",  # Covert Ops frigates (Anathema/Buzzard/Cheetah/Helios) — covert cyno
+    963:  "T3C",     # Strategic Cruisers (Tengu/Legion/Proteus/Loki) — covert cyno subsystem
 }
 
 # ===== Sovereignty upgrades =====
