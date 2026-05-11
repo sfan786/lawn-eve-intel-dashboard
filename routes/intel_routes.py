@@ -202,15 +202,17 @@ def _compute_risk_tier(stats: dict) -> dict:
 
 def _detect_roles(groups: dict) -> list:
     """Detect capital/special-role ships from zkill stats groups dict.
-    groups keys are string group IDs; values are per-group loss stats.
-    Returns list of role strings e.g. ['DREAD', 'BLOPS'].
+    Each group entry has shipsDestroyed (helped kill that hull type) and
+    shipsLost (character personally flew and lost that hull type).
+    We only flag a role when shipsLost > 0 — i.e. the character has actually
+    flown that hull, not merely been on killmails where one died.
     """
     roles = []
-    for gid_str in (groups or {}):
+    for gid_str, gdata in (groups or {}).items():
         try:
             gid = int(gid_str)
             role = THREAT_SHIP_GROUPS.get(gid)
-            if role:
+            if role and (gdata.get("shipsLost") or 0) > 0:
                 roles.append(role)
         except (ValueError, TypeError):
             pass
