@@ -1,6 +1,7 @@
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from flask import Blueprint, jsonify, request
 from config import NEIGHBOR_ENTITIES, LAWN_ALLIANCE_ID, FRIENDLY_ALLIANCE_IDS, FRIENDLY_CORPORATIONS
+from eve_constants import THREAT_SHIP_GROUPS
 import esi_client
 from routes.system_state import state
 
@@ -157,6 +158,86 @@ def api_local_scan():
     # Sort: unknown first, then friendly, then lawn, then unresolved
     order = {"unknown": 0, "friendly": 1, "lawn": 2, "unresolved": 3}
     results.sort(key=lambda r: order.get(r["standing"], 99))
+
+    return jsonify(results)
+
+
+def _compute_risk_tier(stats: dict) -> dict:
+    # zkill stats API top-level fields (all present but may be 0 for inactive chars)
+    kills   = stats.get("shipsDestroyed", 0) or 0
+    losses  = stats.get("shipsLost", 0) or 0
+    danger  = stats.get("dangerRatio", 0) or 0
+    gang    = stats.get("gangRatio", 0) or 0
+    solo    = stats.get("soloKills", 0) or 0
+    i_dest  = stats.get("iskDestroyed", 0) or 0
+    i_lost  = stats.get("iskLost", 0) or 0
+
+    # Fallback: some chars return activepvp.ships instead of shipsDestroyed
+    if kills == 0:
+        kills = (stats.get("activepvp") or {}).get("ships", {}).get("count", 0) or 0
+
+    total_isk = i_dest + i_lost
+    isk_eff = round(i_dest / total_isk * 100) if total_isk > 0 else 0
+
+    if kills == 0 and losses == 0:
+        tier, label = "nodata", "NO DATA"
+    elif kills < 25:
+        tier, label = "newbie", "NEWBIE"
+    elif danger >= 75 or (danger >= 50 and kills >= 500):
+        tier, label = "very_dangerous", "VERY DANGEROUS"
+    elif danger >= 50 and kills >= 25:
+        tier, label = "dangerous", "DANGEROUS"
+    elif danger >= 25 or kills >= 100:
+        tier, label = "moderate", "MODERATE"
+    else:
+        tier, label = "snuggly", "SNUGGLY"
+
+    return {
+        "tier": tier, "label": label,
+        "kills": kills, "losses": losses,
+        "danger": danger, "gang_ratio": gang,
+        "solo_kills": solo, "isk_eff": isk_eff,
+    }
+
+
+def _detect_roles(groups: dict) -> list:
+    """Detect capital/special-role ships from zkill stats groups dict.
+    groups keys are string group IDs; values are per-group loss stats.
+    Returns list of role strings e.g. ['DREAD', 'BLOPS'].
+    """
+    roles = []
+    for gid_str in (groups or {}):
+        try:
+            gid = int(gid_str)
+            role = THREAT_SHIP_GROUPS.get(gid)
+            if role:
+                roles.append(role)
+        except (ValueError, TypeError):
+            pass
+    # Stable order: heaviest capitals first, then covert-cyno classes
+    order = ["TITAN", "SUPER", "DREAD", "CARRIER", "FAX", "BLOPS", "RECON", "BOMBER", "T3C", "COVOPS"]
+    return [r for r in order if r in roles]
+
+
+@intel_bp.route("/api/chars/analyze", methods=["POST"])
+def api_chars_analyze():
+    char_ids = [int(cid) for cid in (request.json.get("char_ids") or [])[:25]]
+    if not char_ids:
+        return jsonify({})
+
+    results = {}
+    with ThreadPoolExecutor(max_workers=8) as pool:
+        future_to_id = {pool.submit(esi_client.get_zkill_char_stats, cid): cid for cid in char_ids}
+        for future in as_completed(future_to_id):
+            cid = future_to_id[future]
+            try:
+                stats = future.result()
+                risk = _compute_risk_tier(stats)
+                risk["roles"] = _detect_roles(stats.get("groups", {}))
+                results[str(cid)] = risk
+            except Exception as e:
+                print(f"Risk analyze error for {cid}: {e}")
+                results[str(cid)] = {"tier": "nodata", "label": "NO DATA", "kills": 0, "losses": 0, "danger": 0, "gang_ratio": 0, "solo_kills": 0, "isk_eff": 0, "roles": []}
 
     return jsonify(results)
 

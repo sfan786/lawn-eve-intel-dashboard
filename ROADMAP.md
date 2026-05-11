@@ -31,6 +31,8 @@
 - [x] **Map system annotations** — right-click any system to add/edit/delete sticky notes (SQLite-backed); amber dot indicator on map, note in tooltip, Note column in system table; no auth required
 - [x] **Jump bridge overlay** — manual JB config panel (timer auth gated) renders dashed violet lines on the constellation map in both modes; `JumpBridgeManager.jsx` + `routes/jb_routes.py`
 - [x] **DScan copy** — COPY button in DScan parser header copies formatted threat summary (tier + ship class counts + objects) to clipboard
+- [x] **PLH-style pilot risk ratings** — `POST /api/chars/analyze` fetches zKillboard stats per character; `_compute_risk_tier()` classifies VERY DANGEROUS / DANGEROUS / MODERATE / SNUGGLY / NEWBIE / NO DATA based on kills, danger ratio, and ISK efficiency; displayed in Local Scanner RISK column and Intel Channel Parser char rows
+- [x] **Capital/dropper/covert role detection** — `_detect_roles()` reads the zkill stats `groups` dict (ship groups from losses) to detect TITAN, SUPER, DREAD, CARRIER, FAX, BLOPS, RECON, BOMBER, T3C, COVOPS; role badges rendered next to risk tier in both scanner panels; `THREAT_SHIP_GROUPS` map in `eve_constants.py`
 
 ---
 
