@@ -11,12 +11,12 @@ echo ""
 echo "📥 Pulling latest code..."
 git pull origin main
 
-echo "🛑 Stopping containers..."
-docker-compose down
-
 echo "🗄️  Ensuring intel.db and .env exist as files..."
 touch intel.db
 touch .env
+
+echo "🛑 Stopping containers..."
+docker-compose down
 
 echo "🔄 Rebuilding (with cache) and restarting..."
 docker-compose up -d --build

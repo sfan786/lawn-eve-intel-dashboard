@@ -11,6 +11,14 @@ echo ""
 echo "📥 Pulling latest code..."
 git pull origin main
 
+echo "🗄️  Ensuring intel.db and .env exist as files..."
+if [ -d "intel.db" ]; then
+    echo "⚠️  Found intel.db as a directory (docker-compose glitch). Fixing..."
+    sudo rm -rf intel.db
+fi
+touch intel.db
+touch .env
+
 echo "🛑 Stopping containers..."
 docker-compose down
 
@@ -18,14 +26,6 @@ echo "🏗️  Building fresh image (no cache)..."
 echo "   This builds the Vite frontend + Python app from scratch."
 echo "   Takes ~2-3 minutes on first run, faster after..."
 docker-compose build --no-cache
-
-echo "🗄️  Ensuring intel.db exists as a file (not directory)..."
-if [ -d "intel.db" ]; then
-    echo "⚠️  Found intel.db as a directory (docker-compose glitch). Fixing..."
-    sudo rm -rf intel.db
-fi
-touch intel.db
-touch .env
 
 echo "🚀 Starting containers..."
 docker-compose up -d
