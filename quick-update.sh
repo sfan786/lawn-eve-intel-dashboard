@@ -14,8 +14,9 @@ git pull origin main
 echo "🛑 Stopping containers..."
 docker-compose down
 
-echo "🗄️  Ensuring intel.db exists as a file (not directory)..."
+echo "🗄️  Ensuring intel.db and .env exist as files..."
 touch intel.db
+touch .env
 
 echo "🔄 Rebuilding (with cache) and restarting..."
 docker-compose up -d --build

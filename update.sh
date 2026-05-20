@@ -25,6 +25,7 @@ if [ -d "intel.db" ]; then
     sudo rm -rf intel.db
 fi
 touch intel.db
+touch .env
 
 echo "🚀 Starting containers..."
 docker-compose up -d
