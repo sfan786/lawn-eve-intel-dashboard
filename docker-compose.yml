@@ -6,9 +6,13 @@ services:
     restart: unless-stopped
     ports:
       - "5000:5000"
+    env_file:
+      - path: .env
+        required: false   # falls back to inline defaults if .env is absent
     environment:
-      - FLASK_DEBUG=false
+      - FLASK_DEBUG=${FLASK_DEBUG:-false}
       - TIMER_PASSWORD=${TIMER_PASSWORD:-REDACTED}
+      - DEPLOYMENT=${DEPLOYMENT:-lawn_perrigen}
     volumes:
       # Persist SQLite database outside the container
       - ./intel.db:/app/intel.db
