@@ -74,9 +74,13 @@ lawn-eve-intel-dashboard/
 ├── Dockerfile               # Multi-stage: Node (Vite build) → Python (gunicorn)
 ├── docker-compose.yml       # Production container config
 ├── nginx.conf               # Nginx reverse proxy config
-├── deploy-oracle.sh         # First-time server setup script
-├── update.sh                # Full rebuild deploy (no cache)
-├── quick-update.sh          # Fast deploy (uses Docker layer cache)
+├── .env.example             # Config template — copy to .env on server
+├── update.sh                # Manual full rebuild deploy (no cache)
+├── quick-update.sh          # Manual fast deploy (uses Docker layer cache)
+├── scripts/
+│   └── server-setup.sh      # One-time setup for a fresh Debian/Ubuntu VPS
+├── .github/workflows/
+│   └── deploy.yml           # CD: auto-deploy to server on push to main
 ├── setup.fish               # Local first-time setup (venv + npm install)
 ├── run_dev.fish             # Local dev launcher (Flask + Vite together)
 └── requirements.txt
@@ -135,7 +139,7 @@ All run from `frontend/`:
 
 ---
 
-## Production Deployment (Hetzner / Docker)
+## Production Deployment
 
 The production setup is:
 - **Docker** — multi-stage build (Node builds Vite → Python runs gunicorn)
@@ -143,82 +147,81 @@ The production setup is:
 - **Nginx** — reverse proxy on port 80/443, forwards to gunicorn
 - **SQLite** — persisted to `./intel.db` on the host via Docker volume
 
-### How the Docker build works
-
 `docker-compose build` runs a two-stage Dockerfile:
-1. **Node stage** — runs `npm ci && npm run build` inside `frontend/`, outputting to `static/dist/`
-2. **Python stage** — installs pip deps, copies app code, overlays the Vite build output
-
-The built frontend is served directly by Flask from `static/dist/`. No separate Node process runs in production.
+1. **Node stage** — `npm ci && npm run build` inside `frontend/`, output to `static/dist/`
+2. **Python stage** — installs pip deps, copies app code, overlays the Vite build
 
 ---
 
-### First-Time Server Setup
+### Automated Deploys (GitHub Actions)
 
-For a fresh Hetzner (or Oracle) server, see the full guide: **[DEPLOY-HETZNER.md](DEPLOY-HETZNER.md)**
+Every push to `main` automatically deploys to the server. One-time setup:
 
-**Quick version** — on the server as a non-root user:
+1. Add these 4 secrets to your repo under **Settings → Secrets → Actions**:
 
-```bash
-# 1. Clone the repo
-git clone git@github.com:sfan786/lawn-eve-intel-dashboard.git
-cd lawn-eve-intel-dashboard
+   | Secret | Value |
+   |--------|-------|
+   | `DEPLOY_HOST` | Server IP address |
+   | `DEPLOY_USER` | SSH username (e.g. `root`) |
+   | `DEPLOY_SSH_KEY` | Private key content (`cat ~/.ssh/id_ed25519`) |
+   | `DEPLOY_PATH` | Repo path on server (e.g. `/root/lawn-eve-intel-dashboard`) |
 
-# 2. Run the deploy script (installs Docker, nginx, starts the app)
-chmod +x deploy-oracle.sh
-./deploy-oracle.sh
+2. On the server, make sure the repo is cloned (not a tarball extract):
+   ```bash
+   git remote -v   # should show origin → github
+   git pull        # get latest scripts
+   ```
 
-# 3. Set firewall rules
-sudo ufw allow 22/tcp
-sudo ufw allow 80/tcp
-sudo ufw allow 443/tcp
-sudo ufw enable
-```
-
-Then access via `http://YOUR_SERVER_IP`.
+After that, `git push` = deployed.
 
 ---
 
-### Setting the Timer Password in Production
+### Manual Updates
 
-The timer password defaults to `REDACTED`. Set it via environment variable before building:
-
-```bash
-# Option 1: export before running docker-compose
-export TIMER_PASSWORD="your-secret-password"
-docker-compose up -d --build
-
-# Option 2: create a .env file in the project root (gitignored)
-echo "TIMER_PASSWORD=your-secret-password" > .env
-docker-compose up -d --build
-```
-
-`docker-compose.yml` reads `${TIMER_PASSWORD:-REDACTED}` — if the variable isn't set it falls back to the default.
-
----
-
-### Deploying Updates
-
-**After pushing code changes to GitHub, on the server:**
+SSH into the server and run one of:
 
 ```bash
 cd ~/lawn-eve-intel-dashboard
 
-# Fast update — uses Docker layer cache, rebuilds only changed layers
+# Fast — uses Docker layer cache (use for code-only changes)
 ./quick-update.sh
 
-# OR: full clean rebuild (use after changing requirements.txt or package.json)
+# Full clean rebuild (use after changing requirements.txt or package.json)
 ./update.sh
 ```
 
-Both scripts:
-1. `git pull origin main`
-2. `docker-compose down`
-3. Rebuild the Docker image (Node Vite build + Python)
-4. `docker-compose up -d`
-5. Poll the API health check until it responds
+Both scripts pull latest code, rebuild the image, restart the container, and poll the health check.
 
-`quick-update.sh` uses Docker's layer cache — if you only changed Python/JSX files, the `npm ci` and `pip install` layers are skipped, making it fast. Use `update.sh` (no-cache) when you add/change dependencies.
+---
+
+### First-Time Server Setup (new server)
+
+For a fresh Debian/Ubuntu VPS (Hetzner, Oracle, etc.):
+
+```bash
+# Edit REPO_URL at the top of the script first, then:
+bash scripts/server-setup.sh
+```
+
+This installs Docker, nginx, clones the repo, creates `.env` from the template, and starts the app.
+
+---
+
+### Configuration
+
+Copy `.env.example` to `.env` on the server and edit it:
+
+```bash
+cp .env.example .env
+nano .env
+```
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `DEPLOYMENT` | `lawn_perrigen` | Active deployment module under `deployments/` |
+| `TIMER_PASSWORD` | `REDACTED` | Password for timerboard add/delete |
+| `FLASK_PORT` | `5000` | Port Flask listens on |
+| `FLASK_DEBUG` | `false` | Never enable in production |
 
 ---
 
@@ -227,27 +230,18 @@ Both scripts:
 ```bash
 cd ~/lawn-eve-intel-dashboard
 
-# View live logs
-docker-compose logs -f
-
-# Restart without rebuild
-docker-compose restart
-
-# Stop
-docker-compose down
-
-# Check container status
-docker-compose ps
-
-# Check API health
-curl http://localhost:5000/api/status
+docker compose logs -f        # tail logs
+docker compose restart        # restart without rebuild
+docker compose down           # stop
+docker compose ps             # container status
+curl http://localhost:5000/api/status  # health check
 ```
 
 ---
 
 ### SSL / Domain Setup
 
-1. **Point DNS** — create an A record pointing `lawn.yourdomain.com` → your server IP
+1. **Point DNS** — create an A record: `lawn.yourdomain.com` → server IP
 
 2. **Update nginx config** on the server:
    ```bash
@@ -261,7 +255,6 @@ curl http://localhost:5000/api/status
    ```bash
    sudo apt install -y certbot python3-certbot-nginx
    sudo certbot --nginx -d lawn.yourdomain.com
-   # Choose "Redirect HTTP to HTTPS" when prompted
    ```
 
 Certbot auto-renews via a systemd timer — no manual action needed after setup.
