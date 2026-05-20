@@ -60,5 +60,7 @@ run_dev.fish
 DEPLOY*.md
 discord-post.md
 
-# Deploy scripts (run on host, not inside container)
+# Deploy/update scripts (run on host, not inside container)
 scripts/
+update.sh
+quick-update.sh
