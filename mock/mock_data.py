@@ -451,28 +451,75 @@ def generate_mock_adm_history():
 
 def _build_neighbor_intel():
     """One entry per NEIGHBOR_ENTITIES in the deployment, with deterministic
-    threat levels and a token activity heatmap."""
-    intel = []
-    samples = [
-        {"threat_level": "Medium", "kills": 23, "ships": [("Sabre", 8), ("Muninn", 5), ("Loki", 4), ("Stiletto", 3)],
-         "heatmap": [0, 0, 1, 2, 1, 0, 0, 0, 1, 3, 4, 5, 4, 3, 2, 1, 2, 3, 4, 5, 4, 3, 2, 1]},
-        {"threat_level": "Low", "kills": 7, "ships": [("Ishtar", 3), ("Drake", 2), ("Vexor Navy Issue", 2)],
-         "heatmap": [0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 2, 1, 1, 0, 0, 0, 1, 2, 2, 1, 0, 0, 0]},
-        {"threat_level": "Low", "kills": 4, "ships": [("Tornado", 2), ("Stratios", 2)],
-         "heatmap": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0]},
+    threat levels and a token activity heatmap. Returns new {pinned, detected} shape."""
+    pinned_samples = [
+        {
+            "threat_level": "High", "kills": 67, "isk": 48_200_000_000,
+            "ships": [("Muninn", 14), ("Sabre", 11), ("Scimitar", 8), ("Loki", 5), ("Stiletto", 4)],
+            "capital_roles": ["DREAD", "FAX"],
+            "heatmap": [0, 0, 1, 2, 1, 0, 0, 0, 1, 3, 4, 5, 4, 3, 2, 1, 2, 3, 4, 5, 4, 3, 2, 1],
+            "peak_tz": "14:00–20:00 UTC",
+            "neighbor_regions": ["Malpais", "Oasa"],
+        },
+        {
+            "threat_level": "Medium", "kills": 23, "isk": 8_100_000_000,
+            "ships": [("Ishtar", 7), ("Cerberus", 5), ("Osprey", 4), ("Sabre", 3)],
+            "capital_roles": [],
+            "heatmap": [0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 2, 1, 1, 0, 0, 0, 1, 2, 2, 1, 0, 0, 0],
+            "peak_tz": "09:00–15:00 UTC",
+            "neighbor_regions": ["Etherium Reach"],
+        },
+        {
+            "threat_level": "Low", "kills": 4, "isk": 900_000_000,
+            "ships": [("Tornado", 2), ("Stratios", 2)],
+            "capital_roles": [],
+            "heatmap": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0],
+            "peak_tz": "10:00–16:00 UTC",
+            "neighbor_regions": [],
+        },
     ]
+    pinned = []
     for i, ent in enumerate(DEPLOYMENT.NEIGHBOR_ENTITIES):
-        sample = samples[i % len(samples)]
-        intel.append({
+        s = pinned_samples[i % len(pinned_samples)]
+        isk = s["isk"]
+        if isk >= 1e9:
+            isk_label = f"{isk/1e9:.1f}B"
+        elif isk >= 1e6:
+            isk_label = f"{isk/1e6:.1f}M"
+        else:
+            isk_label = f"{isk/1e3:.0f}K"
+        pinned.append({
             "id": ent["id"],
             "name": ent["name"],
             "type": ent.get("type", "alliance"),
-            "threat_level": sample["threat_level"],
-            "total_kills_24h": sample["kills"],
-            "top_ships": [{"name": n, "count": c} for n, c in sample["ships"]],
-            "activity_heatmap": sample["heatmap"],
+            "pinned": True,
+            "threat_level": s["threat_level"],
+            "total_kills": s["kills"],
+            "isk_destroyed": isk,
+            "isk_label": isk_label,
+            "top_ships": [{"name": n, "count": c} for n, c in s["ships"]],
+            "capital_roles": s["capital_roles"],
+            "activity_heatmap": s["heatmap"],
+            "peak_tz": s["peak_tz"],
+            "neighbor_regions": s["neighbor_regions"],
         })
-    return intel
+
+    detected = [
+        {
+            "id": 99012345, "name": "Rogue Alliance Alpha", "type": "alliance",
+            "pinned": False, "kills_in_neighbor_space": 9,
+            "top_ships": [{"name": "Sabre", "count": 4}, {"name": "Ares", "count": 3}],
+            "capital_roles": [],
+        },
+        {
+            "id": 99067890, "name": "Heavy Cap Coalition", "type": "alliance",
+            "pinned": False, "kills_in_neighbor_space": 5,
+            "top_ships": [{"name": "Revelation", "count": 2}, {"name": "Apostle", "count": 1}],
+            "capital_roles": ["DREAD", "FAX"],
+        },
+    ]
+
+    return {"pinned": pinned, "detected": detected}
 
 
 MOCK_NEIGHBOR_INTEL = _build_neighbor_intel()

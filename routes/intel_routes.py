@@ -14,77 +14,278 @@ _sov_neighbor_cache = {}   # system_id -> alliance_id (0 = unclaimed)
 _sov_changes_log = []      # [{system_id, name, old_alliance, new_alliance, detected_at}, ...]
 _SOV_CHANGES_MAX = 50
 
+# Endpoint-level cache for the slow neighbor intel endpoint
+_neighbors_cache = {"data": None, "ts": 0}
+NEIGHBORS_CACHE_TTL = 900  # 15 minutes
+
+_EXCLUDED_ALLIANCE_IDS = None  # lazily built from config
+
+
+def _get_excluded_ids():
+    global _EXCLUDED_ALLIANCE_IDS
+    if _EXCLUDED_ALLIANCE_IDS is None:
+        _EXCLUDED_ALLIANCE_IDS = set(FRIENDLY_ALLIANCE_IDS) | {LAWN_ALLIANCE_ID}
+    return _EXCLUDED_ALLIANCE_IDS
+
+
+def _format_isk(value):
+    if value >= 1e12:
+        return f"{value/1e12:.1f}T"
+    if value >= 1e9:
+        return f"{value/1e9:.1f}B"
+    if value >= 1e6:
+        return f"{value/1e6:.1f}M"
+    return f"{value/1e3:.0f}K"
+
+
+def _peak_tz(hourly):
+    """Return a label for the 6-hour UTC window with highest kill activity."""
+    best = max(range(24), key=lambda h: sum(hourly.get((h + i) % 24, 0) for i in range(6)))
+    end = (best + 6) % 24
+    return f"{best:02d}:00–{end:02d}:00 UTC"
+
+
+def _build_pinned_profile(entity, pinned_set):
+    """Build a full threat profile for a manually configured (pinned) entity."""
+    eid = entity["id"]
+    etype = entity["type"]
+    name = entity["name"]
+
+    if etype == "alliance":
+        kills = esi_client.get_zkill_alliance(eid)
+    else:
+        kills = esi_client.get_zkill_corporation(eid)
+
+    total_kills = len(kills)
+    recent_kills = kills[:25]
+    total_isk = sum(k.get("zkb", {}).get("totalValue", 0) for k in kills[:100])
+
+    doctrine_counts = {}   # ship_type_id -> count
+    hourly_activity = {h: 0 for h in range(24)}
+    neighbor_region_hits = {}  # region_name -> count
+
+    neighbor_ids = set(state.neighbor_systems.keys())
+
+    with ThreadPoolExecutor(max_workers=20) as pool:
+        futures = {
+            pool.submit(esi_client.get_killmail, k.get("killmail_id"), k.get("zkb", {}).get("hash")): k
+            for k in recent_kills
+            if k.get("killmail_id") and k.get("zkb", {}).get("hash")
+        }
+        for future in as_completed(futures):
+            try:
+                full_kill = future.result()
+                if not full_kill:
+                    continue
+
+                # Doctrine: ships this entity FLEW (attacker side)
+                for attacker in full_kill.get("attackers", []):
+                    if etype == "alliance" and attacker.get("alliance_id") == eid:
+                        st = attacker.get("ship_type_id")
+                        if st:
+                            doctrine_counts[st] = doctrine_counts.get(st, 0) + 1
+                    elif etype == "corporation" and attacker.get("corporation_id") == eid:
+                        st = attacker.get("ship_type_id")
+                        if st:
+                            doctrine_counts[st] = doctrine_counts.get(st, 0) + 1
+
+                # Time zone heatmap
+                kill_time = full_kill.get("killmail_time", "")
+                if kill_time:
+                    try:
+                        hourly_activity[int(kill_time[11:13])] += 1
+                    except Exception:
+                        pass
+
+                # Activity in our neighbor space
+                sys_id = full_kill.get("solar_system_id")
+                if sys_id and sys_id in neighbor_ids:
+                    region = state.neighbor_systems[sys_id].get("region_name", "Unknown")
+                    neighbor_region_hits[region] = neighbor_region_hits.get(region, 0) + 1
+
+            except Exception as e:
+                print(f"[!] Killmail error for {name}: {e}")
+
+    # Resolve top 5 doctrine ships and detect capital roles
+    top_type_ids = sorted(doctrine_counts, key=doctrine_counts.get, reverse=True)[:5]
+    top_ships = []
+    capital_roles = []
+    seen_roles = set()
+    for tid in top_type_ids:
+        ship_name = esi_client.get_type_name(tid)
+        top_ships.append({"name": ship_name, "count": doctrine_counts[tid]})
+        try:
+            gid = esi_client.get_type_group_id(tid)
+            role = THREAT_SHIP_GROUPS.get(gid)
+            if role and role not in seen_roles:
+                capital_roles.append(role)
+                seen_roles.add(role)
+        except Exception:
+            pass
+
+    # Composite threat level: capitals always elevate to Medium or High
+    has_capitals = bool(capital_roles)
+    if total_kills > 50 or (total_kills > 20 and has_capitals):
+        threat_level = "High"
+    elif total_kills > 10 or has_capitals:
+        threat_level = "Medium"
+    else:
+        threat_level = "Low"
+
+    neighbor_regions = sorted(neighbor_region_hits, key=neighbor_region_hits.get, reverse=True)
+
+    return {
+        "id": eid,
+        "name": name,
+        "type": etype,
+        "pinned": True,
+        "threat_level": threat_level,
+        "total_kills": total_kills,
+        "isk_destroyed": total_isk,
+        "isk_label": _format_isk(total_isk),
+        "top_ships": top_ships,
+        "capital_roles": capital_roles,
+        "activity_heatmap": [hourly_activity[h] for h in range(24)],
+        "peak_tz": _peak_tz(hourly_activity),
+        "neighbor_regions": neighbor_regions,
+    }
+
+
+def _detect_regional_threats(pinned_ids):
+    """Auto-detect active alliances from recent kills in neighbor systems."""
+    if not state.neighbor_systems:
+        return []
+
+    try:
+        kills_data = esi_client.get_system_kills()
+    except Exception:
+        return []
+
+    kills_by_system = {e["system_id"]: e.get("ship_kills", 0) for e in kills_data}
+
+    # Top 5 active neighbor systems
+    active = sorted(
+        [(sid, kills_by_system.get(sid, 0)) for sid in state.neighbor_systems],
+        key=lambda x: x[1], reverse=True
+    )
+    top_systems = [sid for sid, k in active if k > 0][:5]
+
+    if not top_systems:
+        return []
+
+    # Fetch zkill data for those systems
+    all_kill_refs = []
+    for sys_id in top_systems:
+        try:
+            refs = esi_client.get_zkill_system(sys_id)
+            all_kill_refs.extend(refs[:20])
+        except Exception:
+            pass
+
+    if not all_kill_refs:
+        return []
+
+    # Deduplicate and limit total killmail fetches
+    seen_ids = set()
+    unique_refs = []
+    for ref in all_kill_refs:
+        kid = ref.get("killmail_id")
+        if kid and kid not in seen_ids:
+            seen_ids.add(kid)
+            unique_refs.append(ref)
+    unique_refs = unique_refs[:20]
+
+    excluded = _get_excluded_ids() | pinned_ids
+    entity_kills = {}   # alliance_id -> count
+    entity_ships = {}   # alliance_id -> {ship_type_id: count}
+
+    with ThreadPoolExecutor(max_workers=10) as pool:
+        futures = {
+            pool.submit(esi_client.get_killmail, r.get("killmail_id"), r.get("zkb", {}).get("hash")): r
+            for r in unique_refs
+            if r.get("killmail_id") and r.get("zkb", {}).get("hash")
+        }
+        for future in as_completed(futures):
+            try:
+                full_kill = future.result()
+                if not full_kill:
+                    continue
+                for attacker in full_kill.get("attackers", []):
+                    aid = attacker.get("alliance_id")
+                    if not aid or aid in excluded:
+                        continue
+                    entity_kills[aid] = entity_kills.get(aid, 0) + 1
+                    st = attacker.get("ship_type_id")
+                    if st:
+                        entity_ships.setdefault(aid, {})
+                        entity_ships[aid][st] = entity_ships[aid].get(st, 0) + 1
+            except Exception:
+                pass
+
+    # Build profiles for top 6 auto-detected entities
+    top_entities = sorted(entity_kills, key=entity_kills.get, reverse=True)[:6]
+    results = []
+    for aid in top_entities:
+        try:
+            info = esi_client.get_alliance_info(aid)
+            aname = info.get("name", f"Alliance {aid}")
+        except Exception:
+            aname = f"Alliance {aid}"
+
+        ship_counts = entity_ships.get(aid, {})
+        top_type_ids = sorted(ship_counts, key=ship_counts.get, reverse=True)[:3]
+        top_ships = []
+        capital_roles = []
+        seen_roles = set()
+        for tid in top_type_ids:
+            top_ships.append({"name": esi_client.get_type_name(tid), "count": ship_counts[tid]})
+            try:
+                gid = esi_client.get_type_group_id(tid)
+                role = THREAT_SHIP_GROUPS.get(gid)
+                if role and role not in seen_roles:
+                    capital_roles.append(role)
+                    seen_roles.add(role)
+            except Exception:
+                pass
+
+        results.append({
+            "id": aid,
+            "name": aname,
+            "type": "alliance",
+            "pinned": False,
+            "kills_in_neighbor_space": entity_kills[aid],
+            "top_ships": top_ships,
+            "capital_roles": capital_roles,
+        })
+
+    return results
+
 
 @intel_bp.route("/api/intel/neighbors")
 def api_neighbor_intel():
-    results = []
+    if time.time() - _neighbors_cache["ts"] < NEIGHBORS_CACHE_TTL and _neighbors_cache["data"]:
+        return jsonify(_neighbors_cache["data"])
 
-    for entity in NEIGHBOR_ENTITIES:
-        eid = entity["id"]
-        etype = entity["type"]
-        name = entity["name"]
+    pinned_results = []
+    pinned_ids = set(e["id"] for e in NEIGHBOR_ENTITIES)
 
-        if etype == "alliance":
-            kills = esi_client.get_zkill_alliance(eid)
-        else:
-            kills = esi_client.get_zkill_corporation(eid)
+    with ThreadPoolExecutor(max_workers=3) as pool:
+        futures = {pool.submit(_build_pinned_profile, entity, pinned_ids): entity for entity in NEIGHBOR_ENTITIES}
+        for future in as_completed(futures):
+            try:
+                pinned_results.append(future.result())
+            except Exception as e:
+                entity = futures[future]
+                print(f"[!] Failed to build profile for {entity['name']}: {e}")
 
-        ship_counts = {}
-        hourly_activity = {h: 0 for h in range(24)}
-        total_kills = len(kills)
-        recent_kills = kills[:50]
+    pinned_results.sort(key=lambda r: {"High": 0, "Medium": 1, "Low": 2}.get(r["threat_level"], 3))
 
-        with ThreadPoolExecutor(max_workers=20) as pool:
-            future_to_kill = {
-                pool.submit(esi_client.get_killmail, k.get("killmail_id"), k.get("zkb", {}).get("hash")): k
-                for k in recent_kills
-                if k.get("killmail_id") and k.get("zkb", {}).get("hash")
-            }
-            for future in as_completed(future_to_kill):
-                try:
-                    full_kill = future.result()
-                    if not full_kill:
-                        continue
-                    victim = full_kill.get("victim", {})
-                    ship_type_id = victim.get("ship_type_id")
-                    if ship_type_id:
-                        ship_name = esi_client.get_type_name(ship_type_id)
-                        ship_counts[ship_name] = ship_counts.get(ship_name, 0) + 1
-                    kill_time_str = full_kill.get("killmail_time")
-                    if kill_time_str:
-                        try:
-                            hour = int(kill_time_str[11:13])
-                            hourly_activity[hour] += 1
-                        except Exception:
-                            pass
-                except Exception as e:
-                    print(f"Error processing killmail: {e}")
+    detected_results = _detect_regional_threats(pinned_ids)
 
-        top_ships = sorted(ship_counts.items(), key=lambda x: x[1], reverse=True)[:5]
-        resolved_top_ships = [
-            {"name": name, "count": count}
-            for name, count in top_ships
-        ]
-
-        score_val = total_kills
-        if score_val > 50:
-            threat_level = "High"
-        elif score_val > 10:
-            threat_level = "Medium"
-        else:
-            threat_level = "Low"
-
-        results.append({
-            "id": eid,
-            "name": name,
-            "type": etype,
-            "threat_level": threat_level,
-            "total_kills_24h": total_kills,
-            "top_ships": resolved_top_ships,
-            "activity_heatmap": [hourly_activity[h] for h in range(24)],
-        })
-
-    return jsonify(results)
+    result = {"pinned": pinned_results, "detected": detected_results}
+    _neighbors_cache["data"] = result
+    _neighbors_cache["ts"] = time.time()
+    return jsonify(result)
 
 
 @intel_bp.route("/api/local/scan", methods=["POST"])

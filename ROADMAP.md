@@ -14,7 +14,7 @@
 - [x] **Vulnerability windows** — ADM-based vuln duration calculation per system
 - [x] **Alliance activity summary** — LAWN-wide kills/NPC/jumps totals (always visible regardless of tab selection)
 - [x] **Enhanced data timestamp** — full date/time display for ESI data freshness indicator
-- [x] **Neighbor threat profiling** — zKillboard-sourced ship doctrine analysis, TZ heatmaps, and threat scoring for border-adjacent alliances
+- [x] **Neighbor threat profiling** — zKillboard-sourced ship doctrine analysis (what they FLY, not what they kill), TZ heatmaps with peak window, ISK destroyed, capital role badges (DREAD/FAX/etc.), "NEAR LAWN" region activity, composite threat scoring; auto-detects active entities from kills in neighbor systems alongside manually pinned NEIGHBOR_ENTITIES; 15-min endpoint cache
 - [x] **Activity heatmap** — per-system hourly activity grid (systems × hours UTC) from SQLite snapshots
 - [x] **Timerboard** — password-protected custom structure timers with add/delete and countdown display
 - [x] **Sov upgrade tracking** — manual iHub upgrade display (military/industry/strategic) per LAWN system
