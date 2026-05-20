@@ -1,11 +1,18 @@
+import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from flask import Blueprint, jsonify, request
 from config import NEIGHBOR_ENTITIES, LAWN_ALLIANCE_ID, FRIENDLY_ALLIANCE_IDS, FRIENDLY_CORPORATIONS
 from eve_constants import THREAT_SHIP_GROUPS
+import db
 import esi_client
 from routes.system_state import state
 
 intel_bp = Blueprint("intel", __name__)
+
+# In-memory sov tracking for neighbor systems
+_sov_neighbor_cache = {}   # system_id -> alliance_id (0 = unclaimed)
+_sov_changes_log = []      # [{system_id, name, old_alliance, new_alliance, detected_at}, ...]
+_SOV_CHANGES_MAX = 50
 
 
 @intel_bp.route("/api/intel/neighbors")
@@ -258,6 +265,9 @@ def api_regional_intel():
     kills_by_system = {entry["system_id"]: entry for entry in kills_data}
     jumps_by_system = {entry["system_id"]: entry for entry in jumps_data}
 
+    # Fetch 7-day baseline for spike detection
+    baselines = db.get_activity_baseline(list(state.neighbor_systems.keys()))
+
     # Build per-region aggregates from neighbor systems
     regions = {}
     for sys_id, sys_info in state.neighbor_systems.items():
@@ -279,6 +289,18 @@ def api_regional_intel():
         else:
             sys_threat = "quiet"
 
+        # Spike detection — only when we have enough history
+        bl = baselines.get(sys_id, {})
+        sample_n = bl.get("sample_count", 0)
+        avg_k = bl.get("avg_kills", 0)
+        avg_j = bl.get("avg_jumps", 0)
+        if sample_n >= 3:
+            spike_k = round(ship_kills / max(avg_k, 0.5), 1)
+            spike_j = round(jumps / max(avg_j, 1.0), 1)
+        else:
+            spike_k = None
+            spike_j = None
+
         regions[region_name]["systems"].append({
             "system_id": sys_id,
             "name": sys_info["name"],
@@ -287,11 +309,15 @@ def api_regional_intel():
             "npc_kills": npc_kills,
             "jumps": jumps,
             "threat": sys_threat,
+            "avg_kills": avg_k,
+            "avg_jumps": avg_j,
+            "spike_kills": spike_k,
+            "spike_jumps": spike_j,
         })
         regions[region_name]["total_kills"] += ship_kills
         regions[region_name]["total_jumps"] += jumps
 
-    # Per-region threat level
+    # Per-region threat level + max spike ratio
     for r in regions.values():
         if r["total_kills"] >= 15 or r["total_jumps"] >= 80:
             r["threat"] = "high"
@@ -299,11 +325,58 @@ def api_regional_intel():
             r["threat"] = "elevated"
         else:
             r["threat"] = "quiet"
-        # Sort systems by kills desc
         r["systems"].sort(key=lambda s: s["ship_kills"], reverse=True)
+        spikes = [s["spike_kills"] for s in r["systems"] if s["spike_kills"] is not None]
+        r["max_spike"] = max(spikes) if spikes else None
 
     # Sort regions: high first, then elevated, then quiet; alphabetical within tier
     tier_order = {"high": 0, "elevated": 1, "quiet": 2}
     sorted_regions = sorted(regions.values(), key=lambda r: (tier_order.get(r["threat"], 9), r["name"]))
 
     return jsonify({"regions": sorted_regions})
+
+
+@intel_bp.route("/api/intel/sov_changes")
+def api_sov_changes():
+    global _sov_neighbor_cache, _sov_changes_log
+
+    if not state.neighbor_systems:
+        return jsonify({"changes": [], "checked_at": time.time()})
+
+    try:
+        sov_data = esi_client.get_sovereignty_map()
+    except Exception as e:
+        return jsonify({"error": f"ESI unavailable: {e}"}), 503
+
+    neighbor_ids = set(state.neighbor_systems.keys())
+    current_sov = {}
+    for entry in sov_data:
+        sys_id = entry.get("system_id")
+        if sys_id in neighbor_ids:
+            current_sov[sys_id] = entry.get("alliance_id", 0)
+
+    # Detect changes vs cached state
+    for sys_id, new_alliance in current_sov.items():
+        old_alliance = _sov_neighbor_cache.get(sys_id)
+        if old_alliance is None:
+            # First time seeing this system — seed cache, no change event
+            _sov_neighbor_cache[sys_id] = new_alliance
+        elif old_alliance != new_alliance:
+            sys_name = state.neighbor_systems[sys_id]["name"]
+            _sov_changes_log.append({
+                "system_id": sys_id,
+                "name": sys_name,
+                "old_alliance": old_alliance,
+                "new_alliance": new_alliance,
+                "detected_at": time.time(),
+            })
+            _sov_neighbor_cache[sys_id] = new_alliance
+
+    # Trim log
+    if len(_sov_changes_log) > _SOV_CHANGES_MAX:
+        _sov_changes_log = _sov_changes_log[-_SOV_CHANGES_MAX:]
+
+    return jsonify({
+        "changes": list(reversed(_sov_changes_log[-20:])),
+        "checked_at": time.time(),
+    })

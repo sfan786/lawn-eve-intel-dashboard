@@ -200,7 +200,25 @@ const ROLE_COLOR = {
     COVOPS:  '#6644aa',
 }
 
-export default function IntelChannelParser({ config }) {
+function fireIntelNotification(e) {
+    if (!('Notification' in window)) return
+    const doFire = () => {
+        const tag = `intel-${e.system}`
+        const label = e.isPrimary ? 'PRIMARY' : 'GATE'
+        const detail = e.ships.length ? e.ships.join(', ') : (e.chars || []).map(c => c.name).join(', ')
+        new Notification(`⚠ INTEL [${label}]: ${e.system}`, {
+            body: `${e.count} neut${e.count !== 1 ? 's' : ''}${detail ? ` — ${detail}` : ''}`,
+            tag,
+        })
+    }
+    if (Notification.permission === 'granted') {
+        doFire()
+    } else if (Notification.permission !== 'denied') {
+        Notification.requestPermission().then(p => { if (p === 'granted') doFire() })
+    }
+}
+
+export default function IntelChannelParser({ config, onBoardChange }) {
     const [lastPasted, setLastPasted] = useState('')
     const [expireMin, setExpireMin] = useState(DEFAULT_EXPIRE_MIN)
     const [board, setBoard] = useState(new Map()) // system_name → entry
@@ -210,6 +228,7 @@ export default function IntelChannelParser({ config }) {
     const [charRiskMap, setCharRiskMap] = useState({}) // charId → risk tier data
     const charInfoRef = useRef({})
     const charRiskRef = useRef({})
+    const notifiedRef = useRef(new Set())
     const tickRef = useRef(null)
     const textareaRef = useRef(null)
 
@@ -221,6 +240,12 @@ export default function IntelChannelParser({ config }) {
     const lookup = useMemo(() => buildSystemLookup(config), [config])
     const borderSet = useMemo(() => new Set((config?.border_systems || []).map(s => s.toLowerCase())), [config])
 
+    // Propagate board state (with expiry) to parent (for map highlighting)
+    useEffect(() => {
+        if (!onBoardChange) return
+        onBoardChange(rows)
+    }, [rows, onBoardChange])
+
     const applyEntries = useCallback((entries) => {
         if (!entries.length) return
         setBoard(prev => {
@@ -229,11 +254,20 @@ export default function IntelChannelParser({ config }) {
                 const existing = next.get(e.system)
                 if (!existing || e.timestamp >= existing.timestamp) {
                     next.set(e.system, e)
+                    // Fire browser notification for new primary/border hostile intel
+                    const isBorder = borderSet.has(e.system.toLowerCase())
+                    if ((e.isPrimary || isBorder) && !e.isClear && (e.count ?? 0) > 0) {
+                        const key = e.system + e.timestamp.toISOString()
+                        if (!notifiedRef.current.has(key)) {
+                            notifiedRef.current.add(key)
+                            fireIntelNotification(e)
+                        }
+                    }
                 }
             }
             return next
         })
-    }, [])
+    }, [borderSet])
 
     const lookupChars = useCallback(async (chars) => {
         const toFetch = chars.filter(c => !(c.name in charInfoRef.current))
@@ -302,10 +336,15 @@ export default function IntelChannelParser({ config }) {
         setLastPasted('')
         charInfoRef.current = {}
         charRiskRef.current = {}
+        notifiedRef.current = new Set()
         setCharInfoMap({})
         setCharRiskMap({})
         if (textareaRef.current) textareaRef.current.value = ''
     }
+
+    const removeRow = useCallback((system) => {
+        setBoard(prev => { const n = new Map(prev); n.delete(system); return n })
+    }, [])
 
     const expireMs = expireMin * 60 * 1000
 
@@ -435,7 +474,7 @@ export default function IntelChannelParser({ config }) {
                 <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: 8 }}>
                     <thead>
                         <tr style={{ borderBottom: '1px solid var(--border-dim)' }}>
-                            {['SYSTEM', 'STATUS', 'SHIPS / CHARS', 'REPORTER', 'AGE'].map(h => (
+                            {['SYSTEM', 'STATUS', 'SHIPS / CHARS', 'REPORTER', 'AGE', ''].map(h => (
                                 <th key={h} style={{
                                     padding: '3px 8px', textAlign: 'left',
                                     fontFamily: 'Orbitron, sans-serif', fontSize: 8,
@@ -540,6 +579,19 @@ export default function IntelChannelParser({ config }) {
                                     <span style={{ fontFamily: 'Share Tech Mono, monospace', fontSize: 9, color: r.expired ? '#445566' : 'var(--text-secondary)' }}>
                                         {formatAge(r.age)}
                                     </span>
+                                </td>
+                                <td style={{ padding: '5px 4px', textAlign: 'right' }}>
+                                    <button
+                                        onClick={() => removeRow(r.system)}
+                                        style={{
+                                            background: 'none', border: 'none', color: '#334455',
+                                            cursor: 'pointer', fontSize: 11, lineHeight: 1,
+                                            padding: '0 4px',
+                                        }}
+                                        onMouseEnter={e => { e.currentTarget.style.color = '#ff3355' }}
+                                        onMouseLeave={e => { e.currentTarget.style.color = '#334455' }}
+                                        title="Remove"
+                                    >×</button>
                                 </td>
                             </tr>
                         ))}

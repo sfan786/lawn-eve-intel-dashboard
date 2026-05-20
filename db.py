@@ -290,6 +290,34 @@ def get_activity_history(system_id=None, hours=168):
     return result
 
 
+def get_activity_baseline(system_ids, days=7):
+    """Return historical avg ship_kills and jumps per system over the last N days.
+    Requires at least 3 snapshots before returning data (avoids false spike alerts).
+    Returns {system_id: {"avg_kills": float, "avg_jumps": float, "sample_count": int}}
+    """
+    if not system_ids:
+        return {}
+    cutoff = time.time() - days * 86400
+    placeholders = ','.join('?' * len(system_ids))
+    conn = get_connection()
+    rows = conn.execute(
+        f"SELECT system_id, AVG(ship_kills) as avg_kills, AVG(jumps) as avg_jumps, COUNT(*) as n "
+        f"FROM activity_snapshots "
+        f"WHERE deployment_id=? AND system_id IN ({placeholders}) AND timestamp > ? "
+        f"GROUP BY system_id",
+        [DEPLOYMENT_ID] + list(system_ids) + [cutoff],
+    ).fetchall()
+    conn.close()
+    return {
+        r["system_id"]: {
+            "avg_kills": round(r["avg_kills"], 2),
+            "avg_jumps": round(r["avg_jumps"], 2),
+            "sample_count": r["n"],
+        }
+        for r in rows
+    }
+
+
 def add_timer(system_name, structure_type, owner, event_type, timestamp, notes=None):
     """Add a custom timer."""
     conn = get_connection()

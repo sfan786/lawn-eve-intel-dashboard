@@ -12,10 +12,17 @@ const THREAT_LABEL = {
     quiet:    'QUIET',
 }
 
+function formatAge(seconds) {
+    if (seconds < 60) return `${Math.floor(seconds)}s`
+    if (seconds < 3600) return `${Math.floor(seconds / 60)}m`
+    return `${Math.floor(seconds / 3600)}h`
+}
+
 export default function RegionalIntel({ lastUpdate }) {
     const [data, setData] = useState(null)
     const [loading, setLoading] = useState(true)
     const [expanded, setExpanded] = useState({})
+    const [sovChanges, setSovChanges] = useState(null)
 
     useEffect(() => {
         setLoading(true)
@@ -23,6 +30,10 @@ export default function RegionalIntel({ lastUpdate }) {
             .then(r => r.json())
             .then(d => { setData(d); setLoading(false) })
             .catch(() => setLoading(false))
+        fetch('/api/intel/sov_changes')
+            .then(r => r.json())
+            .then(d => setSovChanges(d))
+            .catch(() => {})
     }, [lastUpdate])
 
     if (loading || !data) return null
@@ -108,7 +119,7 @@ export default function RegionalIntel({ lastUpdate }) {
                                     <span style={{ fontSize: 10, color: THREAT_COLOR[sys.threat], fontFamily: 'Share Tech Mono, monospace' }}>
                                         {sys.name}
                                     </span>
-                                    <div style={{ display: 'flex', gap: 8 }}>
+                                    <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
                                         {sys.ship_kills > 0 && (
                                             <span style={{ fontSize: 9, color: 'var(--red)' }}>{sys.ship_kills}k</span>
                                         )}
@@ -120,6 +131,19 @@ export default function RegionalIntel({ lastUpdate }) {
                                         )}
                                         {sys.ship_kills === 0 && sys.jumps === 0 && (
                                             <span style={{ fontSize: 9, color: 'var(--border-dim)' }}>—</span>
+                                        )}
+                                        {sys.spike_kills >= 2 && (
+                                            <span style={{
+                                                fontSize: 8, fontFamily: 'Share Tech Mono, monospace',
+                                                color: sys.spike_kills >= 5 ? '#ff3355' : '#ffaa00',
+                                                fontWeight: 700,
+                                            }}>↑{sys.spike_kills}×</span>
+                                        )}
+                                        {sys.spike_kills == null && sys.spike_jumps >= 2 && (
+                                            <span style={{
+                                                fontSize: 8, fontFamily: 'Share Tech Mono, monospace',
+                                                color: '#ffaa00',
+                                            }}>↑{sys.spike_jumps}×j</span>
                                         )}
                                     </div>
                                 </div>
@@ -138,6 +162,39 @@ export default function RegionalIntel({ lastUpdate }) {
                     )
                 })}
             </div>
+
+            {sovChanges?.changes?.length > 0 && (
+                <div style={{ marginTop: 8, borderTop: '1px solid var(--border-dim)', paddingTop: 8 }}>
+                    <div style={{
+                        fontFamily: 'Orbitron, sans-serif', fontSize: 8, letterSpacing: 2,
+                        color: 'var(--text-muted)', marginBottom: 4,
+                    }}>SOV CHANGES</div>
+                    {sovChanges.changes.slice(0, 10).map((c, i) => {
+                        const age = (Date.now() / 1000) - c.detected_at
+                        return (
+                            <div key={i} style={{
+                                display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                                padding: '2px 0', borderTop: '1px solid rgba(255,255,255,0.04)',
+                                fontFamily: 'Share Tech Mono, monospace', fontSize: 9,
+                            }}>
+                                <span style={{ color: 'var(--text-primary)' }}>{c.name}</span>
+                                <span style={{ color: 'var(--text-muted)' }}>
+                                    {c.old_alliance
+                                        ? <a href={`https://zkillboard.com/alliance/${c.old_alliance}/`} target="_blank" rel="noopener noreferrer" style={{ color: '#ff6677', textDecoration: 'none' }}>{c.old_alliance}</a>
+                                        : <span style={{ color: 'var(--text-muted)' }}>unclaimed</span>
+                                    }
+                                    {' → '}
+                                    {c.new_alliance
+                                        ? <a href={`https://zkillboard.com/alliance/${c.new_alliance}/`} target="_blank" rel="noopener noreferrer" style={{ color: '#00ff88', textDecoration: 'none' }}>{c.new_alliance}</a>
+                                        : <span style={{ color: 'var(--text-muted)' }}>unclaimed</span>
+                                    }
+                                    <span style={{ marginLeft: 8, color: '#445566' }}>{formatAge(age)} ago</span>
+                                </span>
+                            </div>
+                        )
+                    })}
+                </div>
+            )}
         </div>
     )
 }

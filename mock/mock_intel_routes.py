@@ -1,3 +1,4 @@
+import time
 from flask import Blueprint, jsonify, request
 from mock.mock_data import MOCK_NEIGHBOR_INTEL, MOCK_REGIONAL_INTEL
 
@@ -12,6 +13,11 @@ def api_neighbor_intel():
 @mock_intel_bp.route("/api/intel/regional")
 def api_regional_intel():
     return jsonify(MOCK_REGIONAL_INTEL)
+
+
+@mock_intel_bp.route("/api/intel/sov_changes")
+def api_sov_changes():
+    return jsonify({"changes": [], "checked_at": time.time()})
 
 
 MOCK_LOCAL_SCAN = [

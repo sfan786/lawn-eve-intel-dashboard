@@ -49,6 +49,7 @@ export default function App() {
     const [mapMode, setMapMode] = useState("subway")
     const [isMobile, setIsMobile] = useState(() => window.innerWidth < 640)
     const [mobileTab, setMobileTab] = useState(0)
+    const [intelAlerts, setIntelAlerts] = useState([])
     const timer = useRef(null)
     const { settings: notifSettings, saveSettings: saveNotifSettings, permStatus, requestPermission, checkAndNotify } = useNotifications()
 
@@ -225,6 +226,7 @@ export default function App() {
                 annotations={annotations}
                 onAnnotationChange={() => checkedFetch("/api/annotations").then(setAnnotations).catch(() => {})}
                 jumpBridges={jumpBridges}
+                intelAlerts={intelAlerts}
             />
         </div>
     )
@@ -324,7 +326,7 @@ export default function App() {
                 {(!isMobile || mobileTab === 2) && <ActivityHeatmap config={config} sovereignty={sovereignty} lastUpdate={lastUpdate} />}
 
                 {/* Tab 3: Intel — channel parser + hostile tracker + JB + neighbor intel + dscan + local scanner */}
-                {(!isMobile || mobileTab === 3) && <IntelChannelParser config={config} />}
+                {(!isMobile || mobileTab === 3) && <IntelChannelParser config={config} onBoardChange={setIntelAlerts} />}
                 {(!isMobile || mobileTab === 3) && <ActiveHostileTracker lastUpdate={lastUpdate} />}
                 {(!isMobile || mobileTab === 3) && (
                     <JumpBridgeManager
