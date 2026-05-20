@@ -33,6 +33,7 @@
 - [x] **DScan copy** — COPY button in DScan parser header copies formatted threat summary (tier + ship class counts + objects) to clipboard
 - [x] **PLH-style pilot risk ratings** — `POST /api/chars/analyze` fetches zKillboard stats per character; `_compute_risk_tier()` classifies VERY DANGEROUS / DANGEROUS / MODERATE / SNUGGLY / NEWBIE / NO DATA based on kills, danger ratio, and ISK efficiency; displayed in Local Scanner RISK column and Intel Channel Parser char rows
 - [x] **Capital/dropper/covert role detection** — `_detect_roles()` reads the zkill stats `groups` dict (ship groups from losses) to detect TITAN, SUPER, DREAD, CARRIER, FAX, BLOPS, RECON, BOMBER, T3C, COVOPS; role badges rendered next to risk tier in both scanner panels; `THREAT_SHIP_GROUPS` map in `eve_constants.py`
+- [x] **Intel Channel Parser enhancements** — per-row × deletion; `onBoardChange` prop propagates board state to `ConstellationMap` which renders a pulsing orange ring (distinct from amber reffed ring) on systems with active hostile intel; browser `Notification` API fires on primary/border system reports (permission requested on first hostile paste)
 
 ---
 
@@ -80,13 +81,13 @@
 - [x] ALERTS button in header status bar — pulsing amber dot when active
 - **Data sources:** Existing API endpoints, polled client-side
 
-### Regional Intel Aggregation *(in progress)*
+### Regional Intel Aggregation *(complete)*
 **Why:** Need early warning from neighboring regions before hostiles reach LAWN.
 - [x] `/api/intel/regional` endpoint — neighbor system kills/jumps grouped by region, threat level per system and region
 - [x] `RegionalIntel.jsx` component — per-region cards with per-system rows, color-coded threat tiers
-- [ ] Spike detection vs historical baseline (need a few days of data first)
-- [ ] Sov change tracking in adjacent constellations
-- **Data sources:** ESI system_kills + system_jumps (already fetched for neighbor systems)
+- [x] Spike detection vs historical baseline — `db.get_activity_baseline()` computes 7-day avg per neighbor system; `/api/intel/regional` adds `spike_kills`/`spike_jumps` ratios; RegionalIntel shows `↑Xх` badge (amber ≥2×, red ≥5×); requires 3+ snapshots before flagging
+- [x] Sov change tracking in adjacent constellations — `/api/intel/sov_changes` endpoint tracks ESI sov changes for neighbor systems in-memory; changes shown in RegionalIntel panel with alliance IDs and zkillboard links
+- **Data sources:** ESI system_kills + system_jumps (already fetched for neighbor systems); activity_snapshots table (neighbor systems already included via all_monitored_ids)
 
 ### Jump Bridge Route Overlay *(on hold — see Priority 4)*
 **Why:** On hold pending new sov stabilization. Moving to new space resets JB infrastructure. With 1-2 constellations likely at destination, mechanics probably allow at most 1 JB total (Ansiblex requires iHub + sov upgrades per constellation). No guarantee of a viable ally link either. Config UI and map rendering are already built — revisit when sov is established.

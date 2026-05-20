@@ -505,6 +505,9 @@ def _build_regional_intel():
         total_kills = 0
         total_jumps = 0
         for name, sk, pk, npc, jmp in info["sys_data"]:
+            # Mock spike ratios: high-threat systems show 3-5× spike
+            spike_k = round(sk / max(0.5, sk * 0.25), 1) if sk >= 3 else None
+            spike_j = round(jmp / max(1, jmp * 0.3), 1) if jmp >= 20 else None
             systems.append({
                 "system_id": 0,
                 "name": name,
@@ -513,15 +516,21 @@ def _build_regional_intel():
                 "npc_kills": npc,
                 "jumps": jmp,
                 "threat": sys_threat(sk, jmp),
+                "avg_kills": round(sk * 0.25, 1),
+                "avg_jumps": round(jmp * 0.3, 1),
+                "spike_kills": spike_k,
+                "spike_jumps": spike_j,
             })
             total_kills += sk
             total_jumps += jmp
         systems.sort(key=lambda s: s["ship_kills"], reverse=True)
+        spikes = [s["spike_kills"] for s in systems if s["spike_kills"] is not None]
         regions.append({
             "name": region_name,
             "threat": info["threat"],
             "total_kills": total_kills,
             "total_jumps": total_jumps,
+            "max_spike": max(spikes) if spikes else None,
             "systems": systems,
         })
 

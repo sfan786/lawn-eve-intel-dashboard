@@ -14,7 +14,7 @@ import UpgradeBadges from './common/UpgradeBadges'
 const EMPTY_LAYOUT = {}
 const EMPTY_CONNECTIONS = []
 
-export default function ConstellationMap({ config, sovereignty, activity, campaigns, selectedSystem, onSelectSystem, mapMode = "subway", annotations = {}, onAnnotationChange, jumpBridges = [] }) {
+export default function ConstellationMap({ config, sovereignty, activity, campaigns, selectedSystem, onSelectSystem, mapMode = "subway", annotations = {}, onAnnotationChange, jumpBridges = [], intelAlerts = [] }) {
     const [tooltip, setTooltip] = useState(null)
     const [touchTransform, setTouchTransform] = useState({ scale: 1, x: 0, y: 0 })
     const [annotationEditor, setAnnotationEditor] = useState(null)
@@ -141,6 +141,15 @@ export default function ConstellationMap({ config, sovereignty, activity, campai
     const neighbourRegions = useMemo(() => neighbourRegionGroups(activeLayout), [activeLayout])
     const gatewayLabels = useMemo(() => gatewayDestinations(activeLayout, connections), [activeLayout, connections])
     const gatewaySystems = useMemo(() => new Set(borderSystems), [borderSystems])
+
+    // Map from system name → intel entry for systems with active hostile intel
+    const intelAlertSet = useMemo(() => {
+        const m = new Map()
+        for (const e of intelAlerts) {
+            if (!e.expired && !e.isClear && (e.count ?? 0) > 0) m.set(e.system, e)
+        }
+        return m
+    }, [intelAlerts])
 
     function getColor(name) {
         const layout = activeLayout[name]
@@ -469,6 +478,15 @@ export default function ConstellationMap({ config, sovereignty, activity, campai
                                         />
                                     )
                                 })()}
+                                {intelAlertSet.has(name) && (
+                                    <circle
+                                        cx={pos.x} cy={pos.y}
+                                        r={isN ? r + 5 : reffedR + 9}
+                                        fill="none" stroke="#ff8800" strokeWidth="1.5"
+                                        strokeDasharray="3 2" opacity={0.9}
+                                        style={{ animation: 'pulse-reffed 1.2s ease-in-out infinite' }}
+                                    />
+                                )}
                                 {npc && <circle cx={pos.x} cy={pos.y} r={isSubway && isPrimary ? npc.r * 1.3 : npc.r} fill={`rgba(0,212,255,${npc.o})`} />}
                                 {pvp > 0 && <circle cx={pos.x} cy={pos.y} r={isSubway && isPrimary ? pvp * 1.3 : pvp} fill="rgba(255,51,85,0.3)" filter="url(#glow-r)" />}
                                 {isSel && <circle cx={pos.x} cy={pos.y} r={selR} fill="none" stroke="#00d4ff" strokeWidth="1.5" strokeDasharray="3 2" opacity={0.8} filter="url(#glow-c)" />}
@@ -727,6 +745,10 @@ export default function ConstellationMap({ config, sovereignty, activity, campai
                 <div className="map-legend-item">
                     <div style={{ width: 8, height: 8, background: 'transparent', border: '2.5px dashed #ff3355', borderRadius: '50%' }} />
                     <span>Nodes Active</span>
+                </div>
+                <div className="map-legend-item">
+                    <div style={{ width: 8, height: 8, background: 'transparent', border: '1.5px dashed #ff8800', borderRadius: '50%' }} />
+                    <span>Intel alert</span>
                 </div>
                 <div className="map-legend-item">
                     <div style={{ width: 8, height: 8, background: 'transparent', border: '2px dashed #ffaa00', borderRadius: '50%' }} />
