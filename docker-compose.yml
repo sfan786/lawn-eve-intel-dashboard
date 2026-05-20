@@ -7,8 +7,7 @@ services:
     ports:
       - "5000:5000"
     env_file:
-      - path: .env
-        required: false   # falls back to inline defaults if .env is absent
+      - .env
     environment:
       - FLASK_DEBUG=${FLASK_DEBUG:-false}
       - TIMER_PASSWORD=${TIMER_PASSWORD:-REDACTED}
