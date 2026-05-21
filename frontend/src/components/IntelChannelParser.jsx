@@ -240,12 +240,6 @@ export default function IntelChannelParser({ config, onBoardChange }) {
     const lookup = useMemo(() => buildSystemLookup(config), [config])
     const borderSet = useMemo(() => new Set((config?.border_systems || []).map(s => s.toLowerCase())), [config])
 
-    // Propagate board state (with expiry) to parent (for map highlighting)
-    useEffect(() => {
-        if (!onBoardChange) return
-        onBoardChange(rows)
-    }, [rows, onBoardChange])
-
     const applyEntries = useCallback((entries) => {
         if (!entries.length) return
         setBoard(prev => {
@@ -365,6 +359,12 @@ export default function IntelChannelParser({ config, onBoardChange }) {
         })
         return arr
     }, [board, now, expireMs, borderSet])
+
+    // Propagate board state (with expiry) to parent (for map highlighting)
+    useEffect(() => {
+        if (!onBoardChange) return
+        onBoardChange(rows)
+    }, [rows, onBoardChange])
 
     const primaryAlerts = rows.filter(r => !r.expired && r.isPrimary && !r.isClear && (r.count ?? 0) > 0).length
     const activeCount = rows.filter(r => !r.expired && !r.isClear).length
