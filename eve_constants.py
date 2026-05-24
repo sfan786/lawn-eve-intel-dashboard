@@ -66,6 +66,7 @@ UPGRADE_TYPES = {
     "PA_Iso":  {"name": "Prospecting Array (Isogen)",    "category": "industry"},
     "PA_Nocx": {"name": "Prospecting Array (Nocxium)",   "category": "industry"},
     "PA_Zyd":  {"name": "Prospecting Array (Zydrine)",   "category": "industry"},
+    "ICE":     {"name": "Ice Belt (Natural)",            "category": "industry"},
     "ED":  {"name": "Exploration Detector", "category": "strategic"},
     "PMD": {"name": "Power Monitoring",     "category": "strategic"},
     "SCF": {"name": "Supercap Facility",    "category": "strategic"},

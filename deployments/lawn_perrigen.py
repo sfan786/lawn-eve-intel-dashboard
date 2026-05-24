@@ -139,7 +139,31 @@ BORDER_SYSTEMS = [
 ]
 
 # ===== Sov upgrades (manual — populate as upgrades are installed) =====
-SYSTEM_UPGRADES = {}
+# ICE entries mark systems with a natural ice belt (not an installed iHub upgrade).
+SYSTEM_UPGRADES = {
+    # 9BGY-6 constellation
+    "6-1T6Z": [{"type": "mTD", "level": 1}],
+    "HB-KSF": [{"type": "mTD", "level": 1}],
+    "LW-YEW": [{"type": "mTD", "level": 1}],
+    "5ZU-VG": [{"type": "MTD", "level": 1}],
+    "5T-A3D": [{"type": "MTD", "level": 1}],
+    "6-8QLA": [{"type": "ICE", "level": 1}],
+    "EH2I-P": [{"type": "ICE", "level": 1}],
+    "G-GRSZ": [{"type": "ICE", "level": 1}],
+    "OP7-BP": [{"type": "MTD", "level": 2}, {"type": "ICE", "level": 1}],
+    "R-AYGT": [{"type": "MTD", "level": 3}],
+    # WXB-RY constellation
+    "J9A-BH": [{"type": "MTD",    "level": 2}],
+    "49V-E4": [{"type": "MTD",    "level": 2}],
+    "B-7LYC": [{"type": "MTD",    "level": 3}, {"type": "ICE", "level": 1}],
+    "PT-2KR": [{"type": "mTD",    "level": 3}],
+    "4F6-VZ": [{"type": "MTD",    "level": 3}],
+    "JM0A-4": [{"type": "MTD",    "level": 3}],
+    "A1F-22": [{"type": "MTD",    "level": 3}],
+    "L-POLO": [{"type": "PA_Nocx","level": 2}],
+    "8B-A4E": [{"type": "PA_Iso", "level": 3}],
+    "3LL-O0": [{"type": "PA_Mex", "level": 3}, {"type": "ICE", "level": 1}],
+}
 
 # ===== Map layout (auto-generated, hand-tune for readability) =====
 MAP_LAYOUT = {
