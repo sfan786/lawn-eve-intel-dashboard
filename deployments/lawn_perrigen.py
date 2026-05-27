@@ -70,21 +70,24 @@ FRIENDLY_CORPORATIONS = [
 ]
 
 NEIGHBOR_ENTITIES = [
+    # Active war target
     {
-        "name": "Deepwater Hooligans",
-        "id": 99009927,
+        "name": "Brotherhood of Spacers",
+        "id": 99007887,
         "type": "alliance"
     },
+    # Still active threats in Perrigen / surrounding space
     {
         "name": "PUT THE FRIES IN THE BAG",
         "id": 99014518,
         "type": "alliance"
     },
     {
-        "name": "The Rejected.",
-        "id": 99014523,
+        "name": "Deepwater Hooligans",
+        "id": 99009927,
         "type": "alliance"
-    }
+    },
+    # Removed: The Rejected. [TRD] — not a threat in Perrigen Falls
 ]
 
 # ===== Region geography (auto-generated) =====
