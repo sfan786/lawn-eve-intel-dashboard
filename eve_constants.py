@@ -51,6 +51,25 @@ THREAT_SHIP_GROUPS = {
     963:  "T3C",     # Strategic Cruisers (Tengu/Legion/Proteus/Loki) — covert cyno subsystem
 }
 
+# ===== Fleet composition role groups (subcap tactical roles from zkill stats groups) =====
+# Used by /api/fleet/analyze to classify pilots beyond capital detection.
+# Keys are EVE ship group IDs; values are short role labels shown in fleet comp UI.
+FLEET_ROLE_GROUPS = {
+    832:  "LOGI",      # Logistics Cruisers (Scimitar, Basilisk, Guardian, Oneiros)
+    1534: "LOGI",      # T2 Logistics Frigates (Burst II, Bantam II, etc.)
+    541:  "DICTOR",    # Interdictors (Sabre, Flycatcher, Heretic, Eris)
+    894:  "HIC",       # Heavy Interdiction Cruisers (Devoter, Onyx, Broadsword, Phobos)
+    540:  "BOOSTER",   # Command Ships (Vulture, Damnation, Nighthawk, Astarte, etc.)
+    513:  "BS",        # Battleships
+    419:  "BC",        # Combat Battlecruisers (Drake, Hurricane, Harbinger, Brutix)
+    420:  "BC",        # Attack Battlecruisers (Talos, Tornado, Naga, Oracle)
+    358:  "HAC",       # Heavy Assault Cruisers (Muninn, Eagle, Vagabond, etc.)
+    963:  "T3C",       # Strategic Cruisers (Tengu, Legion, Loki, Proteus) — subcap role
+    26:   "CRUISER",   # Standard Cruisers
+    27:   "FRIG",      # Standard Frigates
+    25:   "DESTROYER", # Destroyers
+}
+
 # ===== Sovereignty upgrades =====
 # iHub/Sov Hub upgrade catalog. Universal across EVE — same upgrades exist
 # regardless of which alliance/region a deployment monitors. Per-alliance

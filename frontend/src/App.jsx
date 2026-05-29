@@ -18,6 +18,7 @@ import ActivityHeatmap from './components/ActivityHeatmap'
 import MobileNav from './components/MobileNav'
 import DscanParser from './components/DscanParser'
 import LocalScanner from './components/LocalScanner'
+import FleetCompAnalyzer from './components/FleetCompAnalyzer'
 import IntelChannelParser from './components/IntelChannelParser'
 import ActiveHostileTracker from './components/ActiveHostileTracker'
 import JumpBridgeManager from './components/JumpBridgeManager'
@@ -338,6 +339,7 @@ export default function App() {
                 {(!isMobile || mobileTab === 3) && <NeighborIntel lastUpdate={lastUpdate} />}
                 {(!isMobile || mobileTab === 3) && <DscanParser />}
                 {(!isMobile || mobileTab === 3) && <LocalScanner />}
+                {(!isMobile || mobileTab === 3) && <FleetCompAnalyzer />}
 
                 {/* Tab 1: Systems — adm trends + upgrades side by side on tablet+ */}
                 {(!isMobile || mobileTab === 1) && (
