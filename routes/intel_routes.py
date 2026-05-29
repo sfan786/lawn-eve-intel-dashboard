@@ -501,21 +501,19 @@ def api_fleet_analyze():
 
     with ThreadPoolExecutor(max_workers=10) as pool:
         corp_futures = {pool.submit(esi_client.get_corporation_info, cid): cid for cid in corp_ids}
+        alliance_futures = {pool.submit(esi_client.get_alliance_info, aid): aid for aid in alliance_ids_set}
         for f in as_completed(corp_futures):
             cid = corp_futures[f]
             try:
                 corp_name_cache[cid] = f.result().get("name")
             except Exception:
                 corp_name_cache[cid] = None
-
-        alliance_futures = {pool.submit(esi_client.get_alliance_info, aid): aid for aid in alliance_ids_set}
         for f in as_completed(alliance_futures):
             aid = alliance_futures[f]
             try:
                 alliance_name_cache[aid] = f.result().get("name")
             except Exception:
                 alliance_name_cache[aid] = None
-
     # 4. Fetch zkill stats for risk + role analysis
     zkill_stats = {}
     with ThreadPoolExecutor(max_workers=8) as pool:
