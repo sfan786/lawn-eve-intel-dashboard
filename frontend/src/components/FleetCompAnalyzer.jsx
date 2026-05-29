@@ -96,7 +96,6 @@ export default function FleetCompAnalyzer() {
     const [scanning, setScanning] = useState(false)
     const [error, setError] = useState(null)
     const [showPilots, setShowPilots] = useState(false)
-    const debounceTimer = useRef(null)
 
     const names = parseNames(rawInput)
 
