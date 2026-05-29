@@ -68,7 +68,6 @@ FLEET_ROLE_GROUPS = {
     26:   "CRUISER",   # Standard Cruisers
     27:   "FRIG",      # Standard Frigates
     25:   "DESTROYER", # Destroyers
-    420:  "BC",        # Attack BCs (deduplicated with 419 but kept for clarity)
 }
 
 # ===== Sovereignty upgrades =====
