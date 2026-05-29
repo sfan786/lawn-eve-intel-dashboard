@@ -225,7 +225,7 @@ export default function FleetCompAnalyzer() {
                             </div>
                         )}
                         <div style={{ flex: 1, minWidth: 120 }}>
-                            <ThreatBar distribution={s.risk_distribution} total={s.unknown + s.friendly} />
+                            <ThreatBar distribution={s.risk_distribution} total={s.unknown + s.friendly + s.lawn} />
                             <div style={{ display: 'flex', gap: 6, marginTop: 3, flexWrap: 'wrap' }}>
                                 {RISK_ORDER.filter(t => s.risk_distribution[t]).map(t => (
                                     <span key={t} style={{ fontFamily: 'Share Tech Mono, monospace', fontSize: 8, color: RISK_COLOR[t] }}>
