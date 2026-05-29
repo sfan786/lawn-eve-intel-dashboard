@@ -56,3 +56,36 @@ def api_chars_analyze():
     for cid in char_ids:
         results[cid] = MOCK_RISK.get(cid, {"tier": "newbie", "label": "NEWBIE", "kills": 4, "losses": 12, "danger": 8, "gang_ratio": 20, "solo_kills": 0, "isk_eff": 22, "roles": []})
     return jsonify(results)
+
+
+MOCK_FLEET_RESULT = {
+    "pilots": [
+        {"name": "RedPill Raider",   "character_id": 90000006, "corporation_name": "Pandemic Horde Inc.",  "alliance_name": "Pandemic Horde",          "standing": "unknown",    "risk_tier": "very_dangerous", "risk_label": "VERY DANGEROUS", "kills": 2341, "losses": 87, "danger": 91, "isk_eff": 88, "roles": ["DREAD", "BLOPS"], "fleet_roles": []},
+        {"name": "BOSS Capital1",    "character_id": 90000012, "corporation_name": "Brotherhood of Spacers","alliance_name": "Brotherhood of Spacers",  "standing": "unknown",    "risk_tier": "very_dangerous", "risk_label": "VERY DANGEROUS", "kills": 1850, "losses": 62, "danger": 85, "isk_eff": 82, "roles": ["FAX"],             "fleet_roles": ["LOGI"]},
+        {"name": "BOSS Fleet FC",    "character_id": 90000013, "corporation_name": "Brotherhood of Spacers","alliance_name": "Brotherhood of Spacers",  "standing": "unknown",    "risk_tier": "dangerous",      "risk_label": "DANGEROUS",      "kills": 620,  "losses": 90, "danger": 68, "isk_eff": 74, "roles": ["BLOPS"],           "fleet_roles": ["BOOSTER", "HAC"]},
+        {"name": "BOSS Logi",        "character_id": 90000014, "corporation_name": "Brotherhood of Spacers","alliance_name": "Brotherhood of Spacers",  "standing": "unknown",    "risk_tier": "moderate",       "risk_label": "MODERATE",       "kills": 110,  "losses": 45, "danger": 42, "isk_eff": 58, "roles": [],                  "fleet_roles": ["LOGI", "BC"]},
+        {"name": "SL0W Remnant",     "character_id": 90000007, "corporation_name": "Slow Corp",            "alliance_name": "SL0W CHILDREN AT PLAY",   "standing": "unknown",    "risk_tier": "dangerous",      "risk_label": "DANGEROUS",      "kills": 412,  "losses": 55, "danger": 63, "isk_eff": 71, "roles": ["CARRIER"],         "fleet_roles": []},
+        {"name": "SL0W Dictor",      "character_id": 90000015, "corporation_name": "Slow Corp",            "alliance_name": "SL0W CHILDREN AT PLAY",   "standing": "unknown",    "risk_tier": "moderate",       "risk_label": "MODERATE",       "kills": 88,   "losses": 40, "danger": 38, "isk_eff": 56, "roles": [],                  "fleet_roles": ["DICTOR"]},
+        {"name": "BOSS Newbie",      "character_id": 90000016, "corporation_name": "Brotherhood of Spacers","alliance_name": "Brotherhood of Spacers",  "standing": "unknown",    "risk_tier": "newbie",         "risk_label": "NEWBIE",         "kills": 12,   "losses": 8,  "danger": 15, "isk_eff": 30, "roles": [],                  "fleet_roles": []},
+        {"name": "BorderZone Hero",  "character_id": 90000004, "corporation_name": "BOZON Corp Alpha",     "alliance_name": "BorderZone",              "standing": "friendly",   "risk_tier": "moderate",       "risk_label": "MODERATE",       "kills": 95,   "losses": 30, "danger": 41, "isk_eff": 60, "roles": [],                  "fleet_roles": ["BC"]},
+        {"name": "Torchwood One",    "character_id": 90000001, "corporation_name": "Astrum Mechanica",     "alliance_name": "Get Off My Lawn",         "standing": "lawn",       "risk_tier": "dangerous",      "risk_label": "DANGEROUS",      "kills": 380,  "losses": 70, "danger": 58, "isk_eff": 67, "roles": [],                  "fleet_roles": ["HAC"]},
+        {"name": "ghost_pilot_x",    "character_id": None,     "corporation_name": None,                   "alliance_name": None,                      "standing": "unresolved", "risk_tier": "nodata",         "risk_label": "UNRESOLVED",     "kills": 0,    "losses": 0,  "danger": 0,  "isk_eff": 0,  "roles": [],                  "fleet_roles": []},
+    ],
+    "summary": {
+        "total": 10, "unknown": 7, "friendly": 1, "lawn": 1, "unresolved": 1,
+        "avg_danger": 64, "avg_kills": 776, "capitals": 3,
+        "risk_distribution": {"very_dangerous": 2, "dangerous": 3, "moderate": 2, "newbie": 1},
+        "role_counts": {"DREAD": 1, "FAX": 1, "CARRIER": 1, "BLOPS": 2},
+        "fleet_role_counts": {"LOGI": 2, "BOOSTER": 1, "HAC": 2, "BC": 2, "DICTOR": 1},
+        "top_alliances": [
+            {"name": "Brotherhood of Spacers", "count": 4},
+            {"name": "SL0W CHILDREN AT PLAY",  "count": 2},
+            {"name": "Pandemic Horde",          "count": 1},
+        ],
+    },
+}
+
+
+@mock_intel_bp.route("/api/fleet/analyze", methods=["POST"])
+def api_fleet_analyze():
+    return jsonify(MOCK_FLEET_RESULT)

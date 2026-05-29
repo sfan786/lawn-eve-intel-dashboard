@@ -2,7 +2,7 @@ import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from flask import Blueprint, jsonify, request
 from config import NEIGHBOR_ENTITIES, LAWN_ALLIANCE_ID, FRIENDLY_ALLIANCE_IDS, FRIENDLY_CORPORATIONS
-from eve_constants import THREAT_SHIP_GROUPS
+from eve_constants import THREAT_SHIP_GROUPS, FLEET_ROLE_GROUPS
 import db
 import esi_client
 from routes.system_state import state
@@ -450,6 +450,191 @@ def api_chars_analyze():
                 results[str(cid)] = {"tier": "nodata", "label": "NO DATA", "kills": 0, "losses": 0, "danger": 0, "gang_ratio": 0, "solo_kills": 0, "isk_eff": 0, "roles": []}
 
     return jsonify(results)
+
+
+def _detect_fleet_roles(groups: dict) -> list:
+    """Detect subcap fleet roles from zkill stats groups (shipsLost > 0 = actually flown)."""
+    roles = []
+    seen = set()
+    for gid_str, gdata in (groups or {}).items():
+        try:
+            gid = int(gid_str)
+            role = FLEET_ROLE_GROUPS.get(gid)
+            if role and role not in seen and (gdata.get("shipsLost") or 0) > 0:
+                roles.append(role)
+                seen.add(role)
+        except (ValueError, TypeError):
+            pass
+    return roles
+
+
+@intel_bp.route("/api/fleet/analyze", methods=["POST"])
+def api_fleet_analyze():
+    names = (request.json or {}).get("names", [])[:100]
+    if not names:
+        return jsonify({"pilots": [], "summary": {}})
+
+    # 1. Resolve names → char IDs
+    try:
+        resolved = esi_client.post_universe_ids(names)
+    except Exception as e:
+        return jsonify({"error": f"ESI name resolution failed: {e}"}), 502
+
+    char_map = {c["name"]: c["id"] for c in resolved.get("characters", [])}
+    unresolved_names = [n for n in names if n not in char_map]
+
+    # 2. Bulk affiliations
+    char_ids = list(char_map.values())
+    affil_by_id = {}
+    if char_ids:
+        try:
+            for a in esi_client.bulk_character_affiliations(char_ids):
+                affil_by_id[a["character_id"]] = a
+        except Exception:
+            pass
+
+    # 3. Resolve corp/alliance names (deduplicated fetches)
+    corp_name_cache = {}
+    alliance_name_cache = {}
+    corp_ids = {a["corporation_id"] for a in affil_by_id.values() if a.get("corporation_id")}
+    alliance_ids_set = {a["alliance_id"] for a in affil_by_id.values() if a.get("alliance_id")}
+
+    with ThreadPoolExecutor(max_workers=10) as pool:
+        corp_futures = {pool.submit(esi_client.get_corporation_info, cid): cid for cid in corp_ids}
+        for f in as_completed(corp_futures):
+            cid = corp_futures[f]
+            try:
+                corp_name_cache[cid] = f.result().get("name")
+            except Exception:
+                corp_name_cache[cid] = None
+
+        alliance_futures = {pool.submit(esi_client.get_alliance_info, aid): aid for aid in alliance_ids_set}
+        for f in as_completed(alliance_futures):
+            aid = alliance_futures[f]
+            try:
+                alliance_name_cache[aid] = f.result().get("name")
+            except Exception:
+                alliance_name_cache[aid] = None
+
+    # 4. Fetch zkill stats for risk + role analysis
+    zkill_stats = {}
+    with ThreadPoolExecutor(max_workers=8) as pool:
+        future_to_id = {pool.submit(esi_client.get_zkill_char_stats, cid): cid for cid in char_ids}
+        for f in as_completed(future_to_id):
+            cid = future_to_id[f]
+            try:
+                zkill_stats[cid] = f.result()
+            except Exception:
+                zkill_stats[cid] = {}
+
+    # 5. Build per-pilot results
+    pilots = []
+    alliance_counts = {}
+
+    for name, char_id in char_map.items():
+        affil = affil_by_id.get(char_id, {})
+        corp_id = affil.get("corporation_id")
+        alliance_id = affil.get("alliance_id")
+        corp_name = corp_name_cache.get(corp_id) if corp_id else None
+        alliance_name = alliance_name_cache.get(alliance_id) if alliance_id else None
+
+        if alliance_id == LAWN_ALLIANCE_ID:
+            standing = "lawn"
+        elif corp_name in FRIENDLY_CORPORATIONS:
+            standing = "lawn"
+        elif alliance_id in FRIENDLY_ALLIANCE_IDS:
+            standing = "friendly"
+        else:
+            standing = "unknown"
+
+        stats = zkill_stats.get(char_id, {})
+        risk = _compute_risk_tier(stats)
+        groups = stats.get("groups", {})
+        capital_roles = _detect_roles(groups)
+        fleet_roles = _detect_fleet_roles(groups)
+
+        # Track alliance breakdown (unknown/hostile only)
+        if standing == "unknown" and alliance_name:
+            alliance_counts[alliance_name] = alliance_counts.get(alliance_name, 0) + 1
+
+        pilots.append({
+            "name": name,
+            "character_id": char_id,
+            "corporation_name": corp_name,
+            "alliance_name": alliance_name,
+            "standing": standing,
+            "risk_tier": risk["tier"],
+            "risk_label": risk["label"],
+            "kills": risk["kills"],
+            "losses": risk["losses"],
+            "danger": risk["danger"],
+            "isk_eff": risk["isk_eff"],
+            "roles": capital_roles,
+            "fleet_roles": fleet_roles,
+        })
+
+    for name in unresolved_names:
+        pilots.append({
+            "name": name,
+            "character_id": None,
+            "corporation_name": None,
+            "alliance_name": None,
+            "standing": "unresolved",
+            "risk_tier": "nodata",
+            "risk_label": "UNRESOLVED",
+            "kills": 0,
+            "losses": 0,
+            "danger": 0,
+            "isk_eff": 0,
+            "roles": [],
+            "fleet_roles": [],
+        })
+
+    # Sort: unknown first, then friendly/lawn, then unresolved; within standing sort by danger desc
+    standing_order = {"unknown": 0, "friendly": 1, "lawn": 2, "unresolved": 3}
+    pilots.sort(key=lambda p: (standing_order.get(p["standing"], 9), -p["danger"]))
+
+    # 6. Build summary
+    resolved_pilots = [p for p in pilots if p["character_id"]]
+    unknown_pilots = [p for p in pilots if p["standing"] == "unknown"]
+
+    risk_dist = {}
+    for p in resolved_pilots:
+        risk_dist[p["risk_tier"]] = risk_dist.get(p["risk_tier"], 0) + 1
+
+    role_counts = {}
+    fleet_role_counts = {}
+    for p in resolved_pilots:
+        for r in p["roles"]:
+            role_counts[r] = role_counts.get(r, 0) + 1
+        for r in p["fleet_roles"]:
+            fleet_role_counts[r] = fleet_role_counts.get(r, 0) + 1
+
+    danger_vals = [p["danger"] for p in unknown_pilots if p["risk_tier"] not in ("nodata", "newbie")]
+    avg_danger = round(sum(danger_vals) / len(danger_vals)) if danger_vals else 0
+    kill_vals = [p["kills"] for p in unknown_pilots if p["risk_tier"] not in ("nodata",)]
+    avg_kills = round(sum(kill_vals) / len(kill_vals)) if kill_vals else 0
+
+    capitals = sum(1 for p in pilots if any(r in ("TITAN", "SUPER", "DREAD", "CARRIER", "FAX") for r in p["roles"]))
+
+    top_alliances = sorted(alliance_counts.items(), key=lambda x: x[1], reverse=True)[:8]
+
+    summary = {
+        "total": len(pilots),
+        "unknown": sum(1 for p in pilots if p["standing"] == "unknown"),
+        "friendly": sum(1 for p in pilots if p["standing"] == "friendly"),
+        "lawn": sum(1 for p in pilots if p["standing"] == "lawn"),
+        "unresolved": sum(1 for p in pilots if p["standing"] == "unresolved"),
+        "avg_danger": avg_danger,
+        "avg_kills": avg_kills,
+        "capitals": capitals,
+        "risk_distribution": risk_dist,
+        "role_counts": role_counts,
+        "fleet_role_counts": fleet_role_counts,
+        "top_alliances": [{"name": n, "count": c} for n, c in top_alliances],
+    }
+
+    return jsonify({"pilots": pilots, "summary": summary})
 
 
 @intel_bp.route("/api/intel/regional")
