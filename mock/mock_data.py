@@ -287,6 +287,7 @@ def get_mock_campaigns():
             "vulnerable_end_time": vuln_end.isoformat() + "Z",
             "is_primary": True,
             "is_lawn": True,
+            "defender_is_friendly": True,
         },
         {
             "campaign_id": 999002,
@@ -302,6 +303,7 @@ def get_mock_campaigns():
             "vulnerable_end_time": vuln_end.isoformat() + "Z",
             "is_primary": True,
             "is_lawn": True,
+            "defender_is_friendly": True,
         },
     ]
 

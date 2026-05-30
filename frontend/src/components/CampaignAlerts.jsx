@@ -57,9 +57,15 @@ export default function CampaignAlerts({ campaigns, config }) {
                         <div key={i} className={`campaign-entry-compact ${isPrimary ? 'lawn' : ''} ${isNodesActive ? 'active' : ''}`}>
                             <div style={{ width: 100, flexShrink: 0 }}>
                                 {isPrimary ? (
-                                    <span className={isNodesActive ? "campaign-badge-red" : "campaign-badge-lawn"}>
-                                        {allianceShort} DEFENSE
-                                    </span>
+                                    c.defender_is_friendly ? (
+                                        <span className={isNodesActive ? "campaign-badge-red" : "campaign-badge-lawn"}>
+                                            {allianceShort} DEFENSE
+                                        </span>
+                                    ) : (
+                                        <span className={isNodesActive ? "campaign-badge-red" : "campaign-badge-lawn"} style={{ color: '#ffaa00' }}>
+                                            RECONQUEST
+                                        </span>
+                                    )
                                 ) : (
                                     <span style={{ fontSize: 9, color: 'var(--text-muted)', letterSpacing: 1 }}>REGIONAL</span>
                                 )}

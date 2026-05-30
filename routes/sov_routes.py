@@ -1,5 +1,5 @@
 from flask import Blueprint, jsonify
-from config import FRIENDLY_ALLIANCES
+from config import FRIENDLY_ALLIANCES, FRIENDLY_ALLIANCE_IDS, PRIMARY_ALLIANCE_ID
 import esi_client
 import db
 from routes.system_state import state
@@ -119,6 +119,8 @@ def api_campaigns():
         struct_id = campaign.get("structure_id")
         struct_data = structure_by_id.get(struct_id, {})
         is_primary = sys_id in state.primary_system_ids
+        defender_id = campaign.get("defender_id")
+        defender_is_friendly = defender_id in FRIENDLY_ALLIANCE_IDS or defender_id == PRIMARY_ALLIANCE_ID
 
         enriched.append({
             **campaign,
@@ -128,6 +130,7 @@ def api_campaigns():
             "structure_type_id": struct_data.get("structure_type_id"),
             "is_primary": is_primary,
             "is_lawn": is_primary,  # legacy alias for any frontend not yet migrated
+            "defender_is_friendly": defender_is_friendly,
         })
 
     return jsonify(enriched)
