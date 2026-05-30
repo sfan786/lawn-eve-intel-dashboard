@@ -155,8 +155,22 @@ export default function ConstellationMap({ config, sovereignty, activity, campai
         const layout = activeLayout[name]
         if (!layout) return "#3a5060"
         if (layout.constellation === "neighbor") return "#444455"
-        if (layout.lawn) return "#00ff88"
+        if (layout.lawn) {
+            const sysId = nameToId[name]
+            const sov = sysId ? (sovereignty[sysId] || {}) : {}
+            if (sov.alliance_name && !sov.is_friendly) return "#ff3355"
+            return "#00ff88"
+        }
         return constellationColor(layout.constellation)
+    }
+
+    function isLostSystem(name) {
+        const layout = activeLayout[name]
+        if (!layout || !layout.lawn) return false
+        const sysId = nameToId[name]
+        if (!sysId) return false
+        const sov = sovereignty[sysId] || {}
+        return !!(sov.alliance_name && !sov.is_friendly)
     }
 
     function getPvpGlow(name) {
@@ -427,9 +441,11 @@ export default function ConstellationMap({ config, sovereignty, activity, campai
 
                         const critGrind = needsCriticalGrinding(name)
                         const cautGrind = needsCautionGrinding(name)
+                        const isLost = isLostSystem(name)
+                        if (isLost && isPrimary && isSubway) { nameFill = "#ff8888"; nodeFill = "#1a0408" }
                         const strokeColor = critGrind ? "#ff3355" : cautGrind ? "#ffaa00" : color
-                        const strokeW = critGrind ? (isSubway && isPrimary ? 4 : 3) : cautGrind ? (isSubway && isPrimary ? 3 : 2) : nodeStroke
-                        const nodeFilter = critGrind ? "url(#glow-r)" : cautGrind ? "url(#glow-amber)" : (isSubway && isPrimary ? "url(#glow-green)" : undefined)
+                        const strokeW = critGrind ? (isSubway && isPrimary ? 4 : 3) : cautGrind ? (isSubway && isPrimary ? 3 : 2) : isLost ? (isSubway && isPrimary ? 4 : 3) : nodeStroke
+                        const nodeFilter = critGrind ? "url(#glow-r)" : cautGrind ? "url(#glow-amber)" : isLost ? "url(#glow-r)" : (isSubway && isPrimary ? "url(#glow-green)" : undefined)
 
                         const reffedR = isSubway ? (isPrimary ? r + 8 : r + 6) : 16
                         const selR = isSubway ? (isPrimary ? r + 4 : r + 3) : 11
@@ -452,6 +468,19 @@ export default function ConstellationMap({ config, sovereignty, activity, campai
                             >
                                 {isGateway && (
                                     <circle cx={pos.x} cy={pos.y} r={r + 5} fill="none" stroke="#ffaa00" strokeWidth="1.5" strokeDasharray="4 3" opacity={0.6} />
+                                )}
+                                {isLost && !isN && (
+                                    <circle
+                                        cx={pos.x} cy={pos.y}
+                                        r={isSubway ? (isPrimary ? r + 12 : r + 8) : r + 10}
+                                        fill="none"
+                                        stroke="#ff3355"
+                                        strokeWidth="2"
+                                        strokeDasharray="5 3"
+                                        filter="url(#glow-r)"
+                                        opacity={0.75}
+                                        style={{ animation: 'pulse-reffed 2.5s ease-in-out infinite' }}
+                                    />
                                 )}
                                 {isReffed(name) && (() => {
                                     const sid = nameToId[name]
@@ -508,6 +537,17 @@ export default function ConstellationMap({ config, sovereignty, activity, campai
                                         fontWeight="bold"
                                         opacity={0.95}
                                     >!</text>
+                                )}
+                                {isLost && !isN && (
+                                    <text
+                                        x={pos.x + (isSubway && isPrimary ? 14 : 9)}
+                                        y={pos.y - (isSubway && isPrimary ? 12 : 8)}
+                                        fontFamily="Orbitron, sans-serif"
+                                        fontSize={isSubway && isPrimary ? "13" : "10"}
+                                        fill="#ff3355"
+                                        fontWeight="bold"
+                                        opacity={0.9}
+                                    >✕</text>
                                 )}
                                 {!isN && annotations[name] && (
                                     <circle
@@ -598,8 +638,8 @@ export default function ConstellationMap({ config, sovereignty, activity, campai
 
             {tooltip && (
                 <div className="map-tooltip visible" style={{ left: tooltip.x, top: tooltip.y }}>
-                    <div className="map-tooltip-name" style={{ color: tooltip.isNeighbor ? '#ffaa00' : '#00ff88' }}>{tooltip.name}</div>
-                    <div className="map-tooltip-row"><span className="map-tooltip-label">Holder</span><span>{tooltip.holder}</span></div>
+                    <div className="map-tooltip-name" style={{ color: tooltip.isNeighbor ? '#ffaa00' : (tooltip.isPrimary && !tooltip.is_friendly && tooltip.holder && tooltip.holder !== 'Unknown') ? '#ff3355' : '#00ff88' }}>{tooltip.name}</div>
+                    <div className="map-tooltip-row"><span className="map-tooltip-label">Holder</span><span style={{ color: tooltip.isPrimary && !tooltip.is_friendly && tooltip.holder && tooltip.holder !== 'Unknown' ? '#ff8888' : undefined }}>{tooltip.holder}</span></div>
                     {tooltip.corp && <div className="map-tooltip-row"><span className="map-tooltip-label">Corp</span><span>{tooltip.corp}</span></div>}
                     <div className="map-tooltip-row">
                         <span className="map-tooltip-label">ADM</span>
@@ -607,6 +647,18 @@ export default function ConstellationMap({ config, sovereignty, activity, campai
                             {tooltip.adm > 0 ? tooltip.adm.toFixed(1) : '—'}
                         </span>
                     </div>
+                    {tooltip.isPrimary && !tooltip.is_friendly && tooltip.holder && tooltip.holder !== 'Unknown' && (
+                        <div style={{
+                            fontSize: 11,
+                            color: '#ff3355',
+                            marginTop: 6,
+                            paddingTop: 6,
+                            fontWeight: 'bold',
+                            borderTop: '1px solid #ff335533'
+                        }}>
+                            ☠ HOSTILE SOV — RECONQUEST NEEDED
+                        </div>
+                    )}
                     {tooltip.isPrimary && tooltip.adm > 0 && tooltip.adm < 4 && tooltip.is_friendly && (
                         <div style={{
                             fontSize: 10,
