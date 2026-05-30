@@ -34,6 +34,7 @@
 - [x] **PLH-style pilot risk ratings** — `POST /api/chars/analyze` fetches zKillboard stats per character; `_compute_risk_tier()` classifies VERY DANGEROUS / DANGEROUS / MODERATE / SNUGGLY / NEWBIE / NO DATA based on kills, danger ratio, and ISK efficiency; displayed in Local Scanner RISK column and Intel Channel Parser char rows
 - [x] **Capital/dropper/covert role detection** — `_detect_roles()` reads the zkill stats `groups` dict (ship groups from losses) to detect TITAN, SUPER, DREAD, CARRIER, FAX, BLOPS, RECON, BOMBER, T3C, COVOPS; role badges rendered next to risk tier in both scanner panels; `THREAT_SHIP_GROUPS` map in `eve_constants.py`
 - [x] **Intel Channel Parser enhancements** — per-row × deletion; `onBoardChange` prop propagates board state to `ConstellationMap` which renders a pulsing orange ring (distinct from amber reffed ring) on systems with active hostile intel; browser `Notification` API fires on primary/border system reports (permission requested on first hostile paste)
+- [x] **Hostile sov indicators** — primary systems taken by enemy alliances are visually distinguished from friendly-held systems: red node + pulsing red dashed ring + `✕` icon on the map (both subway and traditional modes); `☠ HOSTILE` badge in the system table Status column; tooltip shows system name and holder in red with `☠ HOSTILE SOV — RECONQUEST NEEDED` banner; "Hostile Sov" count in the Situation Overview header
 
 ---
 
@@ -50,14 +51,7 @@
 - [x] Expandable kill details (fitted ship value, attacker list)
 - **Data sources:** zKillboard API + websocket for real-time
 
-### Planetary Interaction Info
-**Why:** PI key resources are very important for manufacturing and industry.
-- [x] List all known PI planets in LAWN space (Backend API)
-- [x] Show PI resource types (Backend API)
-- [x] Display PI planets and resource types on the UI — Industry tab (Tab 5), per-system cards with colored type badges
-- [x] Prioritize which systems to grind PI in based on resource availability and strategic importance — interactive product filter (Fuel Blocks / BSC / P4) highlights relevant type badges across all system cards
-- [x] List PI types by Alliance Strategic Importance — ◆ priority indicators on all badges (amber = critical chain, cyan = high chain); coverage check per priority product with ✓/⚠/✗ status
-- **Data sources:** ESI statically stored in backend/config
+
 
 ### Mobile Responsive Layout
 **Why:** Need to be able to check the dashboard on mobile.
@@ -127,26 +121,11 @@
 - [x] ADM goal tracker — set target ADMs per system, show progress bars
 - **Data sources:** SQLite adm_snapshots (trend analysis), config.py (system metadata)
 
-### Moon Mining Tracker
-**Why:** Moons are a key income source in nullsec. (Low Priority-Alliance Auth does moons plus We are going to primarily use Metanox Moon Mining for this   )
-- Track moon extraction timers
-- Ore composition and estimated value per moon
-- Extraction schedule calendar view
-- **Prerequisite:** EVE SSO auth
-- **Data sources:** ESI moon extraction endpoints (SSO)
 
-### Structure Tracking
-**Why:** Once citadels and engineering complexes go up, need to track timers and fuel. (Low Priority-Alliance Auth does structures)
-- List all known structures in LAWN space (citadels, refineries, ECs)
-- Fuel status and depletion estimates (requires SSO)
-- Reinforcement timers if attacked
-- Vulnerability schedule display
-- **Data sources:** ESI structure endpoints (requires SSO auth)
 ---
 
 ## Ideas / Backlog
 
-- **Multi-alliance view** — if LAWN blues other groups, show their space too
 - **Wormhole connection tracker** — integration with Pathfinder/Tripwire APIs
 - **PI (Planetary Interaction) tracker** — colony status and extraction timers (SSO)
 - **Market dashboard** — regional market activity, price comparisons to Jita
