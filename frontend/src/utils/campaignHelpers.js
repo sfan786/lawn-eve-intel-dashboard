@@ -27,10 +27,8 @@ export function formatCountdown(targetDate) {
     return `${minutes}m`;
 }
 
-export function formatEveTime(input) {
-    if (!input) return '';
-    const date = input instanceof Date ? input : new Date(input);
-    if (isNaN(date.getTime())) return '';
+export function formatEveTime(date) {
+    if (!date || isNaN(date.getTime())) return '';
     const month = (date.getUTCMonth() + 1).toString().padStart(2, '0');
     const day = date.getUTCDate().toString().padStart(2, '0');
     const hours = date.getUTCHours().toString().padStart(2, '0');
@@ -39,10 +37,8 @@ export function formatEveTime(input) {
     return `${month}/${day} ${hours}:${minutes} EVE`;
 }
 
-export function formatLocalTime(input) {
-    if (!input) return '';
-    const date = input instanceof Date ? input : new Date(input);
-    if (isNaN(date.getTime())) return '';
+export function formatLocalTime(date) {
+    if (!date || isNaN(date.getTime())) return '';
     const month = (date.getMonth() + 1).toString().padStart(2, '0');
     const day = date.getDate().toString().padStart(2, '0');
     const hours = date.getHours().toString().padStart(2, '0');
