@@ -23,16 +23,7 @@ export default function CampaignAlerts({ campaigns, config }) {
     const enrichedCampaigns = campaigns.map(c => ({
         ...c,
         phaseInfo: getCampaignPhase(c)
-    })).sort((a, b) => {
-        const aPrimary = isPrimaryCampaign(a)
-        const bPrimary = isPrimaryCampaign(b)
-        if (aPrimary !== bPrimary) return aPrimary ? -1 : 1
-
-        if (a.phaseInfo.phase !== b.phaseInfo.phase) {
-            return a.phaseInfo.phase === 'nodes' ? -1 : 1
-        }
-        return 0
-    })
+    })).sort((a, b) => a.phaseInfo.nodesSpawnTime - b.phaseInfo.nodesSpawnTime)
 
     const activeCount = enrichedCampaigns.filter(c => c.phaseInfo.phase === 'nodes').length
     const reffedCount = enrichedCampaigns.filter(c => c.phaseInfo.phase === 'reinforced').length
@@ -62,7 +53,7 @@ export default function CampaignAlerts({ campaigns, config }) {
                                             {allianceShort} DEFENSE
                                         </span>
                                     ) : (
-                                        <span className={isNodesActive ? "campaign-badge-red" : "campaign-badge-lawn"} style={{ color: '#ffaa00' }}>
+                                        <span className={isNodesActive ? "campaign-badge-red" : "campaign-badge-lawn"}>
                                             RECONQUEST
                                         </span>
                                     )
