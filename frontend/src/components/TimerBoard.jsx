@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react'
-import { formatCountdown, formatEveTime } from '../utils/campaignHelpers'
+import { formatCountdown, formatEveTime, formatLocalTime } from '../utils/campaignHelpers'
 import CornerBrackets from './common/CornerBrackets'
 
 const inputStyle = {
@@ -231,6 +231,9 @@ export default function TimerBoard() {
                                 {isPast ? "EXPIRED" : timeLeft}
                                 <span style={{ marginLeft: 8, fontSize: 10, color: 'var(--text-muted)' }}>
                                     {formatEveTime(time.toISOString())}
+                                </span>
+                                <span style={{ marginLeft: 6, fontSize: 10, color: 'var(--text-muted)', opacity: 0.75 }}>
+                                    / {formatLocalTime(time.toISOString())}
                                 </span>
                             </div>
                             {isAuthenticated && (
