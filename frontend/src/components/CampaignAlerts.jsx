@@ -91,7 +91,7 @@ export default function CampaignAlerts({ campaigns, config }) {
                                         <span style={{ opacity: 0.7 }}>Reinforced — Nodes spawn in </span>
                                         <span style={{ color: 'var(--amber)', fontWeight: 'bold' }}>{formatCountdown(phase.nodesSpawnTime)}</span>
                                         <span style={{ fontSize: 10, color: 'var(--text-muted)', marginLeft: 8 }}>
-                                            ({formatEveTime(phase.nodesSpawnTime.toISOString())} / {formatLocalTime(phase.nodesSpawnTime.toISOString())})
+                                            ({formatEveTime(phase.nodesSpawnTime)} / {formatLocalTime(phase.nodesSpawnTime)})
                                         </span>
                                     </div>
                                 )}
