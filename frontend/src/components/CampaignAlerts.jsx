@@ -1,5 +1,5 @@
 import React from 'react'
-import { getCampaignPhase, formatCountdown, formatEveTime } from '../utils/campaignHelpers'
+import { getCampaignPhase, formatCountdown, formatEveTime, formatLocalTime } from '../utils/campaignHelpers'
 import CornerBrackets from './common/CornerBrackets'
 
 export default function CampaignAlerts({ campaigns, config }) {
@@ -90,7 +90,9 @@ export default function CampaignAlerts({ campaigns, config }) {
                                     <div style={{ fontSize: 11, color: isPrimary ? 'var(--text-primary)' : 'var(--text-muted)' }}>
                                         <span style={{ opacity: 0.7 }}>Reinforced — Nodes spawn in </span>
                                         <span style={{ color: 'var(--amber)', fontWeight: 'bold' }}>{formatCountdown(phase.nodesSpawnTime)}</span>
-                                        <span style={{ fontSize: 10, color: 'var(--text-muted)', marginLeft: 8 }}>({formatEveTime(phase.nodesSpawnTime.toISOString())})</span>
+                                        <span style={{ fontSize: 10, color: 'var(--text-muted)', marginLeft: 8 }}>
+                                            ({formatEveTime(phase.nodesSpawnTime)} / {formatLocalTime(phase.nodesSpawnTime)})
+                                        </span>
                                     </div>
                                 )}
                             </div>
