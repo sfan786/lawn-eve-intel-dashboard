@@ -41,10 +41,12 @@ export function formatLocalTime(date) {
     if (!date || isNaN(date.getTime())) return '';
     const month = (date.getMonth() + 1).toString().padStart(2, '0');
     const day = date.getDate().toString().padStart(2, '0');
-    const hours = date.getHours().toString().padStart(2, '0');
+    const rawHours = date.getHours();
     const minutes = date.getMinutes().toString().padStart(2, '0');
+    const ampm = rawHours >= 12 ? 'PM' : 'AM';
+    const hours = rawHours % 12 || 12;
 
-    return `${month}/${day} ${hours}:${minutes} LOCAL`;
+    return `${month}/${day} ${hours}:${minutes} ${ampm}`;
 }
 
 export function formatVulnWindow(start, end) {

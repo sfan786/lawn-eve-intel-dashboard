@@ -51,7 +51,7 @@ export default function TimerBoard() {
         const res = await fetch("/api/timers")
         if (res.ok) {
             const data = await res.json()
-            setTimers(data)
+            setTimers(data.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp)))
         }
     }, [])
 
