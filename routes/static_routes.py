@@ -21,3 +21,12 @@ def index():
 def assets(filename):
     """Serve Vite's hashed JS/CSS chunks from static/dist/assets/."""
     return send_from_directory(os.path.join(_DIST_DIR, "assets"), filename)
+
+
+@static_bp.route("/<path:path>")
+def spa_fallback(path):
+    """Catch-all: serve the SPA index for any client-side route (e.g. /entosis)."""
+    dist_index = os.path.join(_DIST_DIR, "index.html")
+    if os.path.exists(dist_index):
+        return send_from_directory(_DIST_DIR, "index.html")
+    return send_from_directory(_STATIC_DIR, "index.html")

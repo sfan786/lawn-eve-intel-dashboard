@@ -94,6 +94,17 @@ def init():
             created_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')),
             UNIQUE(deployment_id, system_a, system_b)
         );
+
+        CREATE TABLE IF NOT EXISTS entosis_nodes (
+            id           INTEGER PRIMARY KEY AUTOINCREMENT,
+            deployment_id TEXT NOT NULL DEFAULT '{LEGACY_DEPLOYMENT_ID}',
+            system_name  TEXT NOT NULL,
+            label        TEXT,
+            status       TEXT NOT NULL DEFAULT 'unclaimed',
+            claimed_by   TEXT,
+            created_at   TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')),
+            updated_at   TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))
+        );
     """)
 
     # 2. Add deployment_id column to existing tables if missing (for legacy updates)
@@ -468,3 +479,68 @@ def get_activity_heatmap_data(hours=168):
         }
 
     return result
+
+
+# --- Entosis node board ---
+
+def get_entosis_nodes():
+    """Return all nodes for the active deployment, ordered by creation time."""
+    conn = get_connection()
+    rows = conn.execute(
+        "SELECT id, system_name, label, status, claimed_by, created_at, updated_at "
+        "FROM entosis_nodes WHERE deployment_id = ? ORDER BY created_at ASC",
+        (DEPLOYMENT_ID,),
+    ).fetchall()
+    conn.close()
+    return [dict(row) for row in rows]
+
+
+def add_entosis_node(system_name, label=None):
+    """Add a command node. Returns new id."""
+    conn = get_connection()
+    cur = conn.execute(
+        "INSERT INTO entosis_nodes (deployment_id, system_name, label) VALUES (?, ?, ?)",
+        (DEPLOYMENT_ID, system_name.strip(), label.strip() if label else None),
+    )
+    new_id = cur.lastrowid
+    conn.commit()
+    conn.close()
+    return new_id
+
+
+def update_entosis_node(node_id, status=None, claimed_by=None):
+    """Update status and/or claimed_by. Pass claimed_by='' to unclaim."""
+    conn = get_connection()
+    sets, params = [], []
+    if status is not None:
+        sets.append("status = ?"); params.append(status)
+    if claimed_by is not None:
+        sets.append("claimed_by = ?"); params.append(claimed_by or None)
+    if sets:
+        sets.append("updated_at = strftime('%Y-%m-%dT%H:%M:%SZ', 'now')")
+        params.extend([node_id, DEPLOYMENT_ID])
+        conn.execute(
+            f"UPDATE entosis_nodes SET {', '.join(sets)} WHERE id = ? AND deployment_id = ?",
+            params,
+        )
+        conn.commit()
+    conn.close()
+
+
+def delete_entosis_node(node_id):
+    """Delete a single node (scoped to active deployment)."""
+    conn = get_connection()
+    conn.execute(
+        "DELETE FROM entosis_nodes WHERE id = ? AND deployment_id = ?",
+        (node_id, DEPLOYMENT_ID),
+    )
+    conn.commit()
+    conn.close()
+
+
+def clear_entosis_nodes():
+    """Remove all nodes for the active deployment (end-of-op reset)."""
+    conn = get_connection()
+    conn.execute("DELETE FROM entosis_nodes WHERE deployment_id = ?", (DEPLOYMENT_ID,))
+    conn.commit()
+    conn.close()
