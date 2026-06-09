@@ -16,20 +16,33 @@ def api_get_nodes():
 def api_add_node():
     if request.headers.get("X-Timer-Auth") != TIMER_PASSWORD:
         return jsonify({"error": "Unauthorized"}), 401
-    data = request.json or {}
-    system_name = (data.get("system_name") or "").strip()
-    if not system_name:
-        return jsonify({"error": "system_name required"}), 400
-    node_id = db.add_entosis_node(system_name, data.get("label"))
+    data = request.json
+    if not isinstance(data, dict):
+        return jsonify({"error": "Invalid JSON payload"}), 400
+    system_name = data.get("system_name")
+    if not isinstance(system_name, str) or not system_name.strip():
+        return jsonify({"error": "system_name must be a non-empty string"}), 400
+    system_name = system_name.strip()
+    label = data.get("label")
+    if label is not None and not isinstance(label, str):
+        return jsonify({"error": "label must be a string"}), 400
+    label = label.strip() if label else None
+    node_id = db.add_entosis_node(system_name, label)
     return jsonify({"id": node_id}), 201
 
 
 @entosis_bp.route("/api/entosis/nodes/<int:node_id>", methods=["PATCH"])
 def api_update_node(node_id):
-    data = request.json or {}
+    data = request.json
+    if not isinstance(data, dict):
+        return jsonify({"error": "Invalid JSON payload"}), 400
     status = data.get("status")
     claimed_by = data.get("claimed_by")  # None = don't touch, "" = unclaim
 
+    if status is not None and not isinstance(status, str):
+        return jsonify({"error": "status must be a string"}), 400
+    if claimed_by is not None and not isinstance(claimed_by, str):
+        return jsonify({"error": "claimed_by must be a string"}), 400
     if status is not None and status not in VALID_STATUSES:
         return jsonify({"error": f"Invalid status. Must be one of: {', '.join(VALID_STATUSES)}"}), 400
 
