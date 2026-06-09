@@ -1,13 +1,16 @@
 export function getCampaignPhase(campaign) {
-    const now = new Date();
-    const startTime = new Date(campaign.start_time);
+    const startTime = campaign?.start_time ? new Date(campaign.start_time) : null;
+
+    // Guard against missing/malformed start_time from ESI
+    if (!startTime || isNaN(startTime.getTime())) {
+        return { phase: 'reinforced', nodesSpawnTime: null };
+    }
 
     // ESI start_time in /sovereignty/campaigns/ is the node spawn time.
     // If now >= startTime, nodes are out.
-    const isNodesActive = (now >= startTime);
-
+    const now = new Date();
     return {
-        phase: isNodesActive ? "nodes" : "reinforced",
+        phase: now >= startTime ? 'nodes' : 'reinforced',
         nodesSpawnTime: startTime,
     };
 }
@@ -44,7 +47,7 @@ export function formatLocalTime(date) {
     const rawHours = date.getHours();
     const minutes = date.getMinutes().toString().padStart(2, '0');
     const ampm = rawHours >= 12 ? 'PM' : 'AM';
-    const hours = rawHours % 12 || 12;
+    const hours = (rawHours % 12 || 12).toString().padStart(2, '0');
 
     return `${month}/${day} ${hours}:${minutes} ${ampm}`;
 }
