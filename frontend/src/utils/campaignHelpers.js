@@ -1,8 +1,8 @@
 export function getCampaignPhase(campaign) {
-    const startTime = new Date(campaign.start_time);
+    const startTime = campaign?.start_time ? new Date(campaign.start_time) : null;
 
     // Guard against missing/malformed start_time from ESI
-    if (isNaN(startTime.getTime())) {
+    if (!startTime || isNaN(startTime.getTime())) {
         return { phase: 'reinforced', nodesSpawnTime: null };
     }
 
