@@ -33,6 +33,8 @@ def api_add_node():
 
 @entosis_bp.route("/api/entosis/nodes/<int:node_id>", methods=["PATCH"])
 def api_update_node(node_id):
+    # Intentionally open (no X-Timer-Auth): any fleet member must be able to
+    # claim a node and advance its status without knowing the FC password.
     data = request.json
     if not isinstance(data, dict):
         return jsonify({"error": "Invalid JSON payload"}), 400
