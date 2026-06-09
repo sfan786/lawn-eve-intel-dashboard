@@ -23,7 +23,11 @@ export default function CampaignAlerts({ campaigns, config }) {
     const enrichedCampaigns = campaigns.map(c => ({
         ...c,
         phaseInfo: getCampaignPhase(c)
-    })).sort((a, b) => (a.phaseInfo.nodesSpawnTime?.getTime() || 0) - (b.phaseInfo.nodesSpawnTime?.getTime() || 0))
+    })).sort((a, b) => {
+        const ta = a.phaseInfo.nodesSpawnTime?.getTime() ?? Infinity;
+        const tb = b.phaseInfo.nodesSpawnTime?.getTime() ?? Infinity;
+        return ta === tb ? 0 : ta < tb ? -1 : 1;
+    })
 
     const activeCount = enrichedCampaigns.filter(c => c.phaseInfo.phase === 'nodes').length
     const reffedCount = enrichedCampaigns.filter(c => c.phaseInfo.phase === 'reinforced').length
