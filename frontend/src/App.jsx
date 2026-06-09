@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react'
+import { Link } from 'react-router-dom'
 import Clock from './components/common/Clock'
 import { getCampaignPhase } from './utils/campaignHelpers'
 import CornerBrackets from './components/common/CornerBrackets'
@@ -279,6 +280,9 @@ export default function App() {
                     </div>
                 </div>
                 <div className="status-bar">
+                    <Link to="/entosis" style={{ fontFamily: 'Orbitron', fontSize: 10, color: 'var(--cyan)', textDecoration: 'none', letterSpacing: 1, border: '1px solid var(--cyan-dim)', padding: '3px 8px', whiteSpace: 'nowrap' }}>
+                        ENTOSIS OP
+                    </Link>
                     <Clock />
                     {!isMobile && <div style={{ width: 1, height: 16, background: 'var(--border-dim)' }}></div>}
                     <span><span className="status-dot" />ONLINE</span>

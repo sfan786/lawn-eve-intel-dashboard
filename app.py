@@ -25,13 +25,14 @@ from routes.hostile_routes import hostile_bp
 from routes.timer_routes import timer_bp
 from routes.annotation_routes import annotation_bp
 from routes.jb_routes import jb_bp
+from routes.entosis_routes import entosis_bp
 from routes.static_routes import static_bp
 import db
 
 
 def create_app():
     app = Flask(__name__)
-    for bp in [config_bp, sov_bp, activity_bp, zkill_bp, history_bp, intel_bp, hostile_bp, timer_bp, annotation_bp, jb_bp, static_bp]:
+    for bp in [config_bp, sov_bp, activity_bp, zkill_bp, history_bp, intel_bp, hostile_bp, timer_bp, annotation_bp, jb_bp, entosis_bp, static_bp]:
         app.register_blueprint(bp)
     return app
 
