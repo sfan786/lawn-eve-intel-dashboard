@@ -146,9 +146,9 @@ export default function EntosisPage() {
     }
 
     // Build primary system list from config for the add-node dropdown
-    const primarySystems = config ? Object.values(config.constellations)
+    const primarySystems = config?.constellations ? Object.values(config.constellations)
         .filter(c => c.is_primary ?? c.is_lawn)
-        .flatMap(c => Object.values(c.systems).map(s => s.name))
+        .flatMap(c => Object.values(c.systems || {}).map(s => s.name))
         .sort()
         : []
 
@@ -163,13 +163,10 @@ export default function EntosisPage() {
         padding: '3px 7px', fontSize: 11, fontFamily: 'Share Tech Mono',
     }
 
-    const counts = {
-        unclaimed: nodes.filter(n => n.status === 'unclaimed').length,
-        running:   nodes.filter(n => n.status === 'running').length,
-        contested: nodes.filter(n => n.status === 'contested').length,
-        captured:  nodes.filter(n => n.status === 'captured').length,
-        lost:      nodes.filter(n => n.status === 'lost').length,
-    }
+    const counts = nodes.reduce((acc, n) => {
+        if (acc[n.status] !== undefined) acc[n.status]++
+        return acc
+    }, { unclaimed: 0, running: 0, contested: 0, captured: 0, lost: 0 })
 
     return (
         <div style={{ minHeight: '100vh', background: '#060a0f', color: '#c0d8e8' }}>
