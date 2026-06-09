@@ -32,12 +32,13 @@ const btn = (color) => ({
 export default function EntosisPage() {
     const [nodes, setNodes] = useState([])
     const [config, setConfig] = useState(null)
-    const [callsign, setCallsign] = useState(localStorage.getItem('entosis_callsign') || '')
-    const [callsignInput, setCallsignInput] = useState(callsign)
-    const [password, setPassword] = useState(localStorage.getItem('timer_auth') || '')
+    const [callsign, setCallsign] = useState(() => localStorage.getItem('entosis_callsign') || '')
+    const [callsignInput, setCallsignInput] = useState(() => localStorage.getItem('entosis_callsign') || '')
+    const [password, setPassword] = useState(() => localStorage.getItem('timer_auth') || '')
     const [isAuth, setIsAuth] = useState(false)
     const [authError, setAuthError] = useState(false)
     const [showAddForm, setShowAddForm] = useState(false)
+    const [addError, setAddError] = useState('')
     const [newSystem, setNewSystem] = useState('')
     const [newLabel, setNewLabel] = useState('')
     const [lastUpdate, setLastUpdate] = useState(null)
@@ -64,18 +65,19 @@ export default function EntosisPage() {
         return () => clearInterval(pollRef.current)
     }, [fetchNodes, fetchConfig])
 
-    // Auto-check auth if password already stored
+    // Auto-check auth once on mount using the stored password (not re-run on keystroke)
     useEffect(() => {
-        if (!password) return
+        const storedPw = localStorage.getItem('timer_auth')
+        if (!storedPw) return
         fetch('/api/auth/check', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ password }),
+            body: JSON.stringify({ password: storedPw }),
         }).then(r => {
             setIsAuth(r.ok)
             if (!r.ok) setAuthError(true)
         }).catch(() => setIsAuth(false))
-    }, [password])
+    }, [])
 
     const saveCallsign = () => {
         const cs = callsignInput.trim()
@@ -101,12 +103,23 @@ export default function EntosisPage() {
     const addNode = async (e) => {
         e.preventDefault()
         if (!newSystem) return
-        await fetch('/api/entosis/nodes', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'X-Timer-Auth': password },
-            body: JSON.stringify({ system_name: newSystem, label: newLabel || null }),
-        })
-        setNewSystem(''); setNewLabel(''); setShowAddForm(false)
+        setAddError('')
+        try {
+            const res = await fetch('/api/entosis/nodes', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-Timer-Auth': password },
+                body: JSON.stringify({ system_name: newSystem, label: newLabel || null }),
+            })
+            if (!res.ok) {
+                const data = await res.json().catch(() => ({}))
+                setAddError(res.status === 401 ? 'Auth failed — re-enter FC password' : (data.error || `Error ${res.status}`))
+                return
+            }
+            setNewSystem(''); setNewLabel(''); setShowAddForm(false); setAddError('')
+        } catch (err) {
+            setAddError('Network error — try again')
+            return
+        }
         fetchNodes()
     }
 
@@ -276,6 +289,9 @@ export default function EntosisPage() {
                         maxLength={40}
                     />
                     <button type="submit" style={btn('#00ff88')}>ADD</button>
+                    {addError && (
+                        <span style={{ fontFamily: 'Share Tech Mono', fontSize: 10, color: '#ff3355' }}>{addError}</span>
+                    )}
                 </form>
             )}
 
@@ -340,7 +356,7 @@ export default function EntosisPage() {
                                                 CLAIM
                                             </button>
                                         )}
-                                        {node.claimed_by && isClaimedByMe && node.status !== 'captured' && node.status !== 'lost' && (
+                                        {node.claimed_by && isClaimedByMe && node.status === 'running' && (
                                             <button style={btn('#6a8090')} onClick={() => unclaimNode(node.id)}>
                                                 RELEASE
                                             </button>

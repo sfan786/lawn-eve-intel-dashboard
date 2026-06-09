@@ -25,7 +25,9 @@ def assets(filename):
 
 @static_bp.route("/<path:path>")
 def spa_fallback(path):
-    """Catch-all: serve the SPA index for any client-side route (e.g. /entosis)."""
+    """Catch-all: serve the SPA for client-side routes (e.g. /entosis). Returns 404 for unknown API paths."""
+    if path.startswith("api/"):
+        return {"error": "Not Found"}, 404
     dist_index = os.path.join(_DIST_DIR, "index.html")
     if os.path.exists(dist_index):
         return send_from_directory(_DIST_DIR, "index.html")

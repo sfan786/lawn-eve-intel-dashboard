@@ -162,6 +162,7 @@ def init():
         CREATE INDEX IF NOT EXISTS idx_adm_deployment_time ON adm_snapshots(deployment_id, timestamp);
         CREATE INDEX IF NOT EXISTS idx_activity_deployment_time ON activity_snapshots(deployment_id, timestamp);
         CREATE INDEX IF NOT EXISTS idx_timer_deployment_time ON custom_timers(deployment_id, timestamp);
+        CREATE INDEX IF NOT EXISTS idx_entosis_deployment ON entosis_nodes(deployment_id);
     """)
 
     conn.commit()
