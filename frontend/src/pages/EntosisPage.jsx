@@ -39,6 +39,7 @@ export default function EntosisPage() {
     const [authError, setAuthError] = useState(false)
     const [showAddForm, setShowAddForm] = useState(false)
     const [addError, setAddError] = useState('')
+    const [patchError, setPatchError] = useState('')
     const [newSystem, setNewSystem] = useState('')
     const [newLabel, setNewLabel] = useState('')
     const [lastUpdate, setLastUpdate] = useState(null)
@@ -124,11 +125,20 @@ export default function EntosisPage() {
     }
 
     const patchNode = async (id, patch) => {
-        await fetch(`/api/entosis/nodes/${id}`, {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(patch),
-        })
+        setPatchError('')
+        try {
+            const res = await fetch(`/api/entosis/nodes/${id}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(patch),
+            })
+            if (!res.ok) {
+                const data = await res.json().catch(() => ({}))
+                setPatchError(data.error || `Update failed (${res.status})`)
+            }
+        } catch (_) {
+            setPatchError('Network error — update not saved')
+        }
         fetchNodes()
     }
 
@@ -196,6 +206,7 @@ export default function EntosisPage() {
                         <div style={{ fontFamily: 'Share Tech Mono', fontSize: 10, color: '#6a8090', marginTop: 2 }}>
                             {lastUpdate ? `UPDATED ${lastUpdate.toLocaleTimeString()}` : 'CONNECTING...'}
                             {nodes.length > 0 && ` · ${nodes.length} NODES`}
+                            {patchError && <span style={{ color: '#ff3355' }}> · {patchError}</span>}
                         </div>
                     </div>
                 </div>

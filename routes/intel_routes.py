@@ -9,11 +9,6 @@ from routes.system_state import state
 
 intel_bp = Blueprint("intel", __name__)
 
-# In-memory sov tracking for neighbor systems
-_sov_neighbor_cache = {}   # system_id -> alliance_id (0 = unclaimed)
-_sov_changes_log = []      # [{system_id, name, old_alliance, new_alliance, detected_at}, ...]
-_SOV_CHANGES_MAX = 50
-
 # Endpoint-level cache for the slow neighbor intel endpoint
 _neighbors_cache = {"data": None, "ts": 0}
 NEIGHBORS_CACHE_TTL = 900  # 15 minutes
@@ -288,9 +283,21 @@ def api_neighbor_intel():
     return jsonify(result)
 
 
+def _get_names_list(payload, key="names", limit=100):
+    """Extract a validated list of non-empty strings from a JSON payload."""
+    if not isinstance(payload, dict):
+        return None
+    names = payload.get(key, [])
+    if not isinstance(names, list):
+        return None
+    return [n for n in names if isinstance(n, str) and n.strip()][:limit]
+
+
 @intel_bp.route("/api/local/scan", methods=["POST"])
 def api_local_scan():
-    names = request.json.get("names", [])[:100]
+    names = _get_names_list(request.json)
+    if names is None:
+        return jsonify({"error": "names must be a list of strings"}), 400
     if not names:
         return jsonify([])
 
@@ -431,7 +438,14 @@ def _detect_roles(groups: dict) -> list:
 
 @intel_bp.route("/api/chars/analyze", methods=["POST"])
 def api_chars_analyze():
-    char_ids = [int(cid) for cid in (request.json.get("char_ids") or [])[:25]]
+    payload = request.json if isinstance(request.json, dict) else {}
+    raw_ids = payload.get("char_ids") or []
+    if not isinstance(raw_ids, list):
+        return jsonify({"error": "char_ids must be a list of integers"}), 400
+    try:
+        char_ids = [int(cid) for cid in raw_ids[:25]]
+    except (ValueError, TypeError):
+        return jsonify({"error": "char_ids must be a list of integers"}), 400
     if not char_ids:
         return jsonify({})
 
@@ -470,7 +484,9 @@ def _detect_fleet_roles(groups: dict) -> list:
 
 @intel_bp.route("/api/fleet/analyze", methods=["POST"])
 def api_fleet_analyze():
-    names = (request.json or {}).get("names", [])[:100]
+    names = _get_names_list(request.json)
+    if names is None:
+        return jsonify({"error": "names must be a list of strings"}), 400
     if not names:
         return jsonify({"pilots": [], "summary": {}})
 
@@ -722,8 +738,6 @@ def api_regional_intel():
 
 @intel_bp.route("/api/intel/sov_changes")
 def api_sov_changes():
-    global _sov_neighbor_cache, _sov_changes_log
-
     if not state.neighbor_systems:
         return jsonify({"changes": [], "checked_at": time.time()})
 
@@ -739,28 +753,10 @@ def api_sov_changes():
         if sys_id in neighbor_ids:
             current_sov[sys_id] = entry.get("alliance_id", 0)
 
-    # Detect changes vs cached state
-    for sys_id, new_alliance in current_sov.items():
-        old_alliance = _sov_neighbor_cache.get(sys_id)
-        if old_alliance is None:
-            # First time seeing this system — seed cache, no change event
-            _sov_neighbor_cache[sys_id] = new_alliance
-        elif old_alliance != new_alliance:
-            sys_name = state.neighbor_systems[sys_id]["name"]
-            _sov_changes_log.append({
-                "system_id": sys_id,
-                "name": sys_name,
-                "old_alliance": old_alliance,
-                "new_alliance": new_alliance,
-                "detected_at": time.time(),
-            })
-            _sov_neighbor_cache[sys_id] = new_alliance
-
-    # Trim log
-    if len(_sov_changes_log) > _SOV_CHANGES_MAX:
-        _sov_changes_log = _sov_changes_log[-_SOV_CHANGES_MAX:]
+    system_names = {sid: info["name"] for sid, info in state.neighbor_systems.items()}
+    db.record_sov_changes(current_sov, system_names)
 
     return jsonify({
-        "changes": list(reversed(_sov_changes_log[-20:])),
+        "changes": db.get_recent_sov_changes(20),
         "checked_at": time.time(),
     })
