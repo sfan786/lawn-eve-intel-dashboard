@@ -1,3 +1,4 @@
+from concurrent.futures import ThreadPoolExecutor, wait
 from flask import Blueprint, jsonify
 from config import REGION_ID
 import esi_client
@@ -38,6 +39,15 @@ def api_zkill_feed():
 
     raw_kills = esi_client.get_zkill_region(REGION_ID)
 
+    # Prefetch killmails in parallel — results land in the ESI cache so the
+    # sequential enrichment loop below gets instant hits.
+    refs = [
+        (zk.get("killmail_id"), zk.get("zkb", {}).get("hash"))
+        for zk in raw_kills[:30]
+    ]
+    with ThreadPoolExecutor(max_workers=10) as pool:
+        wait([pool.submit(esi_client.get_killmail, k, h) for k, h in refs if k and h])
+
     feed = []
     for zk in raw_kills[:30]:
         if len(feed) >= 20:
@@ -52,6 +62,8 @@ def api_zkill_feed():
         try:
             km = esi_client.get_killmail(kill_id, kill_hash)
         except Exception:
+            continue
+        if not km:
             continue
 
         solar_system_id = km.get("solar_system_id")

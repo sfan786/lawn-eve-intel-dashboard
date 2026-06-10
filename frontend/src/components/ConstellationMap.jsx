@@ -245,17 +245,28 @@ export default function ConstellationMap({ config, sovereignty, activity, campai
     }
 
     async function handleSaveAnnotation() {
-        await fetch("/api/annotations", {
+        const res = await fetch("/api/annotations", {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: { "Content-Type": "application/json", "X-Timer-Auth": localStorage.getItem("timer_auth") || "" },
             body: JSON.stringify({ system_name: annotationEditor.name, note: annotationEditor.note }),
-        })
+        }).catch(() => null)
+        if (!res || !res.ok) {
+            setAnnotationEditor({ ...annotationEditor, error: res && res.status === 401 ? "FC password required — log in on the Timers panel" : "Save failed" })
+            return
+        }
         setAnnotationEditor(null)
         if (onAnnotationChange) onAnnotationChange()
     }
 
     async function handleDeleteAnnotation() {
-        await fetch(`/api/annotations/${encodeURIComponent(annotationEditor.name)}`, { method: "DELETE" })
+        const res = await fetch(`/api/annotations/${encodeURIComponent(annotationEditor.name)}`, {
+            method: "DELETE",
+            headers: { "X-Timer-Auth": localStorage.getItem("timer_auth") || "" },
+        }).catch(() => null)
+        if (!res || !res.ok) {
+            setAnnotationEditor({ ...annotationEditor, error: res && res.status === 401 ? "FC password required — log in on the Timers panel" : "Delete failed" })
+            return
+        }
         setAnnotationEditor(null)
         if (onAnnotationChange) onAnnotationChange()
     }
@@ -768,6 +779,9 @@ export default function ConstellationMap({ config, sovereignty, activity, campai
                             boxSizing: 'border-box',
                         }}
                     />
+                    {annotationEditor.error && (
+                        <div style={{ color: '#ff3355', fontSize: 10, marginTop: 4 }}>{annotationEditor.error}</div>
+                    )}
                     <div style={{ display: 'flex', gap: 6, marginTop: 6 }}>
                         <button onClick={handleSaveAnnotation} style={{
                             background: 'none', border: '1px solid rgba(0,255,136,0.4)',

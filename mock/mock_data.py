@@ -192,7 +192,7 @@ def _get_vuln_duration(adm):
 
 
 def build_enriched_sovereignty():
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     base_vuln_start = now.replace(hour=16, minute=0, second=0, microsecond=0)
     if base_vuln_start < now:
         base_vuln_start += timedelta(days=1)
@@ -254,7 +254,7 @@ def get_mock_campaigns():
     """Two campaigns, one in each primary constellation, to exercise the alert
     panel. Falls back to single campaign in the first primary system when only
     one constellation is configured."""
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     reffed_time = now + timedelta(hours=28)
     nodes_time = now - timedelta(hours=2)
     vuln_start = now.replace(hour=16, minute=0, second=0, microsecond=0)
@@ -423,7 +423,7 @@ MOCK_KILL_FEED = _build_kill_feed()
 def generate_mock_adm_history():
     """7-day per-system trend that ramps up gently with a small wobble. Used by
     the ADM trends sparklines so the demo has something to plot."""
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     history = {}
     for name in DEPLOYMENT.PRIMARY_SYSTEMS:
         meta = _systems_by_name.get(name)

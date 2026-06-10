@@ -16,7 +16,8 @@ services:
       # Persist SQLite database outside the container
       - ./intel.db:/app/intel.db
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:5000/api/status"]
+      # python urllib, not curl — curl isn't installed in python:3.11-slim
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:5000/api/status', timeout=5)"]
       interval: 30s
       timeout: 10s
       retries: 3

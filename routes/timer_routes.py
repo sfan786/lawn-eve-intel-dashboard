@@ -27,16 +27,20 @@ def api_add_timer():
         return jsonify({"error": "Unauthorized"}), 401
 
     data = request.json or {}
-    if not all(k in data for k in ("system_name", "structure_type", "owner", "event_type", "timestamp")):
+    required = ("system_name", "structure_type", "owner", "event_type", "timestamp")
+    if not all(isinstance(data.get(k), str) and data[k].strip() for k in required):
         return jsonify({"error": "Missing fields"}), 400
+    notes = data.get("notes")
+    if notes is not None and not isinstance(notes, str):
+        return jsonify({"error": "notes must be a string"}), 400
 
     db.add_timer(
-        data["system_name"],
-        data["structure_type"],
-        data["owner"],
-        data["event_type"],
-        data["timestamp"],
-        data.get("notes"),
+        data["system_name"].strip()[:64],
+        data["structure_type"].strip()[:64],
+        data["owner"].strip()[:64],
+        data["event_type"].strip()[:64],
+        data["timestamp"].strip()[:64],
+        notes[:500] if notes else None,
     )
     return jsonify({"status": "ok"})
 
