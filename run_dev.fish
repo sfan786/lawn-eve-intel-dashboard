@@ -1,5 +1,12 @@
 #!/usr/bin/env fish
 
+# Kill any existing Flask/Vite instances
+echo "[*] Killing existing Flask and Vite instances..."
+pkill -f "python app.py" 2>/dev/null
+pkill -f "python demo.py" 2>/dev/null
+pkill -f "vite" 2>/dev/null
+sleep 0.5
+
 if not test -d ".venv"
     echo "Creating virtual environment..."
     python3 -m venv .venv
