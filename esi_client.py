@@ -16,42 +16,41 @@ _cache_lock = threading.Lock()
 MAX_CACHE_SIZE = 1000  # Maximum number of items in cache
 
 
-def _get_cached(key: str, ttl_category: str) -> Optional[dict]:
+def _get_cached(key: str) -> Optional[dict]:
     """Return cached data if still valid, else None."""
     with _cache_lock:
         if key in _cache:
             entry = _cache[key]
-            if time.time() - entry["timestamp"] < CACHE_TTL.get(ttl_category, 300):
+            if time.time() < entry["expires_at"]:
                 return entry["data"]
             else:
                 del _cache[key]  # Clean up expired item on access
         return None
 
 
-def _set_cache(key: str, data):
-    """Store data in cache, managing size."""
+def _set_cache(key: str, data, ttl_category: str):
+    """Store data in cache with its exact expiry, managing size."""
     current_time = time.time()
 
     with _cache_lock:
-        # Prune obscure/old entries if cache is full
+        # Prune entries if cache is full
         if len(_cache) >= MAX_CACHE_SIZE:
             # 1. Remove expired items
             expired_keys = [
                 k for k, v in _cache.items()
-                if current_time - v["timestamp"] > 3600  # Hardcoded max TTL fallback
+                if current_time >= v["expires_at"]
             ]
             for k in expired_keys:
                 del _cache[k]
 
-            # 2. If still full, remove oldest 20%
+            # 2. If still full, remove the 20% closest to expiry
             if len(_cache) >= MAX_CACHE_SIZE:
-                # Sort by timestamp (oldest first)
-                sorted_by_time = sorted(_cache.items(), key=lambda item: item[1]["timestamp"])
+                sorted_by_expiry = sorted(_cache.items(), key=lambda item: item[1]["expires_at"])
                 to_remove = int(MAX_CACHE_SIZE * 0.2)
-                for k, _ in sorted_by_time[:to_remove]:
+                for k, _ in sorted_by_expiry[:to_remove]:
                     del _cache[k]
 
-        _cache[key] = {"data": data, "timestamp": current_time}
+        _cache[key] = {"data": data, "expires_at": current_time + CACHE_TTL.get(ttl_category, 300)}
 
 
 def esi_get(path: str, params: dict = None) -> dict:
@@ -76,36 +75,36 @@ def esi_get(path: str, params: dict = None) -> dict:
 def get_all_constellation_ids() -> list:
     """Get all constellation IDs in the game."""
     cache_key = "all_constellation_ids"
-    cached = _get_cached(cache_key, "constellation_info")
+    cached = _get_cached(cache_key)
     if cached is not None:
         return cached
     
     data = esi_get("/universe/constellations/")
-    _set_cache(cache_key, data)
+    _set_cache(cache_key, data, "constellation_info")
     return data
 
 
 def get_constellation_info(constellation_id: int) -> dict:
     """Get constellation details: name, region, systems."""
     cache_key = f"constellation_{constellation_id}"
-    cached = _get_cached(cache_key, "constellation_info")
+    cached = _get_cached(cache_key)
     if cached is not None:
         return cached
     
     data = esi_get(f"/universe/constellations/{constellation_id}/")
-    _set_cache(cache_key, data)
+    _set_cache(cache_key, data, "constellation_info")
     return data
 
 
 def get_region_info(region_id: int) -> dict:
     """Get region details: name, constellation IDs."""
     cache_key = f"region_{region_id}"
-    cached = _get_cached(cache_key, "region_info")
+    cached = _get_cached(cache_key)
     if cached is not None:
         return cached
 
     data = esi_get(f"/universe/regions/{region_id}/")
-    _set_cache(cache_key, data)
+    _set_cache(cache_key, data, "region_info")
     return data
 
 
@@ -116,7 +115,7 @@ def post_universe_ids(names: list) -> dict:
     if not names:
         return {}
     cache_key = f"universe_ids_{','.join(sorted(names))}"
-    cached = _get_cached(cache_key, "region_info")
+    cached = _get_cached(cache_key)
     if cached is not None:
         return cached
 
@@ -130,26 +129,26 @@ def post_universe_ids(names: list) -> dict:
     resp = requests.post(url, json=names, headers=headers, params=params, timeout=15)
     resp.raise_for_status()
     data = resp.json()
-    _set_cache(cache_key, data)
+    _set_cache(cache_key, data, "region_info")
     return data
 
 
 def get_system_info(system_id: int) -> dict:
     """Get system details: name, security status, etc."""
     cache_key = f"system_{system_id}"
-    cached = _get_cached(cache_key, "system_info")
+    cached = _get_cached(cache_key)
     if cached is not None:
         return cached
     
     data = esi_get(f"/universe/systems/{system_id}/")
-    _set_cache(cache_key, data)
+    _set_cache(cache_key, data, "system_info")
     return data
 
 
 def resolve_constellation_name(name: str) -> Optional[int]:
     """Find a constellation ID by name using POST /universe/ids/."""
     cache_key = f"constellation_resolve_{name}"
-    cached = _get_cached(cache_key, "constellation_info")
+    cached = _get_cached(cache_key)
     if cached is not None:
         return cached
 
@@ -158,7 +157,7 @@ def resolve_constellation_name(name: str) -> Optional[int]:
         constellations = data.get("constellations", [])
         if constellations:
             result = constellations[0]["id"]
-            _set_cache(cache_key, result)
+            _set_cache(cache_key, result, "constellation_info")
             return result
     except Exception as e:
         print(f"Failed to resolve constellation '{name}': {e}")
@@ -171,12 +170,12 @@ def resolve_constellation_name(name: str) -> Optional[int]:
 def get_sovereignty_map() -> list:
     """Get sovereignty data for all nullsec systems."""
     cache_key = "sovereignty_map"
-    cached = _get_cached(cache_key, "sovereignty")
+    cached = _get_cached(cache_key)
     if cached is not None:
         return cached
     
     data = esi_get("/sovereignty/map/")
-    _set_cache(cache_key, data)
+    _set_cache(cache_key, data, "sovereignty")
     return data
 
 
@@ -187,24 +186,24 @@ def get_sovereignty_structures() -> list:
     vulnerability_occupancy_level (= ADM, 1.0-6.0).
     """
     cache_key = "sovereignty_structures"
-    cached = _get_cached(cache_key, "sovereignty_structures")
+    cached = _get_cached(cache_key)
     if cached is not None:
         return cached
 
     data = esi_get("/sovereignty/structures/")
-    _set_cache(cache_key, data)
+    _set_cache(cache_key, data, "sovereignty_structures")
     return data
 
 
 def get_sovereignty_campaigns() -> list:
     """Get active sovereignty campaigns (entosis timers)."""
     cache_key = "sovereignty_campaigns"
-    cached = _get_cached(cache_key, "sovereignty")
+    cached = _get_cached(cache_key)
     if cached is not None:
         return cached
     
     data = esi_get("/sovereignty/campaigns/")
-    _set_cache(cache_key, data)
+    _set_cache(cache_key, data, "sovereignty")
     return data
 
 
@@ -213,24 +212,24 @@ def get_sovereignty_campaigns() -> list:
 def get_system_kills() -> list:
     """Get kill stats per system (ship, pod, NPC kills)."""
     cache_key = "system_kills"
-    cached = _get_cached(cache_key, "system_kills")
+    cached = _get_cached(cache_key)
     if cached is not None:
         return cached
     
     data = esi_get("/universe/system_kills/")
-    _set_cache(cache_key, data)
+    _set_cache(cache_key, data, "system_kills")
     return data
 
 
 def get_system_jumps() -> list:
     """Get jump counts per system."""
     cache_key = "system_jumps"
-    cached = _get_cached(cache_key, "system_jumps")
+    cached = _get_cached(cache_key)
     if cached is not None:
         return cached
     
     data = esi_get("/universe/system_jumps/")
-    _set_cache(cache_key, data)
+    _set_cache(cache_key, data, "system_jumps")
     return data
 
 
@@ -239,24 +238,24 @@ def get_system_jumps() -> list:
 def get_alliance_info(alliance_id: int) -> dict:
     """Get alliance name and details."""
     cache_key = f"alliance_{alliance_id}"
-    cached = _get_cached(cache_key, "entity_info")
+    cached = _get_cached(cache_key)
     if cached is not None:
         return cached
     
     data = esi_get(f"/alliances/{alliance_id}/")
-    _set_cache(cache_key, data)
+    _set_cache(cache_key, data, "entity_info")
     return data
 
 
 def get_corporation_info(corp_id: int) -> dict:
     """Get corporation name and details."""
     cache_key = f"corporation_{corp_id}"
-    cached = _get_cached(cache_key, "entity_info")
+    cached = _get_cached(cache_key)
     if cached is not None:
         return cached
     
     data = esi_get(f"/corporations/{corp_id}/")
-    _set_cache(cache_key, data)
+    _set_cache(cache_key, data, "entity_info")
     return data
 
 
@@ -265,7 +264,7 @@ def get_corporation_info(corp_id: int) -> dict:
 def get_type_name(type_id: int) -> str:
     """Get the name of a type (ship, item, etc.) by ID."""
     cache_key = f"type_{type_id}"
-    cached = _get_cached(cache_key, "system_info")  # static data, long cache
+    cached = _get_cached(cache_key)  # static data, long cache
     if cached is not None:
         return cached
 
@@ -273,8 +272,8 @@ def get_type_name(type_id: int) -> str:
         data = esi_get(f"/universe/types/{type_id}/")
         name = data.get("name", f"Type {type_id}")
         group_id = data.get("group_id", 0)
-        _set_cache(cache_key, name)
-        _set_cache(f"type_group_{type_id}", group_id)
+        _set_cache(cache_key, name, "system_info")
+        _set_cache(f"type_group_{type_id}", group_id, "system_info")
         return name
     except Exception:
         return f"Type {type_id}"
@@ -285,14 +284,14 @@ def get_type_group_id(type_id: int) -> int:
     if not type_id:
         return 0
     cache_key = f"type_group_{type_id}"
-    cached = _get_cached(cache_key, "system_info")
+    cached = _get_cached(cache_key)
     if cached is not None:
         return cached
 
     try:
         data = esi_get(f"/universe/types/{type_id}/")
         group_id = data.get("group_id", 0)
-        _set_cache(cache_key, group_id)
+        _set_cache(cache_key, group_id, "system_info")
         return group_id
     except Exception:
         return 0
@@ -306,7 +305,7 @@ def bulk_character_affiliations(character_ids: list) -> list:
         return []
     # Cache key based on sorted IDs (order-independent)
     cache_key = f"affiliations_{','.join(str(i) for i in sorted(character_ids))}"
-    cached = _get_cached(cache_key, "sovereignty")  # short TTL — affiliations can change
+    cached = _get_cached(cache_key)  # short TTL — affiliations can change
     if cached is not None:
         return cached
 
@@ -320,21 +319,21 @@ def bulk_character_affiliations(character_ids: list) -> list:
     resp = requests.post(url, json=character_ids, headers=headers, params=params, timeout=15)
     resp.raise_for_status()
     data = resp.json()
-    _set_cache(cache_key, data)
+    _set_cache(cache_key, data, "sovereignty")
     return data
 
 
 def get_character_name(character_id: int) -> str:
     """Get character name by ID."""
     cache_key = f"character_{character_id}"
-    cached = _get_cached(cache_key, "entity_info")
+    cached = _get_cached(cache_key)
     if cached is not None:
         return cached
 
     try:
         data = esi_get(f"/characters/{character_id}/")
         name = data.get("name", f"Pilot {character_id}")
-        _set_cache(cache_key, name)
+        _set_cache(cache_key, name, "entity_info")
         return name
     except Exception:
         return f"Pilot {character_id}"
@@ -345,7 +344,7 @@ def get_character_name(character_id: int) -> str:
 def get_zkill_system(system_id: int) -> list:
     """Get recent kills in a system from zKillboard."""
     cache_key = f"zkill_system_{system_id}"
-    cached = _get_cached(cache_key, "zkill")
+    cached = _get_cached(cache_key)
     if cached is not None:
         return cached
     
@@ -358,7 +357,7 @@ def get_zkill_system(system_id: int) -> list:
         resp = requests.get(url, headers=headers, timeout=10)
         resp.raise_for_status()
         data = resp.json()
-        _set_cache(cache_key, data)
+        _set_cache(cache_key, data, "zkill")
         return data
     except Exception as e:
         print(f"zKill error for system {system_id}: {e}")
@@ -368,7 +367,7 @@ def get_zkill_system(system_id: int) -> list:
 def get_zkill_region(region_id: int) -> list:
     """Get recent kills in a region from zKillboard."""
     cache_key = f"zkill_region_{region_id}"
-    cached = _get_cached(cache_key, "zkill")
+    cached = _get_cached(cache_key)
     if cached is not None:
         return cached
     
@@ -381,7 +380,7 @@ def get_zkill_region(region_id: int) -> list:
         resp = requests.get(url, headers=headers, timeout=10)
         resp.raise_for_status()
         data = resp.json()
-        _set_cache(cache_key, data)
+        _set_cache(cache_key, data, "zkill")
         return data
     except Exception as e:
         print(f"zKill error for region {region_id}: {e}")
@@ -391,7 +390,7 @@ def get_zkill_region(region_id: int) -> list:
 def get_zkill_alliance(alliance_id: int) -> list:
     """Get recent kills for an alliance from zKillboard."""
     cache_key = f"zkill_alliance_{alliance_id}"
-    cached = _get_cached(cache_key, "zkill")
+    cached = _get_cached(cache_key)
     if cached is not None:
         return cached
     
@@ -406,7 +405,7 @@ def get_zkill_alliance(alliance_id: int) -> list:
         resp = requests.get(url, headers=headers, timeout=15)
         resp.raise_for_status()
         data = resp.json()
-        _set_cache(cache_key, data)
+        _set_cache(cache_key, data, "zkill")
         return data
     except Exception as e:
         print(f"zKill error for alliance {alliance_id}: {e}")
@@ -416,7 +415,7 @@ def get_zkill_alliance(alliance_id: int) -> list:
 def get_zkill_corporation(corp_id: int) -> list:
     """Get recent kills for a corporation from zKillboard."""
     cache_key = f"zkill_corporation_{corp_id}"
-    cached = _get_cached(cache_key, "zkill")
+    cached = _get_cached(cache_key)
     if cached is not None:
         return cached
     
@@ -429,7 +428,7 @@ def get_zkill_corporation(corp_id: int) -> list:
         resp = requests.get(url, headers=headers, timeout=15)
         resp.raise_for_status()
         data = resp.json()
-        _set_cache(cache_key, data)
+        _set_cache(cache_key, data, "zkill")
         return data
     except Exception as e:
         print(f"zKill error for corporation {corp_id}: {e}")
@@ -439,7 +438,7 @@ def get_zkill_corporation(corp_id: int) -> list:
 def get_zkill_char_stats(char_id: int) -> dict:
     """Get lifetime kill stats for a character from zKillboard stats API."""
     cache_key = f"zkill_stats_{char_id}"
-    cached = _get_cached(cache_key, "zkill_stats")
+    cached = _get_cached(cache_key)
     if cached is not None:
         return cached
     try:
@@ -448,7 +447,7 @@ def get_zkill_char_stats(char_id: int) -> dict:
         resp = requests.get(url, headers=headers, timeout=10)
         resp.raise_for_status()
         data = resp.json() or {}
-        _set_cache(cache_key, data)
+        _set_cache(cache_key, data, "zkill_stats")
         return data
     except Exception as e:
         print(f"zKill stats error for char {char_id}: {e}")
@@ -458,7 +457,7 @@ def get_zkill_char_stats(char_id: int) -> dict:
 def get_killmail(killmail_id: int, killmail_hash: str) -> dict:
     """Get full killmail details from ESI."""
     cache_key = f"killmail_{killmail_id}"
-    cached = _get_cached(cache_key, "killmail")
+    cached = _get_cached(cache_key)
     if cached is not None:
         return cached
 
@@ -466,7 +465,7 @@ def get_killmail(killmail_id: int, killmail_hash: str) -> dict:
         # ESI endpoint: /killmails/{killmail_id}/{killmail_hash}/
         data = esi_get(f"/killmails/{killmail_id}/{killmail_hash}/")
         # Killmails are immutable, so we can cache them for a long time (usage 'killmail' TTL or default)
-        _set_cache(cache_key, data)
+        _set_cache(cache_key, data, "killmail")
         return data
     except Exception as e:
         print(f"ESI error for killmail {killmail_id}: {e}")

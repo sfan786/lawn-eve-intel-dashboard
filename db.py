@@ -532,6 +532,9 @@ def record_sov_changes(current_sov, system_names):
     if not current_sov:
         return
     conn = get_connection()
+    # Autocommit mode: the manual BEGIN IMMEDIATE below owns the transaction,
+    # without relying on sqlite3's implicit transaction management.
+    conn.isolation_level = None
     try:
         conn.execute("BEGIN IMMEDIATE")
         rows = conn.execute(
