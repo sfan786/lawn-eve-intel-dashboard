@@ -2,7 +2,7 @@ from concurrent.futures import ThreadPoolExecutor, wait
 from flask import Blueprint, jsonify
 from config import (
     REGION_ID, FRIENDLY_ALLIANCE_IDS, FRIENDLY_ALLIANCES, FRIENDLY_CORPORATIONS,
-    FRIENDLY_STANDING_CORP_IDS, FRIENDLY_STANDING_CORP_NAMES,
+    FRIENDLY_STANDING_CORP_IDS, FRIENDLY_STANDING_CORP_NAMES, LAWN_ALLIANCE_ID,
 )
 import esi_client
 from routes.system_state import state
@@ -70,7 +70,7 @@ def api_active_hostiles():
             alliance_id = att.get("alliance_id")
             corp_id = att.get("corporation_id")
 
-            if alliance_id and alliance_id in friendly_ids:
+            if alliance_id and (alliance_id in friendly_ids or alliance_id == LAWN_ALLIANCE_ID):
                 continue
 
             entity_id = entity_type = entity_name = None

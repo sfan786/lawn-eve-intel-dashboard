@@ -100,7 +100,9 @@ FRIENDLY_ALLIANCE_IDS = [
 ]
 
 FRIENDLY_ALLIANCES = [
-    "Get Off My Lawn",
+    # Removed: Get Off My Lawn — the primary alliance is filtered directly in
+    # routes via LAWN_ALLIANCE_ID / PRIMARY_ALLIANCE_ID; keeping it out keeps
+    # this list parallel with FRIENDLY_ALLIANCE_IDS.
     # +10 blue
     "BorderZone",
     "Gnomes Rising HoA",

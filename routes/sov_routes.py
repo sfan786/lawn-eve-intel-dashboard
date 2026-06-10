@@ -66,7 +66,11 @@ def api_sovereignty():
                         corp_cache[corp_id] = f"Corp {corp_id}"
                 corp_name = corp_cache[corp_id]
 
-            is_friendly = alliance_name in FRIENDLY_ALLIANCES if alliance_name else False
+            is_friendly = (
+                alliance_id == PRIMARY_ALLIANCE_ID
+                or alliance_id in FRIENDLY_ALLIANCE_IDS
+                or (alliance_name in FRIENDLY_ALLIANCES if alliance_name else False)
+            )
 
             result[sys_id] = {
                 "system_id": sys_id,

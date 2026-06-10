@@ -40,9 +40,9 @@ FRIENDLY_ALLIANCES = _D.FRIENDLY_ALLIANCES
 FRIENDLY_CORPORATIONS = _D.FRIENDLY_CORPORATIONS
 # Standalone corps with positive standings (not LAWN member corps) — optional
 # per deployment. Derived ID/name sets are what the routes consume.
-FRIENDLY_STANDING_CORPORATIONS = getattr(_D, "FRIENDLY_STANDING_CORPORATIONS", [])
-FRIENDLY_STANDING_CORP_IDS = {c["id"] for c in FRIENDLY_STANDING_CORPORATIONS}
-FRIENDLY_STANDING_CORP_NAMES = {c["name"] for c in FRIENDLY_STANDING_CORPORATIONS}
+FRIENDLY_STANDING_CORPORATIONS = getattr(_D, "FRIENDLY_STANDING_CORPORATIONS", []) or []
+FRIENDLY_STANDING_CORP_IDS = {c["id"] for c in FRIENDLY_STANDING_CORPORATIONS if isinstance(c, dict) and "id" in c}
+FRIENDLY_STANDING_CORP_NAMES = {c["name"] for c in FRIENDLY_STANDING_CORPORATIONS if isinstance(c, dict) and isinstance(c.get("name"), str)}
 NEIGHBOR_ENTITIES = _D.NEIGHBOR_ENTITIES
 
 # ===== Sov + map =====
