@@ -3,50 +3,55 @@ EVE ESI API Client with in-memory caching.
 Handles all data fetching from ESI and zKillboard.
 """
 
+import threading
 import time
 import requests
 from typing import Optional
 from eve_constants import ESI_BASE, ESI_DATASOURCE, CACHE_TTL, ZKILL_BASE
 
-# Simple in-memory cache
+# Simple in-memory cache. Routes fetch killmails from ThreadPoolExecutor
+# workers, so all _cache access must hold _cache_lock.
 _cache = {}
+_cache_lock = threading.Lock()
 MAX_CACHE_SIZE = 1000  # Maximum number of items in cache
 
 
 def _get_cached(key: str, ttl_category: str) -> Optional[dict]:
     """Return cached data if still valid, else None."""
-    if key in _cache:
-        entry = _cache[key]
-        if time.time() - entry["timestamp"] < CACHE_TTL.get(ttl_category, 300):
-            return entry["data"]
-        else:
-            del _cache[key]  # Clean up expired item on access
-    return None
+    with _cache_lock:
+        if key in _cache:
+            entry = _cache[key]
+            if time.time() - entry["timestamp"] < CACHE_TTL.get(ttl_category, 300):
+                return entry["data"]
+            else:
+                del _cache[key]  # Clean up expired item on access
+        return None
 
 
 def _set_cache(key: str, data):
     """Store data in cache, managing size."""
     current_time = time.time()
-    
-    # Prune obscure/old entries if cache is full
-    if len(_cache) >= MAX_CACHE_SIZE:
-        # 1. Remove expired items
-        expired_keys = [
-            k for k, v in _cache.items() 
-            if current_time - v["timestamp"] > 3600  # Hardcoded max TTL fallback
-        ]
-        for k in expired_keys:
-            del _cache[k]
-            
-        # 2. If still full, remove oldest 20%
+
+    with _cache_lock:
+        # Prune obscure/old entries if cache is full
         if len(_cache) >= MAX_CACHE_SIZE:
-            # Sort by timestamp (oldest first)
-            sorted_by_time = sorted(_cache.items(), key=lambda item: item[1]["timestamp"])
-            to_remove = int(MAX_CACHE_SIZE * 0.2)
-            for k, _ in sorted_by_time[:to_remove]:
+            # 1. Remove expired items
+            expired_keys = [
+                k for k, v in _cache.items()
+                if current_time - v["timestamp"] > 3600  # Hardcoded max TTL fallback
+            ]
+            for k in expired_keys:
                 del _cache[k]
 
-    _cache[key] = {"data": data, "timestamp": current_time}
+            # 2. If still full, remove oldest 20%
+            if len(_cache) >= MAX_CACHE_SIZE:
+                # Sort by timestamp (oldest first)
+                sorted_by_time = sorted(_cache.items(), key=lambda item: item[1]["timestamp"])
+                to_remove = int(MAX_CACHE_SIZE * 0.2)
+                for k, _ in sorted_by_time[:to_remove]:
+                    del _cache[k]
+
+        _cache[key] = {"data": data, "timestamp": current_time}
 
 
 def esi_get(path: str, params: dict = None) -> dict:
