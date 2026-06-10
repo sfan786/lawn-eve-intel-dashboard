@@ -22,6 +22,7 @@ CACHE_TTL = {
     "zkill": 120,                      # 2 min — kills change fast
     "zkill_stats": 3600,               # 1h — char kill stats don't change fast
     "entity_info": 3600,               # 1h — alliance/corp/character names
+    "killmail": 86400,                 # 24h — killmails are immutable
 }
 
 # ===== EVE planet types — used by PI data labelling =====
