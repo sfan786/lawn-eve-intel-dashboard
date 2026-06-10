@@ -60,3 +60,8 @@ gha-creds-*.json
 # Frontend
 frontend/node_modules/
 static/dist/
+
+# SQLite scratch/test databases
+test*.db
+*.db-wal
+*.db-shm

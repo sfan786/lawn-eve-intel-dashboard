@@ -12,11 +12,11 @@ visible if you ever switch back.
 import sqlite3
 import os
 import time
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from config import DEPLOYMENT_ID
 
-DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "intel.db")
+DB_PATH = os.environ.get("INTEL_DB_PATH") or os.path.join(os.path.dirname(os.path.abspath(__file__)), "intel.db")
 
 LEGACY_DEPLOYMENT_ID = "lawn-kalevala"
 
@@ -24,6 +24,11 @@ LEGACY_DEPLOYMENT_ID = "lawn-kalevala"
 _last_adm_snapshot = {}
 _last_activity_snapshot = {}
 SNAPSHOT_INTERVAL = 3600  # At most one snapshot per system per hour
+
+
+def _iso_cutoff(hours):
+    """ISO-8601 UTC timestamp N hours ago, matching the stored timestamp format."""
+    return (datetime.now(timezone.utc) - timedelta(hours=hours)).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
 def get_connection():
@@ -93,6 +98,23 @@ def init():
             label      TEXT,
             created_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')),
             UNIQUE(deployment_id, system_a, system_b)
+        );
+
+        CREATE TABLE IF NOT EXISTS sov_state (
+            deployment_id TEXT NOT NULL,
+            system_id     INTEGER NOT NULL,
+            alliance_id   INTEGER NOT NULL DEFAULT 0,
+            PRIMARY KEY (deployment_id, system_id)
+        );
+
+        CREATE TABLE IF NOT EXISTS sov_changes (
+            id            INTEGER PRIMARY KEY AUTOINCREMENT,
+            deployment_id TEXT NOT NULL,
+            system_id     INTEGER NOT NULL,
+            system_name   TEXT NOT NULL,
+            old_alliance  INTEGER,
+            new_alliance  INTEGER,
+            detected_at   REAL NOT NULL
         );
 
         CREATE TABLE IF NOT EXISTS entosis_nodes (
@@ -178,22 +200,28 @@ def snapshot_adm_batch(systems):
     now = time.time()
     to_insert = []
 
+    dedup_cutoff = _iso_cutoff(SNAPSHOT_INTERVAL / 3600)
     for system_id, system_name, adm, alliance_name in systems:
         if adm <= 0:
             continue
         last = _last_adm_snapshot.get(system_id)
         if last and last["adm"] == adm and (now - last["time"]) < SNAPSHOT_INTERVAL:
             continue
-        to_insert.append((DEPLOYMENT_ID, system_id, system_name, adm, alliance_name))
+        to_insert.append((DEPLOYMENT_ID, system_id, system_name, adm, alliance_name,
+                          DEPLOYMENT_ID, system_id, adm, dedup_cutoff))
         _last_adm_snapshot[system_id] = {"adm": adm, "time": now}
 
     if not to_insert:
         return
 
     conn = get_connection()
+    # NOT EXISTS guard makes dedup correct across gunicorn workers — the
+    # in-memory check above is only a fast path for the single-process case.
     conn.executemany(
         "INSERT INTO adm_snapshots (deployment_id, system_id, system_name, adm, alliance_name) "
-        "VALUES (?, ?, ?, ?, ?)",
+        "SELECT ?, ?, ?, ?, ? "
+        "WHERE NOT EXISTS (SELECT 1 FROM adm_snapshots "
+        "WHERE deployment_id = ? AND system_id = ? AND adm = ? AND timestamp >= ?)",
         to_insert,
     )
     conn.commit()
@@ -207,11 +235,13 @@ def snapshot_activity_batch(systems):
     now = time.time()
     to_insert = []
 
+    dedup_cutoff = _iso_cutoff(SNAPSHOT_INTERVAL / 3600)
     for system_id, ship_kills, pod_kills, npc_kills, jumps in systems:
         last = _last_activity_snapshot.get(system_id)
         if last and (now - last["time"]) < SNAPSHOT_INTERVAL:
             continue
-        to_insert.append((DEPLOYMENT_ID, system_id, ship_kills, pod_kills, npc_kills, jumps))
+        to_insert.append((DEPLOYMENT_ID, system_id, ship_kills, pod_kills, npc_kills, jumps,
+                          DEPLOYMENT_ID, system_id, dedup_cutoff))
         _last_activity_snapshot[system_id] = {"time": now}
 
     if not to_insert:
@@ -220,7 +250,9 @@ def snapshot_activity_batch(systems):
     conn = get_connection()
     conn.executemany(
         "INSERT INTO activity_snapshots (deployment_id, system_id, ship_kills, pod_kills, npc_kills, jumps) "
-        "VALUES (?, ?, ?, ?, ?, ?)",
+        "SELECT ?, ?, ?, ?, ?, ? "
+        "WHERE NOT EXISTS (SELECT 1 FROM activity_snapshots "
+        "WHERE deployment_id = ? AND system_id = ? AND timestamp >= ?)",
         to_insert,
     )
     conn.commit()
@@ -232,7 +264,7 @@ def get_adm_history(system_id=None, hours=168):
     Returns dict keyed by system_id: {system_name, history: [{adm, timestamp}]}
     """
     conn = get_connection()
-    cutoff = (datetime.utcnow() - timedelta(hours=hours)).strftime("%Y-%m-%dT%H:%M:%SZ")
+    cutoff = _iso_cutoff(hours)
 
     if system_id:
         rows = conn.execute(
@@ -267,7 +299,7 @@ def get_adm_history(system_id=None, hours=168):
 def get_activity_history(system_id=None, hours=168):
     """Get activity history for the last N hours."""
     conn = get_connection()
-    cutoff = (datetime.utcnow() - timedelta(hours=hours)).strftime("%Y-%m-%dT%H:%M:%SZ")
+    cutoff = _iso_cutoff(hours)
 
     if system_id:
         rows = conn.execute(
@@ -309,7 +341,7 @@ def get_activity_baseline(system_ids, days=7):
     """
     if not system_ids:
         return {}
-    cutoff = time.time() - days * 86400
+    cutoff = _iso_cutoff(days * 24)
     placeholders = ','.join('?' * len(system_ids))
     conn = get_connection()
     rows = conn.execute(
@@ -345,7 +377,7 @@ def add_timer(system_name, structure_type, owner, event_type, timestamp, notes=N
 def get_active_timers():
     """Get all future timers + timers from the last 24h."""
     conn = get_connection()
-    cutoff = (datetime.utcnow() - timedelta(hours=24)).strftime("%Y-%m-%dT%H:%M:%SZ")
+    cutoff = _iso_cutoff(24)
     rows = conn.execute(
         "SELECT id, system_name, structure_type, owner, event_type, timestamp, notes "
         "FROM custom_timers WHERE deployment_id = ? AND timestamp >= ? ORDER BY timestamp ASC",
@@ -422,16 +454,20 @@ def add_jump_bridge(system_a, system_b, label=None):
     """Add a JB pair (alphabetically normalized). Returns new id."""
     a, b = sorted([system_a.strip(), system_b.strip()])
     conn = get_connection()
-    cur = conn.execute(
+    conn.execute(
         "INSERT INTO jump_bridges (deployment_id, system_a, system_b, label) "
         "VALUES (?, ?, ?, ?) "
         "ON CONFLICT(deployment_id, system_a, system_b) DO UPDATE SET label=excluded.label",
         (DEPLOYMENT_ID, a, b, label.strip() if label else None),
     )
-    new_id = cur.lastrowid
+    # lastrowid is unreliable when ON CONFLICT updates an existing row — look the id up
+    row = conn.execute(
+        "SELECT id FROM jump_bridges WHERE deployment_id = ? AND system_a = ? AND system_b = ?",
+        (DEPLOYMENT_ID, a, b),
+    ).fetchone()
     conn.commit()
     conn.close()
-    return new_id
+    return row["id"] if row else None
 
 
 def delete_jump_bridge(bridge_id):
@@ -451,7 +487,7 @@ def get_activity_heatmap_data(hours=168):
     Returns: { system_id: { hour(0-23): { pvp, npc, jumps } } }
     """
     conn = get_connection()
-    cutoff = (datetime.utcnow() - timedelta(hours=hours)).strftime("%Y-%m-%dT%H:%M:%SZ")
+    cutoff = _iso_cutoff(hours)
 
     query = """
         SELECT
@@ -480,6 +516,74 @@ def get_activity_heatmap_data(hours=168):
         }
 
     return result
+
+
+# --- Neighbor sov change tracking ---
+
+SOV_CHANGES_MAX = 50
+
+
+def record_sov_changes(current_sov, system_names):
+    """Diff neighbor sov against persisted state, logging changes.
+    current_sov: {system_id: alliance_id (0 = unclaimed)}.
+    First sighting of a system seeds state without a change event.
+    BEGIN IMMEDIATE serializes concurrent workers so a change is logged once.
+    """
+    if not current_sov:
+        return
+    conn = get_connection()
+    try:
+        conn.execute("BEGIN IMMEDIATE")
+        rows = conn.execute(
+            "SELECT system_id, alliance_id FROM sov_state WHERE deployment_id = ?",
+            (DEPLOYMENT_ID,),
+        ).fetchall()
+        old_state = {r["system_id"]: r["alliance_id"] for r in rows}
+        now = time.time()
+        for sys_id, new_alliance in current_sov.items():
+            old_alliance = old_state.get(sys_id)
+            if old_alliance == new_alliance:
+                continue
+            if old_alliance is not None:
+                conn.execute(
+                    "INSERT INTO sov_changes (deployment_id, system_id, system_name, old_alliance, new_alliance, detected_at) "
+                    "VALUES (?, ?, ?, ?, ?, ?)",
+                    (DEPLOYMENT_ID, sys_id, system_names.get(sys_id, str(sys_id)), old_alliance, new_alliance, now),
+                )
+            conn.execute(
+                "INSERT INTO sov_state (deployment_id, system_id, alliance_id) VALUES (?, ?, ?) "
+                "ON CONFLICT(deployment_id, system_id) DO UPDATE SET alliance_id=excluded.alliance_id",
+                (DEPLOYMENT_ID, sys_id, new_alliance),
+            )
+        conn.execute(
+            "DELETE FROM sov_changes WHERE deployment_id = ? AND id NOT IN ("
+            "SELECT id FROM sov_changes WHERE deployment_id = ? ORDER BY id DESC LIMIT ?)",
+            (DEPLOYMENT_ID, DEPLOYMENT_ID, SOV_CHANGES_MAX),
+        )
+        conn.commit()
+    finally:
+        conn.close()
+
+
+def get_recent_sov_changes(limit=20):
+    """Most recent neighbor sov changes, newest first."""
+    conn = get_connection()
+    rows = conn.execute(
+        "SELECT system_id, system_name, old_alliance, new_alliance, detected_at "
+        "FROM sov_changes WHERE deployment_id = ? ORDER BY id DESC LIMIT ?",
+        (DEPLOYMENT_ID, limit),
+    ).fetchall()
+    conn.close()
+    return [
+        {
+            "system_id": r["system_id"],
+            "name": r["system_name"],
+            "old_alliance": r["old_alliance"],
+            "new_alliance": r["new_alliance"],
+            "detected_at": r["detected_at"],
+        }
+        for r in rows
+    ]
 
 
 # --- Entosis node board ---

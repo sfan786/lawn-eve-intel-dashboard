@@ -72,7 +72,7 @@ def get_all_constellation_ids() -> list:
     """Get all constellation IDs in the game."""
     cache_key = "all_constellation_ids"
     cached = _get_cached(cache_key, "constellation_info")
-    if cached:
+    if cached is not None:
         return cached
     
     data = esi_get("/universe/constellations/")
@@ -84,7 +84,7 @@ def get_constellation_info(constellation_id: int) -> dict:
     """Get constellation details: name, region, systems."""
     cache_key = f"constellation_{constellation_id}"
     cached = _get_cached(cache_key, "constellation_info")
-    if cached:
+    if cached is not None:
         return cached
     
     data = esi_get(f"/universe/constellations/{constellation_id}/")
@@ -96,7 +96,7 @@ def get_region_info(region_id: int) -> dict:
     """Get region details: name, constellation IDs."""
     cache_key = f"region_{region_id}"
     cached = _get_cached(cache_key, "region_info")
-    if cached:
+    if cached is not None:
         return cached
 
     data = esi_get(f"/universe/regions/{region_id}/")
@@ -112,7 +112,7 @@ def post_universe_ids(names: list) -> dict:
         return {}
     cache_key = f"universe_ids_{','.join(sorted(names))}"
     cached = _get_cached(cache_key, "region_info")
-    if cached:
+    if cached is not None:
         return cached
 
     url = f"{ESI_BASE}/universe/ids/"
@@ -133,7 +133,7 @@ def get_system_info(system_id: int) -> dict:
     """Get system details: name, security status, etc."""
     cache_key = f"system_{system_id}"
     cached = _get_cached(cache_key, "system_info")
-    if cached:
+    if cached is not None:
         return cached
     
     data = esi_get(f"/universe/systems/{system_id}/")
@@ -145,7 +145,7 @@ def resolve_constellation_name(name: str) -> Optional[int]:
     """Find a constellation ID by name using POST /universe/ids/."""
     cache_key = f"constellation_resolve_{name}"
     cached = _get_cached(cache_key, "constellation_info")
-    if cached:
+    if cached is not None:
         return cached
 
     try:
@@ -167,7 +167,7 @@ def get_sovereignty_map() -> list:
     """Get sovereignty data for all nullsec systems."""
     cache_key = "sovereignty_map"
     cached = _get_cached(cache_key, "sovereignty")
-    if cached:
+    if cached is not None:
         return cached
     
     data = esi_get("/sovereignty/map/")
@@ -183,7 +183,7 @@ def get_sovereignty_structures() -> list:
     """
     cache_key = "sovereignty_structures"
     cached = _get_cached(cache_key, "sovereignty_structures")
-    if cached:
+    if cached is not None:
         return cached
 
     data = esi_get("/sovereignty/structures/")
@@ -195,7 +195,7 @@ def get_sovereignty_campaigns() -> list:
     """Get active sovereignty campaigns (entosis timers)."""
     cache_key = "sovereignty_campaigns"
     cached = _get_cached(cache_key, "sovereignty")
-    if cached:
+    if cached is not None:
         return cached
     
     data = esi_get("/sovereignty/campaigns/")
@@ -209,7 +209,7 @@ def get_system_kills() -> list:
     """Get kill stats per system (ship, pod, NPC kills)."""
     cache_key = "system_kills"
     cached = _get_cached(cache_key, "system_kills")
-    if cached:
+    if cached is not None:
         return cached
     
     data = esi_get("/universe/system_kills/")
@@ -221,7 +221,7 @@ def get_system_jumps() -> list:
     """Get jump counts per system."""
     cache_key = "system_jumps"
     cached = _get_cached(cache_key, "system_jumps")
-    if cached:
+    if cached is not None:
         return cached
     
     data = esi_get("/universe/system_jumps/")
@@ -235,7 +235,7 @@ def get_alliance_info(alliance_id: int) -> dict:
     """Get alliance name and details."""
     cache_key = f"alliance_{alliance_id}"
     cached = _get_cached(cache_key, "entity_info")
-    if cached:
+    if cached is not None:
         return cached
     
     data = esi_get(f"/alliances/{alliance_id}/")
@@ -247,7 +247,7 @@ def get_corporation_info(corp_id: int) -> dict:
     """Get corporation name and details."""
     cache_key = f"corporation_{corp_id}"
     cached = _get_cached(cache_key, "entity_info")
-    if cached:
+    if cached is not None:
         return cached
     
     data = esi_get(f"/corporations/{corp_id}/")
@@ -261,7 +261,7 @@ def get_type_name(type_id: int) -> str:
     """Get the name of a type (ship, item, etc.) by ID."""
     cache_key = f"type_{type_id}"
     cached = _get_cached(cache_key, "system_info")  # static data, long cache
-    if cached:
+    if cached is not None:
         return cached
 
     try:
@@ -323,7 +323,7 @@ def get_character_name(character_id: int) -> str:
     """Get character name by ID."""
     cache_key = f"character_{character_id}"
     cached = _get_cached(cache_key, "entity_info")
-    if cached:
+    if cached is not None:
         return cached
 
     try:
@@ -341,7 +341,7 @@ def get_zkill_system(system_id: int) -> list:
     """Get recent kills in a system from zKillboard."""
     cache_key = f"zkill_system_{system_id}"
     cached = _get_cached(cache_key, "zkill")
-    if cached:
+    if cached is not None:
         return cached
     
     try:
@@ -364,7 +364,7 @@ def get_zkill_region(region_id: int) -> list:
     """Get recent kills in a region from zKillboard."""
     cache_key = f"zkill_region_{region_id}"
     cached = _get_cached(cache_key, "zkill")
-    if cached:
+    if cached is not None:
         return cached
     
     try:
@@ -387,7 +387,7 @@ def get_zkill_alliance(alliance_id: int) -> list:
     """Get recent kills for an alliance from zKillboard."""
     cache_key = f"zkill_alliance_{alliance_id}"
     cached = _get_cached(cache_key, "zkill")
-    if cached:
+    if cached is not None:
         return cached
     
     try:
@@ -412,7 +412,7 @@ def get_zkill_corporation(corp_id: int) -> list:
     """Get recent kills for a corporation from zKillboard."""
     cache_key = f"zkill_corporation_{corp_id}"
     cached = _get_cached(cache_key, "zkill")
-    if cached:
+    if cached is not None:
         return cached
     
     try:
@@ -454,7 +454,7 @@ def get_killmail(killmail_id: int, killmail_hash: str) -> dict:
     """Get full killmail details from ESI."""
     cache_key = f"killmail_{killmail_id}"
     cached = _get_cached(cache_key, "killmail")
-    if cached:
+    if cached is not None:
         return cached
 
     try:
