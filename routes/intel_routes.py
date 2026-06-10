@@ -1,7 +1,10 @@
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from flask import Blueprint, jsonify, request
-from config import NEIGHBOR_ENTITIES, LAWN_ALLIANCE_ID, FRIENDLY_ALLIANCE_IDS, FRIENDLY_CORPORATIONS
+from config import (
+    NEIGHBOR_ENTITIES, LAWN_ALLIANCE_ID, FRIENDLY_ALLIANCE_IDS, FRIENDLY_CORPORATIONS,
+    FRIENDLY_STANDING_CORP_IDS, FRIENDLY_STANDING_CORP_NAMES,
+)
 from eve_constants import THREAT_SHIP_GROUPS, FLEET_ROLE_GROUPS
 import db
 import esi_client
@@ -350,6 +353,8 @@ def api_local_scan():
             standing = "lawn"  # LAWN member corp, possibly without alliance tag set
         elif alliance_id in FRIENDLY_ALLIANCE_IDS:
             standing = "friendly"
+        elif corp_id in FRIENDLY_STANDING_CORP_IDS or corp_name in FRIENDLY_STANDING_CORP_NAMES:
+            standing = "friendly"  # standalone corp on the standings list
         else:
             standing = "unknown"
 
@@ -557,6 +562,8 @@ def api_fleet_analyze():
         elif corp_name in FRIENDLY_CORPORATIONS:
             standing = "lawn"
         elif alliance_id in FRIENDLY_ALLIANCE_IDS:
+            standing = "friendly"
+        elif corp_id in FRIENDLY_STANDING_CORP_IDS or corp_name in FRIENDLY_STANDING_CORP_NAMES:
             standing = "friendly"
         else:
             standing = "unknown"

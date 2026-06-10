@@ -3,7 +3,9 @@
 ## What This Is
 Real-time intel dashboard for an EVE Online alliance, currently configured for **Get Off My Lawn [LAWN]** in **Perrigen Falls**. After being evicted from The Kalevala Expanse, LAWN relocated and claimed two constellations: **9BGY-6** and **WXB-RY**.
 
-The codebase is **alliance/region agnostic** — alliance, region, system list, map layout, and friendly/hostile entity lists all come from a deployment module under `deployments/`. The dashboard serves the whole alliance (12 member corps including Astrum Mechanica, Gnomeland Services, LAWN HC, etc.). Friendly alliances include **BorderZone [BOZON]**, **Gnomes Rising HoA [GNOME]** (LAWN's alt/highsec alliance), **The Skeleton Crew [MEAN]**, **Weapons Of Mass Production [WOMP]**, and **EDENCOM DEFENSIVE INITIATIVE [EDENC]**.
+The codebase is **alliance/region agnostic** — alliance, region, system list, map layout, and friendly/hostile entity lists all come from a deployment module under `deployments/`. The dashboard serves the whole alliance (12 member corps including Astrum Mechanica, Gnomeland Services, LAWN HC, etc.).
+
+**Coalition status (June 2026):** LAWN joined the **RMC coalition** — ~50 alliances at +5 (Legion of xXDEATHXx, Red Alliance, Against ALL Authorities., etc.) plus 8 standalone +5 corps, all in the deployment's friendly lists. The old mini coalition is gone: **BorderZone [BOZON]** folded under the pressure of B0SS's war and evac'd (still +10 on standings with **InnerZone** HS alts, but effectively gone), and **The Skeleton Crew [MEAN]** never joined the Perrigen Falls move — standings-only +5 now. **Gnomes Rising HoA [GNOME]** remains LAWN's alt/highsec alliance at +10.
 
 The active deployment is selected by the `DEPLOYMENT` env var (default: `lawn_perrigen`). Bootstrap a new deployment for any alliance/region with `tools/bootstrap_deployment.py`.
 

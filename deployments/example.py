@@ -41,6 +41,9 @@ PRIMARY_CONSTELLATION_NAMES = []
 FRIENDLY_ALLIANCE_IDS = []
 FRIENDLY_ALLIANCES = []          # display names (parallel list; both shown in UI)
 FRIENDLY_CORPORATIONS = []
+# Standalone corporations (no alliance) with positive standings — list of
+# {"name": ..., "id": ...} dicts. Classified "friendly", not "lawn".
+FRIENDLY_STANDING_CORPORATIONS = []
 
 # Threat alliances tracked by the Neighbor Threat Profiling panel.
 NEIGHBOR_ENTITIES = [
