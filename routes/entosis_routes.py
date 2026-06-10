@@ -22,11 +22,11 @@ def api_add_node():
     system_name = data.get("system_name")
     if not isinstance(system_name, str) or not system_name.strip():
         return jsonify({"error": "system_name must be a non-empty string"}), 400
-    system_name = system_name.strip()
+    system_name = system_name.strip()[:64]
     label = data.get("label")
     if label is not None and not isinstance(label, str):
         return jsonify({"error": "label must be a string"}), 400
-    label = label.strip() if label else None
+    label = label.strip()[:80] if label else None
     node_id = db.add_entosis_node(system_name, label)
     return jsonify({"id": node_id}), 201
 
@@ -47,6 +47,8 @@ def api_update_node(node_id):
         return jsonify({"error": "claimed_by must be a string"}), 400
     if status is not None and status not in VALID_STATUSES:
         return jsonify({"error": f"Invalid status. Must be one of: {', '.join(VALID_STATUSES)}"}), 400
+    if claimed_by is not None:
+        claimed_by = claimed_by.strip()[:64]
 
     db.update_entosis_node(node_id, status=status, claimed_by=claimed_by)
     return jsonify({"status": "ok"})

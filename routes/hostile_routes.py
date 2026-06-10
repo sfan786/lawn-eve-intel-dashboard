@@ -1,3 +1,4 @@
+from concurrent.futures import ThreadPoolExecutor, wait
 from flask import Blueprint, jsonify
 from config import REGION_ID, FRIENDLY_ALLIANCE_IDS, FRIENDLY_ALLIANCES, FRIENDLY_CORPORATIONS
 import esi_client
@@ -21,6 +22,15 @@ def api_active_hostiles():
 
     raw_kills = esi_client.get_zkill_region(REGION_ID)
     entity_stats = {}
+
+    # Prefetch killmails in parallel so the sequential loop below hits the cache
+    refs = [
+        (zk.get("killmail_id"), zk.get("zkb", {}).get("hash"))
+        for zk in raw_kills[:30]
+        if not zk.get("zkb", {}).get("npc")
+    ]
+    with ThreadPoolExecutor(max_workers=10) as pool:
+        wait([pool.submit(esi_client.get_killmail, k, h) for k, h in refs if k and h])
 
     for zk in raw_kills[:30]:
         zkb = zk.get("zkb", {})

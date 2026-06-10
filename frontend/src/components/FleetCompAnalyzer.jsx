@@ -30,6 +30,7 @@ const FLEET_ROLE_COLOR = {
     DICTOR:  '#00d4ff',
     HIC:     '#44aaff',
     BOOSTER: '#ffcc44',
+    BOOSH:   '#ffdd66',
     BS:      '#ff7744',
     BC:      '#ff9944',
     HAC:     '#ffbb44',

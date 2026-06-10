@@ -56,18 +56,19 @@ THREAT_SHIP_GROUPS = {
 # Keys are EVE ship group IDs; values are short role labels shown in fleet comp UI.
 FLEET_ROLE_GROUPS = {
     832:  "LOGI",      # Logistics Cruisers (Scimitar, Basilisk, Guardian, Oneiros)
-    1534: "LOGI",      # T2 Logistics Frigates (Burst II, Bantam II, etc.)
+    1527: "LOGI",      # Logistics Frigates (Deacon, Kirin, Thalia, Scalpel)
     541:  "DICTOR",    # Interdictors (Sabre, Flycatcher, Heretic, Eris)
     894:  "HIC",       # Heavy Interdiction Cruisers (Devoter, Onyx, Broadsword, Phobos)
     540:  "BOOSTER",   # Command Ships (Vulture, Damnation, Nighthawk, Astarte, etc.)
-    513:  "BS",        # Battleships
+    1534: "BOOSH",     # Command Destroyers (Bifrost, Pontifex, Stork, Magus) — MJFG + bursts
+    27:   "BS",        # Battleships (Raven, Tempest, Megathron)
     419:  "BC",        # Combat Battlecruisers (Drake, Hurricane, Harbinger, Brutix)
-    420:  "BC",        # Attack Battlecruisers (Talos, Tornado, Naga, Oracle)
+    1201: "BC",        # Attack Battlecruisers (Talos, Tornado, Naga, Oracle)
     358:  "HAC",       # Heavy Assault Cruisers (Muninn, Eagle, Vagabond, etc.)
     963:  "T3C",       # Strategic Cruisers (Tengu, Legion, Loki, Proteus) — subcap role
     26:   "CRUISER",   # Standard Cruisers
-    27:   "FRIG",      # Standard Frigates
-    25:   "DESTROYER", # Destroyers
+    25:   "FRIG",      # Standard Frigates (Bantam, Condor, Slasher)
+    420:  "DESTROYER", # Destroyers (Coercer, Cormorant, Catalyst, Thrasher)
 }
 
 # ===== Sovereignty upgrades =====
