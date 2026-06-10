@@ -561,6 +561,9 @@ def record_sov_changes(current_sov, system_names):
             (DEPLOYMENT_ID, DEPLOYMENT_ID, SOV_CHANGES_MAX),
         )
         conn.commit()
+    except Exception:
+        conn.rollback()
+        raise
     finally:
         conn.close()
 
