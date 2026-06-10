@@ -37,21 +37,137 @@ PRIMARY_CONSTELLATION_NAMES = [
 
 # ===== Friendlies and threat tracking (manually maintained) =====
 # Copy these from your previous deployment when migrating, or fill in fresh.
+# Updated June 2026: LAWN joined the RMC coalition — most +5s below are RMC
+# members. IDs resolved via ESI POST /universe/ids/.
+# The old mini coalition is gone: BorderZone folded under the pressure of
+# B0SS's war and evac'd (may not stay +10 but remains an ally on standings),
+# and The Skeleton Crew never joined the Perrigen Falls move — they're a
+# standings-only +5 now, not a coalition partner.
 FRIENDLY_ALLIANCE_IDS = [
-    99012845,
-    99013982,
-    99008788,
-    99010468,
-    99012018
+    # --- +10 blue ---
+    99012845,    # BorderZone (folded/evac'd — see note above)
+    99013982,    # Gnomes Rising HoA (LAWN highsec alliance)
+    99014614,    # InnerZone (BorderZone HS alts — same caveat as BorderZone)
+    # --- +5 light blue (mostly RMC) ---
+    99009758,    # Absolute Will
+    99013780,    # Advent Coalition
+    99010549,    # Against ALL Authorities.
+    99006132,    # Bad Wolf Industries Inc
+    99011248,    # Big Green Fly
+    99013532,    # Burning Contingent Holdings
+    99012575,    # Care-Free Coalition
+    99012586,    # Care-Less Collective
+    99013823,    # Cat Scratch Fevers
+    99011990,    # D3ad End
+    99009805,    # Dead Game Society.
+    99012018,    # EDENCOM DEFENSIVE INITIATIVE
+    99008697,    # GF Company
+    99013739,    # Heirs To The Pleasurehub
+    99012122,    # HOLD MY PROBS
+    99011292,    # Ice.Road.Truckers.
+    99014427,    # Itty Bitty Asteroid Academy
+    99013502,    # Itty Bitty Asteroid Committee
+    1411711376,  # Legion of xXDEATHXx
+    99014948,    # Legion of xXDEATHXx Holding
+    99011416,    # LinkNet
+    99014526,    # Lunar Fluorescence
+    99014050,    # Lunar Luminescence
+    99013713,    # MAXIMUS Alliance
+    431502563,   # Ministry of Inappropriate Footwork
+    99010389,    # Outsmarted
+    99014362,    # Paws n Claws Collective
+    99014402,    # Plenitude Alliance
+    1220922756,  # Red Alliance
+    99011268,    # Reeloaded.
+    99014396,    # RS Rangers
+    99003500,    # Shadow of xXDEATHXx
+    99012279,    # Sportmodel
+    99012328,    # STAKAN UNIVERSE
+    99014852,    # Storm of the Freeborn
+    99010484,    # The Burning Contingent Alliance
+    99013028,    # The Monarchy
+    99007969,    # THE RUSSIA
+    99008788,    # The Skeleton Crew
+    99012763,    # The Syndicate of Silence
+    99014321,    # Tilean Dominium
+    99011802,    # Warriors of the Blood God
+    99014221,    # Weapons of Mass Logistics
+    99010468,    # Weapons Of Mass Production.
+    99006751,    # What Could Possibly Go Wr0ng
+    99012572,    # Wildlife
+    99006557,    # Wildly Inappropriate.
+    99014161,    # Zombie Ninja Space Bears
 ]
 
 FRIENDLY_ALLIANCES = [
     "Get Off My Lawn",
+    # +10 blue
     "BorderZone",
     "Gnomes Rising HoA",
+    "InnerZone",
+    # +5 light blue (mostly RMC)
+    "Absolute Will",
+    "Advent Coalition",
+    "Against ALL Authorities.",
+    "Bad Wolf Industries Inc",
+    "Big Green Fly",
+    "Burning Contingent Holdings",
+    "Care-Free Coalition",
+    "Care-Less Collective",
+    "Cat Scratch Fevers",
+    "D3ad End",
+    "Dead Game Society.",
+    "EDENCOM DEFENSIVE INITIATIVE",
+    "GF Company",
+    "Heirs To The Pleasurehub",
+    "HOLD MY PROBS",
+    "Ice.Road.Truckers.",
+    "Itty Bitty Asteroid Academy",
+    "Itty Bitty Asteroid Committee",
+    "Legion of xXDEATHXx",
+    "Legion of xXDEATHXx Holding",
+    "LinkNet",
+    "Lunar Fluorescence",
+    "Lunar Luminescence",
+    "MAXIMUS Alliance",
+    "Ministry of Inappropriate Footwork",
+    "Outsmarted",
+    "Paws n Claws Collective",
+    "Plenitude Alliance",
+    "Red Alliance",
+    "Reeloaded.",
+    "RS Rangers",
+    "Shadow of xXDEATHXx",
+    "Sportmodel",
+    "STAKAN UNIVERSE",
+    "Storm of the Freeborn",
+    "The Burning Contingent Alliance",
+    "The Monarchy",
+    "THE RUSSIA",
     "The Skeleton Crew",
+    "The Syndicate of Silence",
+    "Tilean Dominium",
+    "Warriors of the Blood God",
+    "Weapons of Mass Logistics",
     "Weapons Of Mass Production.",
-    "EDENCOM DEFENSIVE INITIATIVE"
+    "What Could Possibly Go Wr0ng",
+    "Wildlife",
+    "Wildly Inappropriate.",
+    "Zombie Ninja Space Bears",
+]
+
+# Standalone corporations (no alliance) on the standings list at +5.
+# Kept separate from FRIENDLY_CORPORATIONS, which means LAWN member corps:
+# pilots in these corps classify as "friendly", not "lawn".
+FRIENDLY_STANDING_CORPORATIONS = [
+    {"name": "Coerce Inc", "id": 875653347},
+    {"name": "Crazy Shenanigans", "id": 98699627},
+    {"name": "GF Trade Corporation", "id": 98691848},
+    {"name": "MOONFIRE SERVICE PROVIDER", "id": 98681117},
+    {"name": "Rus Space Rangers", "id": 98695322},
+    {"name": "Silent Nomads", "id": 98644242},
+    {"name": "TnB Haul'n", "id": 98830270},
+    {"name": "Totally Legit Business Venture", "id": 98742559},
 ]
 
 FRIENDLY_CORPORATIONS = [

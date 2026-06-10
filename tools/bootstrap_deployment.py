@@ -20,6 +20,7 @@ will be overwritten unless you pass --no-overwrite-layout.
 """
 
 import argparse
+import importlib.util
 import json
 import math
 import os
@@ -353,6 +354,10 @@ FRIENDLY_ALLIANCES = {friendly_alliances}
 
 FRIENDLY_CORPORATIONS = {friendly_corporations}
 
+# Standalone corporations (no alliance) with positive standings — list of
+# {{"name": ..., "id": ...}} dicts. Classified "friendly", not "lawn".
+FRIENDLY_STANDING_CORPORATIONS = {friendly_standing_corporations}
+
 NEIGHBOR_ENTITIES = {neighbor_entities}
 
 # ===== Region geography (auto-generated) =====
@@ -418,6 +423,7 @@ def render_module(args, alliance, region, primary_constellations,
         friendly_alliance_ids=py_repr(inherited.get("friendly_alliance_ids", [])),
         friendly_alliances=py_repr(inherited.get("friendly_alliances", [])),
         friendly_corporations=py_repr(inherited.get("friendly_corporations", [])),
+        friendly_standing_corporations=py_repr(inherited.get("friendly_standing_corporations", [])),
         neighbor_entities=py_repr(inherited.get("neighbor_entities", [])),
         neighbor_system_names=py_repr(neighbour_system_names),
         primary_systems=py_repr(primary_systems),
@@ -429,19 +435,6 @@ def render_module(args, alliance, region, primary_constellations,
     )
     return rendered
 
-
-def load_inherited(path):
-    """Read FRIENDLY_*/NEIGHBOR_ENTITIES from a Python module path (e.g. config.py
-    or a previous deployment) so they carry over to the new deployment."""
-    if not path:
-        return {}
-    abs_path = os.path.abspath(path)
-    if not os.path.exists(abs_path):
-        raise SystemExit(f"--inherit-from path not found: {abs_path}")
-    namespace = {}
-    with open(abs_path) as f:
-import importlib.util
-import os
 
 def load_inherited(path):
     """Read FRIENDLY_*/NEIGHBOR_ENTITIES from a Python module path using importlib."""
@@ -459,13 +452,8 @@ def load_inherited(path):
         "friendly_alliance_ids": getattr(module, "FRIENDLY_ALLIANCE_IDS", []),
         "friendly_alliances": getattr(module, "FRIENDLY_ALLIANCES", []),
         "friendly_corporations": getattr(module, "FRIENDLY_CORPORATIONS", []),
+        "friendly_standing_corporations": getattr(module, "FRIENDLY_STANDING_CORPORATIONS", []),
         "neighbor_entities": getattr(module, "NEIGHBOR_ENTITIES", []),
-    }
-    return {
-        "friendly_alliance_ids": namespace.get("FRIENDLY_ALLIANCE_IDS", []),
-        "friendly_alliances": namespace.get("FRIENDLY_ALLIANCES", []),
-        "friendly_corporations": namespace.get("FRIENDLY_CORPORATIONS", []),
-        "neighbor_entities": namespace.get("NEIGHBOR_ENTITIES", []),
     }
 
 

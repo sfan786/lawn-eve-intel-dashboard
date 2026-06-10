@@ -1,6 +1,9 @@
 from concurrent.futures import ThreadPoolExecutor, wait
 from flask import Blueprint, jsonify
-from config import REGION_ID, FRIENDLY_ALLIANCE_IDS, FRIENDLY_ALLIANCES, FRIENDLY_CORPORATIONS
+from config import (
+    REGION_ID, FRIENDLY_ALLIANCE_IDS, FRIENDLY_ALLIANCES, FRIENDLY_CORPORATIONS,
+    FRIENDLY_STANDING_CORP_IDS, FRIENDLY_STANDING_CORP_NAMES,
+)
 import esi_client
 from routes.system_state import state
 
@@ -19,6 +22,8 @@ def api_active_hostiles():
     friendly_ids = set(FRIENDLY_ALLIANCE_IDS)
     friendly_alliance_names = {a.lower() for a in FRIENDLY_ALLIANCES}
     friendly_corp_names = {c.lower() for c in FRIENDLY_CORPORATIONS}
+    friendly_corp_names |= {c.lower() for c in FRIENDLY_STANDING_CORP_NAMES}
+    friendly_corp_ids = set(FRIENDLY_STANDING_CORP_IDS)
 
     raw_kills = esi_client.get_zkill_region(REGION_ID)
     entity_stats = {}
@@ -81,6 +86,8 @@ def api_active_hostiles():
                     pass
 
             if entity_id is None and corp_id:
+                if corp_id in friendly_corp_ids:
+                    continue
                 try:
                     cinfo = esi_client.get_corporation_info(corp_id)
                     cname = cinfo.get("name", "")
