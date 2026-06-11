@@ -297,6 +297,65 @@ def get_type_group_id(type_id: int) -> int:
         return 0
 
 
+def bulk_resolve_names(ids: list) -> None:
+    """POST /universe/names/ — pre-populate character/corp/alliance/type caches in one call.
+    Eliminates N sequential ESI requests during killmail enrichment; call before the loop.
+    Already-cached IDs are filtered out to avoid redundant network requests.
+    """
+    if not ids:
+        return
+    unique_ids = {int(i) for i in ids if i}
+    if not unique_ids:
+        return
+
+    current_time = time.time()
+    uncached = []
+    # Single lock acquisition to check all IDs — avoids repeated lock/unlock per ID.
+    with _cache_lock:
+        for i in unique_ids:
+            cached = False
+            for prefix in ("character_", "corporation_", "alliance_", "type_"):
+                entry = _cache.get(f"{prefix}{i}")
+                if entry:
+                    if current_time < entry["expires_at"]:
+                        cached = True
+                        break
+                    else:
+                        del _cache[f"{prefix}{i}"]
+            if not cached:
+                uncached.append(i)
+
+    if not uncached:
+        return
+    try:
+        url = f"{ESI_BASE}/universe/names/"
+        headers = {
+            "Accept": "application/json",
+            "Content-Type": "application/json",
+            "User-Agent": "AstrumMechanica-IntelDash/1.0 (contact: in-game)",
+        }
+        params = {"datasource": ESI_DATASOURCE}
+        for chunk_start in range(0, len(uncached), 1000):
+            chunk = uncached[chunk_start:chunk_start + 1000]
+            resp = requests.post(url, json=chunk, headers=headers, params=params, timeout=15)
+            resp.raise_for_status()
+            for item in resp.json():
+                eid = item["id"]
+                name = item["name"]
+                category = item.get("category", "")
+                if category == "character":
+                    _set_cache(f"character_{eid}", name, "entity_info")
+                elif category == "corporation":
+                    # Cache as {"name": ...} to match get_corporation_info() return shape
+                    _set_cache(f"corporation_{eid}", {"name": name}, "entity_info")
+                elif category == "alliance":
+                    _set_cache(f"alliance_{eid}", {"name": name}, "entity_info")
+                elif category == "inventory_type":
+                    _set_cache(f"type_{eid}", name, "system_info")
+    except Exception as e:
+        print(f"bulk_resolve_names error: {e}")
+
+
 def bulk_character_affiliations(character_ids: list) -> list:
     """POST /characters/affiliation/ — bulk corp/alliance lookup for up to 1000 IDs.
     Returns [{character_id, corporation_id, alliance_id?}, ...]
