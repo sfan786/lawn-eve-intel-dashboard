@@ -182,7 +182,9 @@ def init():
         CREATE INDEX IF NOT EXISTS idx_annotation_system ON system_annotations(system_name);
         
         CREATE INDEX IF NOT EXISTS idx_adm_deployment_time ON adm_snapshots(deployment_id, timestamp);
+        CREATE INDEX IF NOT EXISTS idx_adm_deploy_system_time ON adm_snapshots(deployment_id, system_id, timestamp);
         CREATE INDEX IF NOT EXISTS idx_activity_deployment_time ON activity_snapshots(deployment_id, timestamp);
+        CREATE INDEX IF NOT EXISTS idx_activity_deploy_system_time ON activity_snapshots(deployment_id, system_id, timestamp);
         CREATE INDEX IF NOT EXISTS idx_timer_deployment_time ON custom_timers(deployment_id, timestamp);
         CREATE INDEX IF NOT EXISTS idx_entosis_deployment ON entosis_nodes(deployment_id);
     """)

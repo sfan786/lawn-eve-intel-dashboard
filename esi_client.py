@@ -297,6 +297,49 @@ def get_type_group_id(type_id: int) -> int:
         return 0
 
 
+def bulk_resolve_names(ids: list) -> None:
+    """POST /universe/names/ — pre-populate character/corp/alliance/type caches in one call.
+    Eliminates N sequential ESI requests during killmail enrichment; call before the loop.
+    Already-cached IDs are filtered out to avoid redundant network requests.
+    """
+    if not ids:
+        return
+    uncached = [
+        i for i in set(ids)
+        if _get_cached(f"character_{i}") is None
+        and _get_cached(f"corporation_{i}") is None
+        and _get_cached(f"alliance_{i}") is None
+        and _get_cached(f"type_{i}") is None
+    ]
+    if not uncached:
+        return
+    try:
+        url = f"{ESI_BASE}/universe/names/"
+        headers = {
+            "Accept": "application/json",
+            "Content-Type": "application/json",
+            "User-Agent": "AstrumMechanica-IntelDash/1.0 (contact: in-game)",
+        }
+        params = {"datasource": ESI_DATASOURCE}
+        resp = requests.post(url, json=uncached[:1000], headers=headers, params=params, timeout=15)
+        resp.raise_for_status()
+        for item in resp.json():
+            eid = item["id"]
+            name = item["name"]
+            category = item.get("category", "")
+            if category == "character":
+                _set_cache(f"character_{eid}", name, "entity_info")
+            elif category == "corporation":
+                # Cache as {"name": ...} to match get_corporation_info() return shape
+                _set_cache(f"corporation_{eid}", {"name": name}, "entity_info")
+            elif category == "alliance":
+                _set_cache(f"alliance_{eid}", {"name": name}, "entity_info")
+            elif category == "inventory_type":
+                _set_cache(f"type_{eid}", name, "system_info")
+    except Exception as e:
+        print(f"bulk_resolve_names error: {e}")
+
+
 def bulk_character_affiliations(character_ids: list) -> list:
     """POST /characters/affiliation/ — bulk corp/alliance lookup for up to 1000 IDs.
     Returns [{character_id, corporation_id, alliance_id?}, ...]

@@ -1,3 +1,4 @@
+import hmac
 from flask import Blueprint, jsonify, request
 from config import TIMER_PASSWORD
 import db
@@ -14,16 +15,16 @@ def api_get_timers():
 @timer_bp.route("/api/auth/check", methods=["POST"])
 def api_check_auth():
     data = request.json or {}
-    password = data.get("password")
-    if password == TIMER_PASSWORD:
+    password = data.get("password") or ""
+    if TIMER_PASSWORD and hmac.compare_digest(password, TIMER_PASSWORD):
         return jsonify({"status": "ok"})
     return jsonify({"error": "Invalid password"}), 401
 
 
 @timer_bp.route("/api/timers", methods=["POST"])
 def api_add_timer():
-    auth_header = request.headers.get("X-Timer-Auth")
-    if auth_header != TIMER_PASSWORD:
+    auth_header = request.headers.get("X-Timer-Auth") or ""
+    if not TIMER_PASSWORD or not hmac.compare_digest(auth_header, TIMER_PASSWORD):
         return jsonify({"error": "Unauthorized"}), 401
 
     data = request.json or {}
@@ -47,8 +48,8 @@ def api_add_timer():
 
 @timer_bp.route("/api/timers/<int:timer_id>", methods=["DELETE"])
 def api_delete_timer(timer_id):
-    auth_header = request.headers.get("X-Timer-Auth")
-    if auth_header != TIMER_PASSWORD:
+    auth_header = request.headers.get("X-Timer-Auth") or ""
+    if not TIMER_PASSWORD or not hmac.compare_digest(auth_header, TIMER_PASSWORD):
         return jsonify({"error": "Unauthorized"}), 401
 
     db.delete_timer(timer_id)
