@@ -304,13 +304,27 @@ def bulk_resolve_names(ids: list) -> None:
     """
     if not ids:
         return
-    uncached = [
-        i for i in set(ids)
-        if _get_cached(f"character_{i}") is None
-        and _get_cached(f"corporation_{i}") is None
-        and _get_cached(f"alliance_{i}") is None
-        and _get_cached(f"type_{i}") is None
-    ]
+    unique_ids = {int(i) for i in ids if i}
+    if not unique_ids:
+        return
+
+    current_time = time.time()
+    uncached = []
+    # Single lock acquisition to check all IDs — avoids repeated lock/unlock per ID.
+    with _cache_lock:
+        for i in unique_ids:
+            cached = False
+            for prefix in ("character_", "corporation_", "alliance_", "type_"):
+                entry = _cache.get(f"{prefix}{i}")
+                if entry:
+                    if current_time < entry["expires_at"]:
+                        cached = True
+                        break
+                    else:
+                        del _cache[f"{prefix}{i}"]
+            if not cached:
+                uncached.append(i)
+
     if not uncached:
         return
     try:
@@ -321,21 +335,23 @@ def bulk_resolve_names(ids: list) -> None:
             "User-Agent": "AstrumMechanica-IntelDash/1.0 (contact: in-game)",
         }
         params = {"datasource": ESI_DATASOURCE}
-        resp = requests.post(url, json=uncached[:1000], headers=headers, params=params, timeout=15)
-        resp.raise_for_status()
-        for item in resp.json():
-            eid = item["id"]
-            name = item["name"]
-            category = item.get("category", "")
-            if category == "character":
-                _set_cache(f"character_{eid}", name, "entity_info")
-            elif category == "corporation":
-                # Cache as {"name": ...} to match get_corporation_info() return shape
-                _set_cache(f"corporation_{eid}", {"name": name}, "entity_info")
-            elif category == "alliance":
-                _set_cache(f"alliance_{eid}", {"name": name}, "entity_info")
-            elif category == "inventory_type":
-                _set_cache(f"type_{eid}", name, "system_info")
+        for chunk_start in range(0, len(uncached), 1000):
+            chunk = uncached[chunk_start:chunk_start + 1000]
+            resp = requests.post(url, json=chunk, headers=headers, params=params, timeout=15)
+            resp.raise_for_status()
+            for item in resp.json():
+                eid = item["id"]
+                name = item["name"]
+                category = item.get("category", "")
+                if category == "character":
+                    _set_cache(f"character_{eid}", name, "entity_info")
+                elif category == "corporation":
+                    # Cache as {"name": ...} to match get_corporation_info() return shape
+                    _set_cache(f"corporation_{eid}", {"name": name}, "entity_info")
+                elif category == "alliance":
+                    _set_cache(f"alliance_{eid}", {"name": name}, "entity_info")
+                elif category == "inventory_type":
+                    _set_cache(f"type_{eid}", name, "system_info")
     except Exception as e:
         print(f"bulk_resolve_names error: {e}")
 

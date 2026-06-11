@@ -52,7 +52,7 @@ def api_zkill_feed():
     # so the enrichment loop below gets instant cache hits instead of N sequential requests.
     bulk_ids = []
     for zk in raw_kills[:30]:
-        km = esi_client.get_killmail(zk.get("killmail_id"), zk.get("zkb", {}).get("hash")) if zk.get("killmail_id") else {}
+        km = esi_client.get_killmail(zk.get("killmail_id"), (zk.get("zkb") or {}).get("hash")) if zk.get("killmail_id") else {}
         if not km:
             continue
         victim = km.get("victim", {})

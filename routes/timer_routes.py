@@ -15,8 +15,8 @@ def api_get_timers():
 @timer_bp.route("/api/auth/check", methods=["POST"])
 def api_check_auth():
     data = request.json or {}
-    password = data.get("password") or ""
-    if TIMER_PASSWORD and hmac.compare_digest(password, TIMER_PASSWORD):
+    password = data.get("password")
+    if isinstance(password, str) and TIMER_PASSWORD and hmac.compare_digest(password, TIMER_PASSWORD):
         return jsonify({"status": "ok"})
     return jsonify({"error": "Invalid password"}), 401
 
