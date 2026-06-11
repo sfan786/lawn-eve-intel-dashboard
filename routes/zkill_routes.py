@@ -48,6 +48,30 @@ def api_zkill_feed():
     with ThreadPoolExecutor(max_workers=10) as pool:
         wait([pool.submit(esi_client.get_killmail, k, h) for k, h in refs if k and h])
 
+    # Bulk-resolve all entity IDs from the prefetched killmails in one ESI call,
+    # so the enrichment loop below gets instant cache hits instead of N sequential requests.
+    bulk_ids = []
+    for zk in raw_kills[:30]:
+        km = esi_client.get_killmail(zk.get("killmail_id"), (zk.get("zkb") or {}).get("hash")) if zk.get("killmail_id") else {}
+        if not km:
+            continue
+        victim = km.get("victim", {})
+        attackers = km.get("attackers", [])
+        for key in ("character_id", "corporation_id", "alliance_id", "ship_type_id"):
+            if victim.get(key):
+                bulk_ids.append(victim[key])
+        for att in attackers:
+            if att.get("final_blow"):
+                for key in ("character_id", "corporation_id", "alliance_id", "ship_type_id"):
+                    if att.get(key):
+                        bulk_ids.append(att[key])
+                break
+        for att in sorted(attackers, key=lambda a: a.get("damage_done", 0), reverse=True)[:4]:
+            for key in ("character_id", "ship_type_id"):
+                if att.get(key):
+                    bulk_ids.append(att[key])
+    esi_client.bulk_resolve_names(bulk_ids)
+
     feed = []
     for zk in raw_kills[:30]:
         if len(feed) >= 20:
