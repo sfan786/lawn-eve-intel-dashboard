@@ -57,9 +57,10 @@ lawn-eve-intel-dashboard/
 │   ├── activity_routes.py   # /api/activity
 │   ├── zkill_routes.py      # /api/zkill/feed, /api/zkill/<id>
 │   ├── history_routes.py    # /api/history/adm, /api/history/activity/heatmap
-│   ├── intel_routes.py      # /api/intel/neighbors, /api/local/scan
+│   ├── intel_routes.py      # /api/intel/neighbors, /api/intel/regional, /api/intel/sov_changes, /api/local/scan, /api/chars/analyze, /api/fleet/analyze
+│   ├── entosis_routes.py    # /api/entosis/nodes (command node board)
 │   ├── timer_routes.py      # /api/timers, /api/auth/check
-│   └── static_routes.py     # / (serves Vite build or legacy fallback)
+│   └── static_routes.py     # / and /entosis (serves Vite SPA)
 │
 ├── mock/                    # Demo mock blueprints (no ESI calls)
 │   ├── mock_data.py         # All mock constants and builder functions
@@ -77,6 +78,7 @@ lawn-eve-intel-dashboard/
 │   ├── vite.config.js       # Proxy /api → Flask, build → static/dist/
 │   └── src/
 │       ├── App.jsx          # Root component — state, fetching, tab nav
+│       ├── pages/           # Full-page routes (EntosisPage.jsx — /entosis)
 │       ├── utils/           # admHelpers, campaignHelpers, formatters, upgradeHelpers, mapHelpers
 │       └── components/      # 14 feature components + 3 common components
 │
@@ -156,7 +158,16 @@ Resolves names to numeric IDs for `config.py`. Uses ESI `POST /universe/ids/` fo
 - `GET /api/history/adm?hours=168` — ADM history for sparklines (default 7 days, max 30)
 - `GET /api/history/activity/heatmap?days=7` — per-system hourly activity grid (max 30 days)
 - `GET /api/intel/neighbors` — neighbor threat profiles (ship doctrines, TZ activity, threat scores)
+- `GET /api/intel/regional` — neighbor system kills/jumps grouped by region with spike detection vs 7-day baseline
+- `GET /api/intel/sov_changes` — recent sov changes in neighbor systems (SQLite-backed, last 50 events)
 - `POST /api/local/scan` — resolve pilot names from local chat → corp/alliance lookup → classify lawn/friendly/unknown/unresolved
+- `POST /api/chars/analyze` — risk-rate up to 25 pilot IDs (VERY DANGEROUS / DANGEROUS / MODERATE / SNUGGLY / NEWBIE) with capital/covert role detection
+- `POST /api/fleet/analyze` — bulk fleet composition analysis: per-pilot standings, risk tier, role badges, and aggregate summary
+- `GET /api/entosis/nodes` — list active entosis command node assignments
+- `POST /api/entosis/nodes` — add node (requires `X-Timer-Auth` header)
+- `PATCH /api/entosis/nodes/<id>` — update node status or claimed_by pilot
+- `DELETE /api/entosis/nodes/<id>` — remove node (requires `X-Timer-Auth` header)
+- `DELETE /api/entosis/nodes` — clear all nodes (requires `X-Timer-Auth` header)
 - `GET /api/timers` — active custom timers
 - `POST /api/timers` — add timer (requires `X-Timer-Auth` header)
 - `DELETE /api/timers/<id>` — delete timer (requires `X-Timer-Auth` header)
@@ -307,11 +318,15 @@ See [ROADMAP.md](ROADMAP.md) for full details and backlog.
 - [x] Capital/dropper/covert role detection — `_detect_roles()` reads zkill stats `groups` dict; role badges TITAN/SUPER/DREAD/CARRIER/FAX/BLOPS/RECON/BOMBER/T3C/COVOPS displayed next to risk tier in both scanner panels; `THREAT_SHIP_GROUPS` in `eve_constants.py`
 - [x] Ally expansion — The Skeleton Crew [MEAN] (99008788) and Weapons Of Mass Production [WOMP] (99010468) added as friendly alliances
 - [x] Wide screen layout — dashboard expands to max-width 2000px at 1400px+ (all panels remain full-width)
+- [x] **Entosis command node board** — dedicated `/entosis` page (`EntosisPage.jsx`); pilots claim nodes with a callsign; status machine (unclaimed → running → contested → captured/lost); password-gated add/delete; 10s auto-refresh; `routes/entosis_routes.py` + SQLite `entosis_nodes` table
+- [x] **RMC coalition standings** — ~50 RMC alliance IDs + 8 standalone +5 corps added to `lawn_perrigen.py`; new `FRIENDLY_STANDING_CORPORATIONS` deployment key (list of `{id, name}` dicts) for standalone corps not covered by alliance IDs; `config.py` derives `FRIENDLY_STANDING_CORP_IDS`/`_NAMES` sets used by intel/local-scan/hostile routes
+- [x] **Performance & security pass** — parallel killmail prefetch via `ThreadPoolExecutor` in kill feed and hostile feed; bulk ESI name resolution primes cache before enrichment loop; compound DB indexes on `(deployment_id, system_id, timestamp)`; thread-safe ESI cache with `_cache_lock` and per-entry expiry timestamps; HMAC-based timer password check
+- [x] **SQLite-backed sov change tracking** — `sov_state` + `sov_changes` tables replace in-memory dict; `db.record_sov_changes()` persists neighbor sov events across restarts; served via `/api/intel/sov_changes`
 
 **Priority 2 — Operational:**
 - [x] Browser push notifications (PVP alerts, sov campaigns, ADM drops) — ALERTS button in header, `useNotifications` hook + `NotificationBell.jsx`
+- [x] Regional intel aggregation — `/api/intel/regional` + `/api/intel/sov_changes` + `RegionalIntel.jsx` with spike detection vs 7-day baseline
 - [ ] Structure tracking (requires SSO)
-- [ ] Regional intel aggregation (neighboring region early warning)
 - [ ] Jump bridge route overlay on map
 
 **Priority 3 — Long-term:**

@@ -14,8 +14,10 @@ Real-time sovereignty and intel monitoring for EVE Online nullsec space. Current
 - **Timerboard** — Manual structure timer tracking with password-protected add/delete
 - **Sov upgrade tracking** — Manual iHub upgrade display (military/industry/strategic) per LAWN system
 - **DScan parser** — Paste EVE directional scan output for instant ship class breakdown and threat tier assessment (CRITICAL/HIGH/MEDIUM/LOW/MINIMAL)
-- **Local chat scanner** — Paste pilot names from local; resolves corp/alliance via ESI and classifies each as LAWN / FRIENDLY / UNKNOWN / UNRESOLVED with zKillboard links
-- **Auto-refresh** — Live ESI data updates with in-memory caching
+- **Local chat scanner** — Paste pilot names from local; resolves corp/alliance via ESI and classifies each as LAWN / FRIENDLY / UNKNOWN / UNRESOLVED with zKillboard links, risk ratings, and capital/covert role badges
+- **Regional intel** — Neighbor region threat overview with per-system kill/jump spikes vs 7-day baseline and sov change history
+- **Entosis command node board** — Dedicated `/entosis` page for live coordination during sov fights; pilots claim nodes with a callsign and advance status (unclaimed → running → contested → captured/lost)
+- **Auto-refresh** — Live ESI data updates with thread-safe in-memory caching
 - **Demo mode** — Full UI testing with mock data, no ESI access required
 
 ---
@@ -42,9 +44,10 @@ lawn-eve-intel-dashboard/
 │   ├── activity_routes.py   # /api/activity
 │   ├── zkill_routes.py      # /api/zkill/feed, /api/zkill/<id>
 │   ├── history_routes.py    # /api/history/adm, /api/history/activity/heatmap
-│   ├── intel_routes.py      # /api/intel/neighbors, /api/local/scan
+│   ├── intel_routes.py      # /api/intel/neighbors, /api/intel/regional, /api/local/scan, /api/chars/analyze
+│   ├── entosis_routes.py    # /api/entosis/nodes (command node board)
 │   ├── timer_routes.py      # /api/timers, /api/auth/check
-│   └── static_routes.py     # / (serves Vite build or legacy fallback)
+│   └── static_routes.py     # / and /entosis (serves Vite SPA)
 │
 ├── mock/                    # Demo mock blueprints (no ESI calls)
 │   ├── mock_data.py         # All mock constants and builder functions
@@ -57,6 +60,7 @@ lawn-eve-intel-dashboard/
 │   └── src/
 │       ├── main.jsx
 │       ├── App.jsx          # Root component — state, fetching, tab nav
+│       ├── pages/           # Full-page routes (EntosisPage.jsx — /entosis)
 │       ├── styles/global.css
 │       ├── utils/           # admHelpers, campaignHelpers, formatters, upgradeHelpers, mapHelpers
 │       └── components/      # 14 feature components + 3 common components
@@ -303,7 +307,8 @@ SYSTEM_UPGRADES = {
 | `DEPLOYMENT` | `lawn_perrigen` | Active deployment module under `deployments/` |
 | `FLASK_DEBUG` | `false` | Enable Flask debug/reloader (never true in production) |
 | `FLASK_PORT` | `5000` | Port Flask listens on (overridden to 5001 for demo alongside live) |
-| `TIMER_PASSWORD` | `lawnmower` | Password for timerboard add/delete |
+| `TIMER_PASSWORD` | `lawnmower` | Password for timerboard and entosis board add/delete |
+| `INTEL_DB_PATH` | `<repo>/intel.db` | Override SQLite database path |
 
 ---
 
