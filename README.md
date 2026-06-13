@@ -44,7 +44,7 @@ lawn-eve-intel-dashboard/
 │   ├── activity_routes.py   # /api/activity
 │   ├── zkill_routes.py      # /api/zkill/feed, /api/zkill/<id>
 │   ├── history_routes.py    # /api/history/adm, /api/history/activity/heatmap
-│   ├── intel_routes.py      # /api/intel/neighbors, /api/intel/regional, /api/local/scan, /api/chars/analyze
+│   ├── intel_routes.py      # /api/intel/neighbors, /api/intel/regional, /api/intel/sov_changes, /api/local/scan, /api/chars/analyze, /api/fleet/analyze
 │   ├── entosis_routes.py    # /api/entosis/nodes (command node board)
 │   ├── timer_routes.py      # /api/timers, /api/auth/check
 │   └── static_routes.py     # / and /entosis (serves Vite SPA)
