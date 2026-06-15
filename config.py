@@ -8,6 +8,7 @@ is active. Defaults to lawn_perrigen.
 """
 
 import os
+import secrets
 
 from deployments import ACTIVE as _D
 from eve_constants import (
@@ -56,7 +57,13 @@ PI_DATA = _D.PI_DATA
 FLASK_HOST = "0.0.0.0"
 FLASK_PORT = int(os.environ.get("FLASK_PORT", "5000"))
 FLASK_DEBUG = os.environ.get("FLASK_DEBUG", "false").lower() == "true"
-TIMER_PASSWORD = os.environ.get("TIMER_PASSWORD", "REDACTED")
+# No usable default: if TIMER_PASSWORD is unset, fall back to a random
+# per-process token so timer/structure writes are effectively disabled until
+# an operator sets a real password. Never ship a known default — this repo is
+# public, so any hardcoded value would be public too.
+# .strip() so a whitespace-only value (e.g. "   ") can't bypass the random
+# fallback and become a weak/accidental password.
+TIMER_PASSWORD = (os.environ.get("TIMER_PASSWORD") or "").strip() or secrets.token_urlsafe(32)
 
 # ===== Backwards-compat aliases =====
 # Older code imports `LAWN_*` and `MONITORED_CONSTELLATION_IDS`. Keep these

@@ -223,7 +223,7 @@ nano .env
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `DEPLOYMENT` | `lawn_perrigen` | Active deployment module under `deployments/` |
-| `TIMER_PASSWORD` | `REDACTED` | Password for timerboard add/delete |
+| `TIMER_PASSWORD` | _(unset)_ | Password for timerboard add/delete. If unset, timer/structure writes are disabled (random per-process token). |
 | `FLASK_PORT` | `5000` | Port Flask listens on |
 | `FLASK_DEBUG` | `false` | Never enable in production |
 
@@ -307,7 +307,7 @@ SYSTEM_UPGRADES = {
 | `DEPLOYMENT` | `lawn_perrigen` | Active deployment module under `deployments/` |
 | `FLASK_DEBUG` | `false` | Enable Flask debug/reloader (never true in production) |
 | `FLASK_PORT` | `5000` | Port Flask listens on (overridden to 5001 for demo alongside live) |
-| `TIMER_PASSWORD` | `REDACTED` | Password for timerboard and entosis board add/delete |
+| `TIMER_PASSWORD` | _(unset)_ | Password for timerboard and entosis board add/delete. If unset, those writes are disabled (random per-process token). |
 | `INTEL_DB_PATH` | `<repo>/intel.db` | Override SQLite database path |
 
 ---
@@ -346,4 +346,6 @@ Drop your alliance logo at `static/logo.png` — the header picks it up automati
 
 ## License
 
-MIT
+Licensed under the [GNU General Public License v3.0](LICENSE). You may use,
+modify, and redistribute this software, but derivative works must also be
+released under the GPL-3.0.
