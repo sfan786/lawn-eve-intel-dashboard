@@ -61,7 +61,9 @@ FLASK_DEBUG = os.environ.get("FLASK_DEBUG", "false").lower() == "true"
 # per-process token so timer/structure writes are effectively disabled until
 # an operator sets a real password. Never ship a known default — this repo is
 # public, so any hardcoded value would be public too.
-TIMER_PASSWORD = os.environ.get("TIMER_PASSWORD") or secrets.token_urlsafe(32)
+# .strip() so a whitespace-only value (e.g. "   ") can't bypass the random
+# fallback and become a weak/accidental password.
+TIMER_PASSWORD = (os.environ.get("TIMER_PASSWORD") or "").strip() or secrets.token_urlsafe(32)
 
 # ===== Backwards-compat aliases =====
 # Older code imports `LAWN_*` and `MONITORED_CONSTELLATION_IDS`. Keep these
