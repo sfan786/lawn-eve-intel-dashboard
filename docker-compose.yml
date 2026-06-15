@@ -10,7 +10,9 @@ services:
       - .env
     environment:
       - FLASK_DEBUG=${FLASK_DEBUG:-false}
-      - TIMER_PASSWORD=${TIMER_PASSWORD:-lawnmower}
+      # Set TIMER_PASSWORD in .env — if unset, timer writes are disabled (a
+      # random per-process token is used). Never hardcode a default here.
+      - TIMER_PASSWORD=${TIMER_PASSWORD:-}
       - DEPLOYMENT=${DEPLOYMENT:-lawn_perrigen}
     volumes:
       # Persist SQLite database outside the container
