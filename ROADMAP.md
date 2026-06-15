@@ -99,10 +99,15 @@
 
 ### EVE SSO Auth
 **Why:** Unlocks character-specific and corp-level data.
-- OAuth2 flow with EVE's SSO
-- Character-specific: location, ship, skill queue
-- Corp-level: structure list, fuel levels, moon extractions, wallet
-- Fleet tracking — who's in fleet, what they're flying
+- [x] **OAuth2 flow with EVE's SSO** — "Log in with EVE" gates write actions
+  (timers, entosis claims, annotations, jump bridges) by alliance membership /
+  character allowlist; entosis claims stamped with the real character;
+  `TIMER_PASSWORD` retained as a fallback. `routes/auth_sso.py`,
+  `frontend/src/utils/useAuth.js`, `EveLoginButton.jsx`. (No ESI scopes yet —
+  identity only.)
+- Character-specific: location, ship, skill queue (needs scopes)
+- Corp-level: structure list, fuel levels, moon extractions, wallet (needs scopes)
+- Fleet tracking — who's in fleet, what they're flying (needs scopes)
 - **Prerequisite for:** Structure tracking, fleet comp analysis, PI tracking
 
 ### Fleet Composition Analyzer

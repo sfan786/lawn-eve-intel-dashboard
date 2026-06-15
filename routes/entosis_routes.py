@@ -1,5 +1,5 @@
 from flask import Blueprint, jsonify, request
-from config import TIMER_PASSWORD
+from routes.auth_sso import require_write_auth, current_character_name
 import db
 
 entosis_bp = Blueprint("entosis", __name__)
@@ -13,9 +13,8 @@ def api_get_nodes():
 
 
 @entosis_bp.route("/api/entosis/nodes", methods=["POST"])
+@require_write_auth
 def api_add_node():
-    if request.headers.get("X-Timer-Auth") != TIMER_PASSWORD:
-        return jsonify({"error": "Unauthorized"}), 401
     data = request.json
     if not isinstance(data, dict):
         return jsonify({"error": "Invalid JSON payload"}), 400
@@ -49,22 +48,26 @@ def api_update_node(node_id):
         return jsonify({"error": f"Invalid status. Must be one of: {', '.join(VALID_STATUSES)}"}), 400
     if claimed_by is not None:
         claimed_by = claimed_by.strip()[:64]
+        # When logged in via SSO, bind the claim to the real character — a claim
+        # ("" means unclaim) always records who actually made it, not a
+        # client-supplied callsign.
+        name = current_character_name()
+        if name and claimed_by:
+            claimed_by = name[:64]
 
     db.update_entosis_node(node_id, status=status, claimed_by=claimed_by)
     return jsonify({"status": "ok"})
 
 
 @entosis_bp.route("/api/entosis/nodes/<int:node_id>", methods=["DELETE"])
+@require_write_auth
 def api_delete_node(node_id):
-    if request.headers.get("X-Timer-Auth") != TIMER_PASSWORD:
-        return jsonify({"error": "Unauthorized"}), 401
     db.delete_entosis_node(node_id)
     return jsonify({"status": "ok"})
 
 
 @entosis_bp.route("/api/entosis/nodes", methods=["DELETE"])
+@require_write_auth
 def api_clear_nodes():
-    if request.headers.get("X-Timer-Auth") != TIMER_PASSWORD:
-        return jsonify({"error": "Unauthorized"}), 401
     db.clear_entosis_nodes()
     return jsonify({"status": "ok"})

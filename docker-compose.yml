@@ -14,6 +14,15 @@ services:
       # random per-process token is used). Never hardcode a default here.
       - TIMER_PASSWORD=${TIMER_PASSWORD:-}
       - DEPLOYMENT=${DEPLOYMENT:-lawn_perrigen}
+      # EVE SSO (optional). When all three EVE_* are set, "Log in with EVE"
+      # replaces the password as the primary auth. Set a persistent
+      # FLASK_SECRET_KEY or sessions reset on every restart.
+      - FLASK_SECRET_KEY=${FLASK_SECRET_KEY:-}
+      - EVE_CLIENT_ID=${EVE_CLIENT_ID:-}
+      - EVE_CLIENT_SECRET=${EVE_CLIENT_SECRET:-}
+      - EVE_CALLBACK_URL=${EVE_CALLBACK_URL:-}
+      - AUTH_ALLOWED_ALLIANCE_IDS=${AUTH_ALLOWED_ALLIANCE_IDS:-}
+      - AUTH_ALLOWED_CHARACTER_IDS=${AUTH_ALLOWED_CHARACTER_IDS:-}
     volumes:
       # Persist SQLite database outside the container
       - ./intel.db:/app/intel.db

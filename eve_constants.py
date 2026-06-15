@@ -11,6 +11,14 @@ ESI_DATASOURCE = "tranquility"
 ZKILL_BASE = "https://zkillboard.com/api"
 ZKILL_RECENT_HOURS = 24
 
+# ===== EVE SSO (OAuth2) =====
+# Used by routes/auth_sso.py for "Log in with EVE" identity. No ESI scopes are
+# requested — character identity comes from the signed access-token JWT.
+SSO_AUTHORIZE_URL = "https://login.eveonline.com/v2/oauth/authorize"
+SSO_TOKEN_URL = "https://login.eveonline.com/v2/oauth/token"
+SSO_JWKS_URL = "https://login.eveonline.com/oauth/jwks"
+SSO_ISSUER = "login.eveonline.com"
+
 CACHE_TTL = {
     "sovereignty": 300,                # 5 min — sov changes slowly
     "sovereignty_structures": 300,     # 5 min — ADM levels

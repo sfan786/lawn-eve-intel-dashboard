@@ -1,6 +1,7 @@
 import hmac
 from flask import Blueprint, jsonify, request
 from config import TIMER_PASSWORD
+from routes.auth_sso import require_write_auth
 import db
 
 timer_bp = Blueprint("timer", __name__)
@@ -22,11 +23,8 @@ def api_check_auth():
 
 
 @timer_bp.route("/api/timers", methods=["POST"])
+@require_write_auth
 def api_add_timer():
-    auth_header = request.headers.get("X-Timer-Auth") or ""
-    if not TIMER_PASSWORD or not hmac.compare_digest(auth_header, TIMER_PASSWORD):
-        return jsonify({"error": "Unauthorized"}), 401
-
     data = request.json or {}
     required = ("system_name", "structure_type", "owner", "event_type", "timestamp")
     if not all(isinstance(data.get(k), str) and data[k].strip() for k in required):
@@ -47,10 +45,7 @@ def api_add_timer():
 
 
 @timer_bp.route("/api/timers/<int:timer_id>", methods=["DELETE"])
+@require_write_auth
 def api_delete_timer(timer_id):
-    auth_header = request.headers.get("X-Timer-Auth") or ""
-    if not TIMER_PASSWORD or not hmac.compare_digest(auth_header, TIMER_PASSWORD):
-        return jsonify({"error": "Unauthorized"}), 401
-
     db.delete_timer(timer_id)
     return jsonify({"status": "ok"})

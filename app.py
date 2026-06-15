@@ -13,6 +13,7 @@ Usage:
 """
 
 from flask import Flask
+import config
 from config import ALLIANCE, REGION, FLASK_HOST, FLASK_PORT, FLASK_DEBUG
 from routes.system_state import state, resolve_all_systems
 from routes.config_routes import config_bp
@@ -26,13 +27,20 @@ from routes.timer_routes import timer_bp
 from routes.annotation_routes import annotation_bp
 from routes.jb_routes import jb_bp
 from routes.entosis_routes import entosis_bp
+from routes.auth_sso import auth_sso_bp
 from routes.static_routes import static_bp
 import db
 
 
 def create_app():
     app = Flask(__name__)
-    for bp in [config_bp, sov_bp, activity_bp, zkill_bp, history_bp, intel_bp, hostile_bp, timer_bp, annotation_bp, jb_bp, entosis_bp, static_bp]:
+    app.secret_key = config.FLASK_SECRET_KEY
+    app.config.update(
+        SESSION_COOKIE_HTTPONLY=True,
+        SESSION_COOKIE_SAMESITE="Lax",
+        SESSION_COOKIE_SECURE=not FLASK_DEBUG,
+    )
+    for bp in [config_bp, sov_bp, activity_bp, zkill_bp, history_bp, intel_bp, hostile_bp, timer_bp, annotation_bp, jb_bp, entosis_bp, auth_sso_bp, static_bp]:
         app.register_blueprint(bp)
     return app
 

@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import CornerBrackets from '../components/common/CornerBrackets'
+import EveLoginButton from '../components/common/EveLoginButton'
+import { useAuth } from '../utils/useAuth'
 
 const STATUS_META = {
     unclaimed:  { label: 'UNCLAIMED',  color: '#6a8090', bg: 'rgba(106,128,144,0.08)' },
@@ -44,6 +46,13 @@ export default function EntosisPage() {
     const [newLabel, setNewLabel] = useState('')
     const [lastUpdate, setLastUpdate] = useState(null)
     const pollRef = useRef(null)
+
+    const auth = useAuth()
+    // FC-level actions (add/delete/clear nodes); identity used for claims; ability to claim.
+    const canManage = auth.ssoEnabled ? auth.authorized : isAuth
+    const myName = auth.ssoEnabled ? auth.characterName : callsign
+    const canClaim = auth.ssoEnabled ? auth.loggedIn : !!callsign
+    const writeHeaders = auth.ssoEnabled ? {} : { 'X-Timer-Auth': password }
 
     const fetchNodes = useCallback(async () => {
         try {
@@ -108,12 +117,12 @@ export default function EntosisPage() {
         try {
             const res = await fetch('/api/entosis/nodes', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'X-Timer-Auth': password },
+                headers: { 'Content-Type': 'application/json', ...writeHeaders },
                 body: JSON.stringify({ system_name: newSystem, label: newLabel || null }),
             })
             if (!res.ok) {
                 const data = await res.json().catch(() => ({}))
-                setAddError(res.status === 401 ? 'Auth failed — re-enter FC password' : (data.error || `Error ${res.status}`))
+                setAddError(res.status === 401 ? (auth.ssoEnabled ? 'Not authorized — log in with EVE' : 'Auth failed — re-enter FC password') : (data.error || `Error ${res.status}`))
                 return
             }
             setNewSystem(''); setNewLabel(''); setShowAddForm(false); setAddError('')
@@ -143,8 +152,12 @@ export default function EntosisPage() {
     }
 
     const claimNode = (id) => {
-        if (!callsign) return alert('Set your callsign first.')
-        patchNode(id, { claimed_by: callsign, status: 'running' })
+        if (!canClaim) {
+            if (auth.ssoEnabled) return auth.login()
+            return alert('Set your callsign first.')
+        }
+        // In SSO mode the server stamps claimed_by from the logged-in character.
+        patchNode(id, { claimed_by: myName, status: 'running' })
     }
 
     const unclaimNode = (id) => {
@@ -154,7 +167,7 @@ export default function EntosisPage() {
     const deleteNode = async (id) => {
         await fetch(`/api/entosis/nodes/${id}`, {
             method: 'DELETE',
-            headers: { 'X-Timer-Auth': password },
+            headers: { ...writeHeaders },
         })
         fetchNodes()
     }
@@ -163,7 +176,7 @@ export default function EntosisPage() {
         if (!confirm('Clear all command nodes?')) return
         await fetch('/api/entosis/nodes', {
             method: 'DELETE',
-            headers: { 'X-Timer-Auth': password },
+            headers: { ...writeHeaders },
         })
         fetchNodes()
     }
@@ -229,27 +242,43 @@ export default function EntosisPage() {
 
                 {/* Right controls */}
                 <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
-                    {/* Callsign */}
-                    <div style={{ display: 'flex', gap: 5, alignItems: 'center' }}>
-                        <span style={{ fontFamily: 'Share Tech Mono', fontSize: 10, color: '#6a8090' }}>CALLSIGN</span>
-                        <input
-                            style={{ ...inputStyle, width: 110 }}
-                            value={callsignInput}
-                            onChange={e => setCallsignInput(e.target.value)}
-                            onKeyDown={e => e.key === 'Enter' && saveCallsign()}
-                            placeholder="your handle"
-                            maxLength={32}
-                        />
-                        <button style={btn('#00d4ff')} onClick={saveCallsign}>SET</button>
-                        {callsign && (
-                            <span style={{ fontFamily: 'Share Tech Mono', fontSize: 10, color: '#00ff88' }}>
-                                ✓ {callsign}
-                            </span>
-                        )}
-                    </div>
+                    {/* Callsign — only in legacy password mode; SSO uses the EVE character */}
+                    {!auth.ssoEnabled && (
+                        <div style={{ display: 'flex', gap: 5, alignItems: 'center' }}>
+                            <span style={{ fontFamily: 'Share Tech Mono', fontSize: 10, color: '#6a8090' }}>CALLSIGN</span>
+                            <input
+                                style={{ ...inputStyle, width: 110 }}
+                                value={callsignInput}
+                                onChange={e => setCallsignInput(e.target.value)}
+                                onKeyDown={e => e.key === 'Enter' && saveCallsign()}
+                                placeholder="your handle"
+                                maxLength={32}
+                            />
+                            <button style={btn('#00d4ff')} onClick={saveCallsign}>SET</button>
+                            {callsign && (
+                                <span style={{ fontFamily: 'Share Tech Mono', fontSize: 10, color: '#00ff88' }}>
+                                    ✓ {callsign}
+                                </span>
+                            )}
+                        </div>
+                    )}
 
                     {/* FC auth */}
-                    {!isAuth ? (
+                    {auth.ssoEnabled ? (
+                        <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                            {canManage && (
+                                <>
+                                    <button style={btn('#00d4ff')} onClick={() => { setShowAddForm(f => !f) }}>
+                                        {showAddForm ? 'CANCEL' : '+ ADD NODE'}
+                                    </button>
+                                    {nodes.length > 0 && (
+                                        <button style={btn('#ff3355')} onClick={clearAll}>CLEAR ALL</button>
+                                    )}
+                                </>
+                            )}
+                            <EveLoginButton auth={auth} />
+                        </div>
+                    ) : !isAuth ? (
                         <form onSubmit={handleAuth} style={{ display: 'flex', gap: 5, alignItems: 'center' }}>
                             <input
                                 type="password"
@@ -317,7 +346,7 @@ export default function EntosisPage() {
                         {nodes.map(node => {
                             const meta = STATUS_META[node.status] || STATUS_META.unclaimed
                             const nextStatuses = NEXT_STATUSES[node.status] || []
-                            const isClaimedByMe = callsign && node.claimed_by === callsign
+                            const isClaimedByMe = myName && node.claimed_by === myName
 
                             return (
                                 <div key={node.id} style={{
@@ -377,7 +406,7 @@ export default function EntosisPage() {
                                                 {STATUS_META[s].label}
                                             </button>
                                         ))}
-                                        {isAuth && (
+                                        {canManage && (
                                             <button style={{ ...btn('#ff3355'), marginLeft: 'auto' }} onClick={() => deleteNode(node.id)}>
                                                 ✕
                                             </button>

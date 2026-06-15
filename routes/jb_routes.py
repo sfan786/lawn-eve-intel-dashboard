@@ -1,5 +1,5 @@
 from flask import Blueprint, jsonify, request
-from config import TIMER_PASSWORD
+from routes.auth_sso import require_write_auth
 import db
 
 jb_bp = Blueprint("jumpbridge", __name__)
@@ -11,11 +11,8 @@ def api_get_jumpbridges():
 
 
 @jb_bp.route("/api/jumpbridges", methods=["POST"])
+@require_write_auth
 def api_add_jumpbridge():
-    auth_header = request.headers.get("X-Timer-Auth")
-    if auth_header != TIMER_PASSWORD:
-        return jsonify({"error": "Unauthorized"}), 401
-
     data = request.json or {}
     system_a = data.get("system_a", "").strip()
     system_b = data.get("system_b", "").strip()
@@ -29,10 +26,7 @@ def api_add_jumpbridge():
 
 
 @jb_bp.route("/api/jumpbridges/<int:bridge_id>", methods=["DELETE"])
+@require_write_auth
 def api_delete_jumpbridge(bridge_id):
-    auth_header = request.headers.get("X-Timer-Auth")
-    if auth_header != TIMER_PASSWORD:
-        return jsonify({"error": "Unauthorized"}), 401
-
     db.delete_jump_bridge(bridge_id)
     return jsonify({"status": "ok"})
