@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import CornerBrackets from './common/CornerBrackets'
+import EveLoginButton from './common/EveLoginButton'
+import { useAuth } from '../utils/useAuth'
 
 const inputStyle = {
     background: 'var(--bg-deep)', border: '1px solid var(--border-dim)', color: 'var(--text-primary)',
@@ -7,7 +9,7 @@ const inputStyle = {
 }
 
 const actionBtnStyle = {
-    background: 'transparent', border: '1px solid var(--cyan-dim)',
+    background: 'transparent', border: '1px solid var(--cyan-dim)', color: 'var(--cyan)',
     fontFamily: 'Share Tech Mono', fontSize: 10, padding: '2px 8px', cursor: 'pointer',
 }
 
@@ -17,6 +19,10 @@ export default function JumpBridgeManager({ jumpBridges = [], onJbChange }) {
     const [password, setPassword] = useState(localStorage.getItem("timer_auth") || "")
     const [isAuthenticated, setIsAuthenticated] = useState(false)
     const [authError, setAuthError] = useState(false)
+
+    const auth = useAuth()
+    const canWrite = auth.ssoEnabled ? auth.authorized : isAuthenticated
+    const writeHeaders = auth.ssoEnabled ? {} : { "X-Timer-Auth": password }
 
     const checkAuth = useCallback(async () => {
         if (!password) return
@@ -59,7 +65,7 @@ export default function JumpBridgeManager({ jumpBridges = [], onJbChange }) {
         if (!newJb.system_a.trim() || !newJb.system_b.trim()) return
         const res = await fetch("/api/jumpbridges", {
             method: "POST",
-            headers: { "Content-Type": "application/json", "X-Timer-Auth": password },
+            headers: { "Content-Type": "application/json", ...writeHeaders },
             body: JSON.stringify(newJb),
         })
         if (res.ok) {
@@ -76,7 +82,7 @@ export default function JumpBridgeManager({ jumpBridges = [], onJbChange }) {
         if (!confirm("Remove this jump bridge?")) return
         const res = await fetch(`/api/jumpbridges/${id}`, {
             method: "DELETE",
-            headers: { "X-Timer-Auth": password },
+            headers: { ...writeHeaders },
         })
         if (res.ok) {
             if (onJbChange) onJbChange()
@@ -95,7 +101,16 @@ export default function JumpBridgeManager({ jumpBridges = [], onJbChange }) {
                     {jumpBridges.length > 0 && (
                         <span className="panel-badge">{jumpBridges.length} active</span>
                     )}
-                    {isAuthenticated ? (
+                    {auth.ssoEnabled ? (
+                        <>
+                            {canWrite && (
+                                <button onClick={() => setShowForm(!showForm)} style={actionBtnStyle}>
+                                    {showForm ? "CANCEL" : "+ ADD JB"}
+                                </button>
+                            )}
+                            <EveLoginButton auth={auth} />
+                        </>
+                    ) : isAuthenticated ? (
                         <>
                             <button onClick={() => setShowForm(!showForm)} style={actionBtnStyle}>
                                 {showForm ? "CANCEL" : "+ ADD JB"}
@@ -108,7 +123,7 @@ export default function JumpBridgeManager({ jumpBridges = [], onJbChange }) {
                 </div>
             </div>
 
-            {!isAuthenticated && showForm && (
+            {!auth.ssoEnabled && !isAuthenticated && showForm && (
                 <div style={{ padding: 10, background: 'rgba(255,51,85,0.1)', marginBottom: 10, border: '1px solid var(--red-dim)' }}>
                     <form onSubmit={handleLogin} style={{ display: 'flex', gap: 8 }}>
                         <input
@@ -124,7 +139,7 @@ export default function JumpBridgeManager({ jumpBridges = [], onJbChange }) {
                 </div>
             )}
 
-            {isAuthenticated && showForm && (
+            {canWrite && showForm && (
                 <div style={{ padding: 10, background: 'rgba(204,68,255,0.05)', marginBottom: 10, border: '1px solid rgba(204,68,255,0.2)' }}>
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, marginBottom: 8 }}>
                         <input
@@ -159,12 +174,12 @@ export default function JumpBridgeManager({ jumpBridges = [], onJbChange }) {
                     <div style={{ color: 'var(--text-muted)', fontSize: 11, fontStyle: 'italic' }}>
                         No jump bridges configured. JB connections appear on the map as dashed purple lines.
                     </div>
-                    {!isAuthenticated && (
-                        <button onClick={() => setShowForm(true)} style={{
+                    {!canWrite && (
+                        <button onClick={() => auth.ssoEnabled ? auth.login() : setShowForm(true)} style={{
                             marginTop: 8, background: 'none', border: '1px solid var(--text-muted)',
                             color: 'var(--text-muted)', fontSize: 10, padding: '2px 8px', cursor: 'pointer',
                         }}>
-                            LOGIN TO MANAGE
+                            {auth.ssoEnabled ? "LOG IN WITH EVE" : "LOGIN TO MANAGE"}
                         </button>
                     )}
                 </div>
@@ -187,7 +202,7 @@ export default function JumpBridgeManager({ jumpBridges = [], onJbChange }) {
                                 </div>
                             )}
                             {!jb.label && <div style={{ flex: 1 }} />}
-                            {isAuthenticated && (
+                            {canWrite && (
                                 <button onClick={() => handleDelete(jb.id)} style={{
                                     background: 'none', border: 'none', color: 'var(--text-muted)',
                                     cursor: 'pointer', fontSize: 14, marginLeft: 8,

@@ -10,6 +10,7 @@ import {
     gatewayDestinations,
 } from '../utils/mapHelpers'
 import UpgradeBadges from './common/UpgradeBadges'
+import { useAuth } from '../utils/useAuth'
 
 const EMPTY_LAYOUT = {}
 const EMPTY_CONNECTIONS = []
@@ -19,6 +20,10 @@ export default function ConstellationMap({ config, sovereignty, activity, campai
     const [touchTransform, setTouchTransform] = useState({ scale: 1, x: 0, y: 0 })
     const [annotationEditor, setAnnotationEditor] = useState(null)
     const svgRef = useRef(null)
+    const auth = useAuth()
+    // SSO uses the session cookie; password mode sends the legacy header.
+    const writeHeaders = auth.ssoEnabled ? {} : { "X-Timer-Auth": localStorage.getItem("timer_auth") || "" }
+    const authHint = auth.ssoEnabled ? "Log in with EVE (Timers panel) to edit" : "FC password required — log in on the Timers panel"
     const touchStateRef = useRef(null)
     const mapContainerRef = useRef(null)
 
@@ -247,11 +252,11 @@ export default function ConstellationMap({ config, sovereignty, activity, campai
     async function handleSaveAnnotation() {
         const res = await fetch("/api/annotations", {
             method: "POST",
-            headers: { "Content-Type": "application/json", "X-Timer-Auth": localStorage.getItem("timer_auth") || "" },
+            headers: { "Content-Type": "application/json", ...writeHeaders },
             body: JSON.stringify({ system_name: annotationEditor.name, note: annotationEditor.note }),
         }).catch(() => null)
         if (!res || !res.ok) {
-            setAnnotationEditor({ ...annotationEditor, error: res && res.status === 401 ? "FC password required — log in on the Timers panel" : "Save failed" })
+            setAnnotationEditor({ ...annotationEditor, error: res && res.status === 401 ? authHint : "Save failed" })
             return
         }
         setAnnotationEditor(null)
@@ -261,10 +266,10 @@ export default function ConstellationMap({ config, sovereignty, activity, campai
     async function handleDeleteAnnotation() {
         const res = await fetch(`/api/annotations/${encodeURIComponent(annotationEditor.name)}`, {
             method: "DELETE",
-            headers: { "X-Timer-Auth": localStorage.getItem("timer_auth") || "" },
+            headers: { ...writeHeaders },
         }).catch(() => null)
         if (!res || !res.ok) {
-            setAnnotationEditor({ ...annotationEditor, error: res && res.status === 401 ? "FC password required — log in on the Timers panel" : "Delete failed" })
+            setAnnotationEditor({ ...annotationEditor, error: res && res.status === 401 ? authHint : "Delete failed" })
             return
         }
         setAnnotationEditor(null)

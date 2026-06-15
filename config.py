@@ -65,6 +65,36 @@ FLASK_DEBUG = os.environ.get("FLASK_DEBUG", "false").lower() == "true"
 # fallback and become a weak/accidental password.
 TIMER_PASSWORD = (os.environ.get("TIMER_PASSWORD") or "").strip() or secrets.token_urlsafe(32)
 
+# Signs the Flask session cookie that holds SSO identity. Random fallback keeps
+# the app bootable, but prod MUST set a persistent value or every restart logs
+# everyone out (and sessions can't be shared across gunicorn workers/restarts).
+FLASK_SECRET_KEY = os.environ.get("FLASK_SECRET_KEY") or secrets.token_hex(32)
+
+# ===== EVE SSO =====
+EVE_CLIENT_ID = (os.environ.get("EVE_CLIENT_ID") or "").strip()
+EVE_CLIENT_SECRET = (os.environ.get("EVE_CLIENT_SECRET") or "").strip()
+EVE_CALLBACK_URL = (os.environ.get("EVE_CALLBACK_URL") or "").strip()
+# SSO is only wired up when all three are present; otherwise the app falls back
+# to TIMER_PASSWORD-only auth (demo/local work with no EVE app registered).
+SSO_ENABLED = bool(EVE_CLIENT_ID and EVE_CLIENT_SECRET and EVE_CALLBACK_URL)
+
+
+def _parse_int_set(raw):
+    """Parse a comma/space-separated env string into a set of ints."""
+    out = set()
+    for tok in (raw or "").replace(",", " ").split():
+        try:
+            out.add(int(tok))
+        except ValueError:
+            pass
+    return out
+
+
+# Who may perform writes after SSO login: anyone in the primary alliance, plus
+# any extra alliances and an explicit character allowlist (for FCs/guests).
+AUTH_ALLOWED_ALLIANCE_IDS = {PRIMARY_ALLIANCE_ID} | _parse_int_set(os.environ.get("AUTH_ALLOWED_ALLIANCE_IDS"))
+AUTH_ALLOWED_CHARACTER_IDS = _parse_int_set(os.environ.get("AUTH_ALLOWED_CHARACTER_IDS"))
+
 # ===== Backwards-compat aliases =====
 # Older code imports `LAWN_*` and `MONITORED_CONSTELLATION_IDS`. Keep these
 # working while we incrementally rename downstream callers.

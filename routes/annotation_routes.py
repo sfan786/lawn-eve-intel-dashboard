@@ -1,5 +1,5 @@
 from flask import Blueprint, jsonify, request
-from config import TIMER_PASSWORD
+from routes.auth_sso import require_write_auth
 import db
 
 annotation_bp = Blueprint("annotation", __name__)
@@ -13,10 +13,8 @@ def api_get_annotations():
 
 
 @annotation_bp.route("/api/annotations", methods=["POST"])
+@require_write_auth
 def api_upsert_annotation():
-    if request.headers.get("X-Timer-Auth") != TIMER_PASSWORD:
-        return jsonify({"error": "Unauthorized"}), 401
-
     data = request.json or {}
     system_name = data.get("system_name", "").strip()
     note = data.get("note", "")
@@ -29,9 +27,7 @@ def api_upsert_annotation():
 
 
 @annotation_bp.route("/api/annotations/<path:system_name>", methods=["DELETE"])
+@require_write_auth
 def api_delete_annotation(system_name):
-    if request.headers.get("X-Timer-Auth") != TIMER_PASSWORD:
-        return jsonify({"error": "Unauthorized"}), 401
-
     db.delete_annotation(system_name)
     return jsonify({"status": "ok"})

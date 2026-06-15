@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import { formatCountdown, formatEveTime, formatLocalTime } from '../utils/campaignHelpers'
+import { useAuth } from '../utils/useAuth'
 import CornerBrackets from './common/CornerBrackets'
+import EveLoginButton from './common/EveLoginButton'
 
 const inputStyle = {
     background: 'var(--bg-deep)', border: '1px solid var(--border-dim)', color: 'var(--text-primary)', padding: 4, fontSize: 11, fontFamily: 'Share Tech Mono'
@@ -26,6 +28,12 @@ export default function TimerBoard() {
     const [password, setPassword] = useState(localStorage.getItem("timer_auth") || "")
     const [isAuthenticated, setIsAuthenticated] = useState(false)
     const [authError, setAuthError] = useState(false)
+
+    const auth = useAuth()
+    // SSO when configured, else the legacy password flow.
+    const canWrite = auth.ssoEnabled ? auth.authorized : isAuthenticated
+    // SSO uses the session cookie (sent automatically); password mode uses the header.
+    const writeHeaders = auth.ssoEnabled ? {} : { "X-Timer-Auth": password }
 
     const checkAuth = useCallback(async () => {
         if (!password) return
@@ -103,10 +111,7 @@ export default function TimerBoard() {
 
         const res = await fetch("/api/timers", {
             method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                "X-Timer-Auth": password
-            },
+            headers: { "Content-Type": "application/json", ...writeHeaders },
             body: JSON.stringify({ ...newTimer, timestamp: isoTimestamp })
         })
 
@@ -124,7 +129,7 @@ export default function TimerBoard() {
         if (!confirm("Delete this timer?")) return
         const res = await fetch(`/api/timers/${id}`, {
             method: "DELETE",
-            headers: { "X-Timer-Auth": password }
+            headers: { ...writeHeaders }
         })
 
         if (res.ok) {
@@ -140,7 +145,16 @@ export default function TimerBoard() {
             <CornerBrackets />
             <div className="panel-header">
                 <span className="panel-title">⏱ Strategic Timerboard</span>
-                {isAuthenticated ? (
+                {auth.ssoEnabled ? (
+                    <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                        {canWrite && (
+                            <button onClick={() => setShowForm(!showForm)} style={actionBtnStyle}>
+                                {showForm ? "CANCEL" : "+ ADD TIMER"}
+                            </button>
+                        )}
+                        <EveLoginButton auth={auth} />
+                    </div>
+                ) : isAuthenticated ? (
                     <div style={{ display: 'flex', gap: 8 }}>
                         <button onClick={() => setShowForm(!showForm)} style={actionBtnStyle}>
                             {showForm ? "CANCEL" : "+ ADD TIMER"}
@@ -152,7 +166,7 @@ export default function TimerBoard() {
                 )}
             </div>
 
-            {!isAuthenticated && showForm && (
+            {!auth.ssoEnabled && !isAuthenticated && showForm && (
                 <div style={{ padding: 10, background: 'rgba(255,51,85,0.1)', marginBottom: 10, border: '1px solid var(--red-dim)' }}>
                     <form onSubmit={handleLogin} style={{ display: 'flex', gap: 8 }}>
                         <input
@@ -168,7 +182,7 @@ export default function TimerBoard() {
                 </div>
             )}
 
-            {isAuthenticated && showForm && (
+            {canWrite && showForm && (
                 <div style={{ padding: 10, background: 'rgba(0,212,255,0.05)', marginBottom: 10, border: '1px solid var(--border-dim)' }}>
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, marginBottom: 8 }}>
                         <input placeholder="System" value={newTimer.system_name} onChange={e => setNewTimer({ ...newTimer, system_name: e.target.value })} style={inputStyle} />
@@ -198,9 +212,9 @@ export default function TimerBoard() {
             {timers.length === 0 && !showForm && (
                 <div style={{ padding: 10, textAlign: 'center' }}>
                     <div style={{ color: 'var(--text-muted)', fontSize: 11, fontStyle: 'italic' }}>No active timers. Secure the lawn.</div>
-                    {!isAuthenticated && (
-                        <button onClick={() => setShowForm(true)} style={{ marginTop: 8, background: 'none', border: '1px solid var(--text-muted)', color: 'var(--text-muted)', fontSize: 10, padding: '2px 8px', cursor: 'pointer' }}>
-                            LOGIN TO MANAGE
+                    {!canWrite && (
+                        <button onClick={() => auth.ssoEnabled ? auth.login() : setShowForm(true)} style={{ marginTop: 8, background: 'none', border: '1px solid var(--text-muted)', color: 'var(--text-muted)', fontSize: 10, padding: '2px 8px', cursor: 'pointer' }}>
+                            {auth.ssoEnabled ? "LOG IN WITH EVE" : "LOGIN TO MANAGE"}
                         </button>
                     )}
                 </div>
@@ -237,7 +251,7 @@ export default function TimerBoard() {
                                     / {formatLocalTime(time)}
                                 </span>
                             </div>
-                            {isAuthenticated && (
+                            {canWrite && (
                                 <button onClick={() => handleDelete(t.id)} style={{
                                     marginLeft: 12, background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: 14
                                 }}>×</button>

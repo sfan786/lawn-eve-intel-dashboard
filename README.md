@@ -223,7 +223,7 @@ nano .env
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `DEPLOYMENT` | `lawn_perrigen` | Active deployment module under `deployments/` |
-| `TIMER_PASSWORD` | _(unset)_ | Password for timerboard add/delete. If unset, timer/structure writes are disabled (random per-process token). |
+| `TIMER_PASSWORD` | _(unset)_ | Fallback password for write actions (timerboard, entosis, annotations, JBs) when EVE SSO is off. See [EVE SSO setup](#eve-sso-setup) and the env table below. |
 | `FLASK_PORT` | `5000` | Port Flask listens on |
 | `FLASK_DEBUG` | `false` | Never enable in production |
 
@@ -307,8 +307,30 @@ SYSTEM_UPGRADES = {
 | `DEPLOYMENT` | `lawn_perrigen` | Active deployment module under `deployments/` |
 | `FLASK_DEBUG` | `false` | Enable Flask debug/reloader (never true in production) |
 | `FLASK_PORT` | `5000` | Port Flask listens on (overridden to 5001 for demo alongside live) |
-| `TIMER_PASSWORD` | _(unset)_ | Password for timerboard and entosis board add/delete. If unset, those writes are disabled (random per-process token). |
+| `TIMER_PASSWORD` | _(unset)_ | Fallback password for write actions when SSO is off. If unset (and no SSO), writes are disabled (random per-process token). |
 | `INTEL_DB_PATH` | `<repo>/intel.db` | Override SQLite database path |
+| `EVE_CLIENT_ID` / `EVE_CLIENT_SECRET` / `EVE_CALLBACK_URL` | _(unset)_ | EVE SSO app credentials. All three enable "Log in with EVE" (see below). |
+| `FLASK_SECRET_KEY` | _(random)_ | Signs the session cookie. **Set a persistent value in prod** or restarts log everyone out. |
+| `AUTH_ALLOWED_ALLIANCE_IDS` | _(empty)_ | Extra alliance IDs allowed to write (primary alliance always allowed). Comma-separated. |
+| `AUTH_ALLOWED_CHARACTER_IDS` | _(empty)_ | Specific character IDs allowed to write (FCs/guests outside the alliance). Comma-separated. |
+
+### EVE SSO setup
+
+When `EVE_CLIENT_ID`, `EVE_CLIENT_SECRET`, and `EVE_CALLBACK_URL` are all set,
+write actions (timers, entosis claims, map annotations, jump bridges) are gated
+by **"Log in with EVE"** instead of the shared password. A character may write if
+its alliance is the deployment's primary alliance (or in `AUTH_ALLOWED_ALLIANCE_IDS`),
+or its ID is in `AUTH_ALLOWED_CHARACTER_IDS`. Entosis claims are stamped with the
+real logged-in character. `TIMER_PASSWORD` still works as a fallback.
+
+1. Go to <https://developers.eveonline.com/applications> → **Create New Application**.
+2. **Authentication Type:** Authentication Only (no scopes needed).
+3. **Callback URL:** `https://<your-domain>/api/auth/sso/callback`.
+   EVE allows only one callback per app — register a **separate app** for local
+   dev with `http://localhost:5000/api/auth/sso/callback`.
+4. Copy the **Client ID** and **Secret Key** into `.env`, set `EVE_CALLBACK_URL`
+   to match, and set a persistent `FLASK_SECRET_KEY`
+   (`python -c "import secrets; print(secrets.token_hex(32))"`).
 
 ---
 
