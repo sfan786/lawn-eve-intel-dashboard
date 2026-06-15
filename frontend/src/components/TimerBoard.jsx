@@ -9,6 +9,7 @@ const inputStyle = {
 const actionBtnStyle = {
     background: 'transparent',
     border: '1px solid var(--cyan-dim)',
+    color: 'var(--cyan)',
     fontFamily: 'Share Tech Mono',
     fontSize: 10,
     padding: '2px 8px',
