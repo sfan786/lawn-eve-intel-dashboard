@@ -14,7 +14,7 @@ No ESI scopes are requested.
 import hmac
 import secrets
 from functools import wraps
-from urllib.parse import urlencode
+from urllib.parse import urlencode, urlparse
 
 import jwt
 import requests
@@ -43,12 +43,17 @@ def _get_jwks_client():
 
 
 def _is_safe_next(path):
-    """True only for a same-origin relative path (single leading slash)."""
+    """True only for a same-origin relative path (single leading slash, no host).
+
+    Rejects protocol-relative ("//host", "/\\host") and absolute URLs so the
+    post-login redirect can't be pointed off-site (open redirect).
+    """
     return (
         isinstance(path, str)
         and path.startswith("/")
         and not path.startswith("//")
         and not path.startswith("/\\")
+        and not urlparse(path).netloc
     )
 
 
@@ -160,9 +165,10 @@ def api_sso_callback():
         return jsonify({"error": "Token exchange failed"}), 502
 
     # Validate the access-token JWT: signature (EVE JWKS), issuer, and that the
-    # token was minted for THIS app — audience must contain our client_id and the
-    # authorized party (azp) must equal it. Without this a token issued for a
-    # different EVE app would be accepted.
+    # token was minted for THIS app. Per EVE docs the `aud` claim is
+    # [client_id, "EVE Online"] and `azp` is the client_id — verifying our
+    # client_id is the audience (plus azp) prevents replaying a token issued for
+    # a different EVE application.
     try:
         signing_key = _get_jwks_client().get_signing_key_from_jwt(access_token)
         claims = jwt.decode(
@@ -175,7 +181,10 @@ def api_sso_callback():
     except Exception:
         return jsonify({"error": "Invalid SSO token"}), 502
 
-    if claims.get("azp") != config.EVE_CLIENT_ID:
+    aud = claims.get("aud") or []
+    if isinstance(aud, str):
+        aud = [aud]
+    if "EVE Online" not in aud or claims.get("azp") != config.EVE_CLIENT_ID:
         return jsonify({"error": "Token not issued for this application"}), 502
 
     # sub looks like "CHARACTER:EVE:123456789"
