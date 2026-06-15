@@ -42,6 +42,16 @@ def _get_jwks_client():
     return _jwks_client
 
 
+def _is_safe_next(path):
+    """True only for a same-origin relative path (single leading slash)."""
+    return (
+        isinstance(path, str)
+        and path.startswith("/")
+        and not path.startswith("//")
+        and not path.startswith("/\\")
+    )
+
+
 def _character_alliance_id(character_id):
     """Resolve a character's alliance ID via public ESI (None if unaffiliated)."""
     try:
@@ -103,9 +113,11 @@ def api_sso_login():
 
     state = secrets.token_urlsafe(16)
     session["sso_state"] = state
-    # Remember where to send the user back to (same-origin paths only).
+    # Remember where to send the user back to (same-origin paths only). Must be a
+    # single leading slash — reject "//host" and "/\host" which browsers treat as
+    # protocol-relative URLs and would allow an open redirect off-site.
     nxt = request.args.get("next") or "/"
-    session["sso_next"] = nxt if nxt.startswith("/") else "/"
+    session["sso_next"] = nxt if _is_safe_next(nxt) else "/"
 
     params = {
         "response_type": "code",
@@ -147,7 +159,10 @@ def api_sso_callback():
     except Exception:
         return jsonify({"error": "Token exchange failed"}), 502
 
-    # Validate the access-token JWT signature + issuer against EVE's JWKS.
+    # Validate the access-token JWT: signature (EVE JWKS), issuer, and that the
+    # token was minted for THIS app — audience must contain our client_id and the
+    # authorized party (azp) must equal it. Without this a token issued for a
+    # different EVE app would be accepted.
     try:
         signing_key = _get_jwks_client().get_signing_key_from_jwt(access_token)
         claims = jwt.decode(
@@ -155,10 +170,13 @@ def api_sso_callback():
             signing_key.key,
             algorithms=["RS256"],
             issuer=SSO_ISSUER,
-            options={"verify_aud": False},
+            audience=config.EVE_CLIENT_ID,
         )
     except Exception:
         return jsonify({"error": "Invalid SSO token"}), 502
+
+    if claims.get("azp") != config.EVE_CLIENT_ID:
+        return jsonify({"error": "Token not issued for this application"}), 502
 
     # sub looks like "CHARACTER:EVE:123456789"
     sub = claims.get("sub", "")
