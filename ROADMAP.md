@@ -39,6 +39,9 @@
 - [x] **RMC coalition standings** — ~50 RMC alliance IDs + 8 standalone +5 corps added to `lawn_perrigen.py`; new `FRIENDLY_STANDING_CORPORATIONS` deployment key for standalone corps; `FRIENDLY_STANDING_CORP_IDS`/`_NAMES` sets consumed by intel, local-scan, and hostile-feed routes
 - [x] **Performance & security pass** — parallel killmail prefetch via `ThreadPoolExecutor` in kill feed + hostile feed; bulk `POST /universe/names/` primes the ESI cache before the enrichment loop; compound DB indexes on `(deployment_id, system_id, timestamp)` for faster history queries; thread-safe ESI cache (`_cache_lock`, per-entry `expires_at`); HMAC-based timer password check
 - [x] **SQLite-backed sov change tracking** — `sov_state` + `sov_changes` tables replace in-memory dict; `db.record_sov_changes()` persists neighbor sov events across restarts; changes exposed via `/api/intel/sov_changes`
+- [x] **EVE SSO auth (identity-only)** — "Log in with EVE" OAuth2 flow gates write actions (timers, entosis claims, annotations, jump bridges, AI summaries) by alliance membership / character allowlist; access-token JWT verified against EVE JWKS + issuer + `aud`/`azp`; `TIMER_PASSWORD`/`X-Timer-Auth` retained as fallback via the shared `require_write_auth` decorator; `routes/auth_sso.py`, `useAuth` hook, `EveLoginButton.jsx`. No ESI scopes yet
+- [x] **AI threat summaries** — "AI SUMMARY" button in the D-scan and Local scanner panels sends parsed intel to the Gemini API (`gemini-2.5-flash`) for a concise tactical read-out; `routes/ai_routes.py` (`POST /api/ai/threat_summary`) gated by `require_write_auth`, bounded by `max_output_tokens` + client timeout, with a prompt-injection guard on pasted data; shared `useAiSummary` hook + `common/AiSummary.jsx`; requires `GEMINI_API_KEY` (endpoint returns 501 / button hidden when unset)
+- [x] **Fleet composition analyzer (live fleet paste)** — paste a fleet/pilot list → `POST /api/fleet/analyze` (`routes/intel_routes.py`) resolves each pilot's standing (lawn/friendly/unknown/unresolved), risk tier, and capital + fleet role badges (reusing `_compute_risk_tier`/`_detect_roles`/`_detect_fleet_roles`), plus an aggregate summary (risk distribution, role/fleet-role counts, capital count, avg danger/kills, top hostile alliances); `FleetCompAnalyzer.jsx`. (The doctrine-profile / blue-vs-red comparison from the Priority 3 item is still open.)
 
 ---
 
@@ -110,11 +113,12 @@
 - Fleet tracking — who's in fleet, what they're flying (needs scopes)
 - **Prerequisite for:** Structure tracking, fleet comp analysis, PI tracking
 
-### Fleet Composition Analyzer
+### Fleet Composition Analyzer *(partially done)*
 **Why:** Know what LAWN can field vs what neighbors bring.
-- Analyze zKillboard data to build doctrine profiles per alliance
-- LAWN vs neighbors: ship class comparison, average fleet size
-- "Can we fight this?" quick assessment based on recent fleet comps
+- [x] Live fleet paste — `POST /api/fleet/analyze` + `FleetCompAnalyzer.jsx`: per-pilot standing/risk/role classification with an aggregate composition summary (see Completed)
+- [ ] Analyze zKillboard data to build doctrine profiles per alliance
+- [ ] LAWN vs neighbors: ship class comparison, average fleet size
+- [ ] "Can we fight this?" quick assessment based on recent fleet comps
 - **Data sources:** zKillboard API (public for kills), ESI (SSO for corp members)
 
 ---

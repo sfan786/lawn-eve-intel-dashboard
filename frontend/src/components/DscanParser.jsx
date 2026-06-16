@@ -1,5 +1,8 @@
 import React, { useState, useMemo } from 'react'
 import CornerBrackets from './common/CornerBrackets'
+import { AiSummaryButton, AiSummaryBox } from './common/AiSummary'
+import { useAiSummary } from '../utils/useAiSummary'
+import { useAuth } from '../utils/useAuth'
 
 // Lowercase-keyed version built at module load for case-insensitive matching
 const GROUP_CATEGORIES_LOWER = {}
@@ -309,6 +312,14 @@ function buildCopyText(result, shipCatRows, structureCounts) {
 export default function DscanParser() {
     const [rawInput, setRawInput] = useState('')
     const [copied, setCopied] = useState(false)
+    const { authorized, ssoEnabled } = useAuth()
+    // Show the AI button when the session can write (SSO) or when SSO is off
+    // (demo / no-SSO) — matches the backend require_write_auth gate.
+    const canUseAi = authorized || !ssoEnabled
+    // In password-only deployments the AI endpoint is authed via X-Timer-Auth,
+    // same as the other write features; under SSO the session cookie carries it.
+    const writeHeaders = ssoEnabled ? {} : { 'X-Timer-Auth': localStorage.getItem('timer_auth') || '' }
+    const { summary: aiSummary, generating: generatingAiSummary, error: aiError, generate } = useAiSummary(rawInput)
 
     const result = useMemo(() => parseDscan(rawInput), [rawInput])
 
@@ -325,6 +336,20 @@ export default function DscanParser() {
         acc[s.type] = (acc[s.type] || 0) + 1
         return acc
     }, {}) || {}
+
+    function generateAiSummary() {
+        if (!result) return
+        const shipData = shipCatRows.map(({ cat, count, types }) => {
+            const typesStr = Object.entries(types)
+                .map(([t, n]) => n > 1 ? `${t} x${n}` : t).join(', ')
+            return `${CATEGORY_LABELS[cat]}: ${count} (${typesStr})`
+        }).join('\n')
+
+        generate({
+            type: 'dscan',
+            data: `Total Combat Ships: ${result.ships}\n${shipData}`,
+        }, writeHeaders)
+    }
 
     return (
         <div className="panel panel-wide">
@@ -406,7 +431,17 @@ export default function DscanParser() {
                             {result.ships} combat ships · {result.structures.length} structures
                             {result.unrecognized > 0 && ` · ${result.unrecognized} unrecognized`}
                         </span>
+                        {canUseAi && <>
+                            <div style={{ flex: 1 }} />
+                            <AiSummaryButton
+                                generating={generatingAiSummary}
+                                disabled={result.ships === 0}
+                                onClick={generateAiSummary}
+                            />
+                        </>}
                     </div>
+
+                    <AiSummaryBox summary={aiSummary} error={aiError} />
 
                     {/* Ship Groups */}
                     {shipCatRows.length > 0 && (

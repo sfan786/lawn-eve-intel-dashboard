@@ -1,4 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react'
+import { AiSummaryButton, AiSummaryBox } from './common/AiSummary'
+import { useAiSummary } from '../utils/useAiSummary'
+import { useAuth } from '../utils/useAuth'
 import CornerBrackets from './common/CornerBrackets'
 
 const STANDING_CONFIG = {
@@ -46,6 +49,14 @@ export default function LocalScanner() {
     const [riskMap, setRiskMap] = useState({}) // character_id → risk tier data
     const [scanning, setScanning] = useState(false)
     const [error, setError] = useState(null)
+    const { authorized, ssoEnabled } = useAuth()
+    // Show the AI button when the session can write (SSO) or when SSO is off
+    // (demo / no-SSO) — matches the backend require_write_auth gate.
+    const canUseAi = authorized || !ssoEnabled
+    // In password-only deployments the AI endpoint is authed via X-Timer-Auth,
+    // same as the other write features; under SSO the session cookie carries it.
+    const writeHeaders = ssoEnabled ? {} : { 'X-Timer-Auth': localStorage.getItem('timer_auth') || '' }
+    const { summary: aiSummary, generating: generatingAiSummary, error: aiError, generate } = useAiSummary(rawInput)
     const debounceTimer = useRef(null)
 
     const names = parseNames(rawInput)
@@ -93,6 +104,23 @@ export default function LocalScanner() {
         setResults(null)
         setRiskMap({})
         setError(null)
+    }
+
+    function generateAiSummary() {
+        if (!results || results.length === 0) return
+        const pilotData = results.map(r => {
+            const risk = r.character_id ? riskMap[String(r.character_id)] : null
+            const corp = r.corporation_name || 'Unknown Corp'
+            const alliance = r.alliance_name || 'Unknown Alliance'
+            const tier = risk ? risk.label : 'UNRESOLVED'
+            const roles = risk && risk.roles && risk.roles.length > 0 ? ` [${risk.roles.join(', ')}]` : ''
+            return `${r.name} (${corp} / ${alliance}) - Standing: ${r.standing}, Threat: ${tier}${roles}`
+        }).join('\n')
+
+        generate({
+            type: 'local',
+            data: `Total Pilots: ${results.length}\n${pilotData}`,
+        }, writeHeaders)
     }
 
     const counts = results ? {
@@ -162,6 +190,14 @@ export default function LocalScanner() {
                     {scanning ? 'SCANNING...' : 'SCAN LOCAL'}
                 </button>
             </div>
+
+            {canUseAi && results && results.length > 0 && (
+                <div style={{ marginTop: 10, display: 'flex', justifyContent: 'flex-end' }}>
+                    <AiSummaryButton generating={generatingAiSummary} onClick={generateAiSummary} />
+                </div>
+            )}
+
+            <AiSummaryBox summary={aiSummary} error={aiError} />
 
             {error && (
                 <div style={{
