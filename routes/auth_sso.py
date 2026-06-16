@@ -27,7 +27,7 @@ import config
 from esi_client import esi_get
 from eve_constants import (
     SSO_AUTHORIZE_URL,
-    SSO_ISSUER,
+    SSO_ISSUERS,
     SSO_JWKS_URL,
     SSO_TOKEN_URL,
 )
@@ -193,7 +193,7 @@ def api_sso_callback():
             access_token,
             signing_key.key,
             algorithms=["RS256"],
-            issuer=SSO_ISSUER,
+            issuer=SSO_ISSUERS,
             audience=config.EVE_CLIENT_ID,
         )
     except jwt.InvalidTokenError as exc:
