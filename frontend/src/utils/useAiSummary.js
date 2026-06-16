@@ -16,14 +16,16 @@ export function useAiSummary(resetKey) {
         setError(null)
     }, [resetKey])
 
-    const generate = useCallback(async (payload) => {
+    // `headers` lets callers pass write auth (e.g. X-Timer-Auth in password-only
+    // deployments); the SSO session cookie is sent automatically when present.
+    const generate = useCallback(async (payload, headers = {}) => {
         setGenerating(true)
         setError(null)
         setSummary(null)
         try {
             const resp = await fetch('/api/ai/threat_summary', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 'Content-Type': 'application/json', ...headers },
                 body: JSON.stringify(payload),
             })
             const data = await resp.json()

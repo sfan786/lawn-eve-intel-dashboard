@@ -53,6 +53,9 @@ export default function LocalScanner() {
     // Show the AI button when the session can write (SSO) or when SSO is off
     // (demo / no-SSO) — matches the backend require_write_auth gate.
     const canUseAi = authorized || !ssoEnabled
+    // In password-only deployments the AI endpoint is authed via X-Timer-Auth,
+    // same as the other write features; under SSO the session cookie carries it.
+    const writeHeaders = ssoEnabled ? {} : { 'X-Timer-Auth': localStorage.getItem('timer_auth') || '' }
     const { summary: aiSummary, generating: generatingAiSummary, error: aiError, generate } = useAiSummary(rawInput)
     const debounceTimer = useRef(null)
 
@@ -117,7 +120,7 @@ export default function LocalScanner() {
         generate({
             type: 'local',
             data: `Total Pilots: ${results.length}\n${pilotData}`,
-        })
+        }, writeHeaders)
     }
 
     const counts = results ? {

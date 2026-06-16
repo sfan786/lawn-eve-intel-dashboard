@@ -316,6 +316,9 @@ export default function DscanParser() {
     // Show the AI button when the session can write (SSO) or when SSO is off
     // (demo / no-SSO) — matches the backend require_write_auth gate.
     const canUseAi = authorized || !ssoEnabled
+    // In password-only deployments the AI endpoint is authed via X-Timer-Auth,
+    // same as the other write features; under SSO the session cookie carries it.
+    const writeHeaders = ssoEnabled ? {} : { 'X-Timer-Auth': localStorage.getItem('timer_auth') || '' }
     const { summary: aiSummary, generating: generatingAiSummary, error: aiError, generate } = useAiSummary(rawInput)
 
     const result = useMemo(() => parseDscan(rawInput), [rawInput])
@@ -345,7 +348,7 @@ export default function DscanParser() {
         generate({
             type: 'dscan',
             data: `Total Combat Ships: ${result.ships}\n${shipData}`,
-        })
+        }, writeHeaders)
     }
 
     return (
