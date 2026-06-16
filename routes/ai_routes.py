@@ -22,16 +22,24 @@ _MAX_OUTPUT_TOKENS = 256
 # Per-request timeout (seconds) applied to the Gemini HTTP client.
 _REQUEST_TIMEOUT_S = 20
 
+# Cached client — reused across requests for connection pooling.
+_client = None
+
 
 def get_client():
+    global _client
+    if _client is not None:
+        return _client
     api_key = os.environ.get("GEMINI_API_KEY")
     if not api_key or not genai:
         return None
-    # Don't tie up a worker indefinitely if Gemini is slow/hung (ms).
-    return genai.Client(
+    # HttpOptions.timeout is in MILLISECONDS — the SDK divides by 1000 internally
+    # (see get_timeout_in_seconds in google/genai/_api_client.py), so this is 20s.
+    _client = genai.Client(
         api_key=api_key,
         http_options=types.HttpOptions(timeout=_REQUEST_TIMEOUT_S * 1000),
     )
+    return _client
 
 
 # Data pasted by the user is wrapped in a delimited block and the model is told
