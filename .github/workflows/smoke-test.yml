@@ -1,0 +1,79 @@
+name: Smoke Test
+
+# Fast, network-free sanity checks so broken imports or a non-building frontend
+# can't reach main. Does NOT exercise live ESI — app.py resolves all systems
+# from esi.evetech.net at import, so the backend job uses the mock demo app and
+# imports the live route modules directly (neither hits the network).
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+jobs:
+  backend:
+    name: Backend (import + demo health)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Byte-compile (syntax check)
+        run: python -m compileall -q app.py demo.py config.py db.py esi_client.py eve_constants.py routes mock deployments
+
+      - name: Import live route modules (no network)
+        run: |
+          python - <<'PY'
+          import importlib
+          mods = [
+              "config", "db", "esi_client", "eve_constants",
+              "routes.ai_routes", "routes.auth_sso", "routes.config_routes",
+              "routes.sov_routes", "routes.activity_routes", "routes.zkill_routes",
+              "routes.history_routes", "routes.intel_routes", "routes.hostile_routes",
+              "routes.timer_routes", "routes.annotation_routes", "routes.jb_routes",
+              "routes.entosis_routes", "routes.static_routes",
+          ]
+          for m in mods:
+              importlib.import_module(m)
+          print(f"OK: imported {len(mods)} live modules")
+          PY
+
+      - name: Demo app health check (mock blueprints, test client)
+        run: |
+          python - <<'PY'
+          from demo import app
+          c = app.test_client()
+          for path in ("/api/status", "/api/config", "/api/sovereignty"):
+              r = c.get(path)
+              assert r.status_code == 200, f"{path} -> {r.status_code}"
+          print("OK: demo endpoints return 200")
+          PY
+
+  frontend:
+    name: Frontend (build)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
