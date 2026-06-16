@@ -58,8 +58,13 @@ lawn-eve-intel-dashboard/
 │   ├── zkill_routes.py      # /api/zkill/feed, /api/zkill/<id>
 │   ├── history_routes.py    # /api/history/adm, /api/history/activity/heatmap
 │   ├── intel_routes.py      # /api/intel/neighbors, /api/intel/regional, /api/intel/sov_changes, /api/local/scan, /api/chars/analyze, /api/fleet/analyze
+│   ├── hostile_routes.py    # /api/hostile/feed (hostile kill feed)
 │   ├── entosis_routes.py    # /api/entosis/nodes (command node board)
 │   ├── timer_routes.py      # /api/timers, /api/auth/check
+│   ├── annotation_routes.py # /api/annotations (per-system sticky notes)
+│   ├── jb_routes.py         # /api/jump_bridges (manual JB overlay config)
+│   ├── ai_routes.py         # /api/ai/threat_summary (Gemini, write-auth gated)
+│   ├── auth_sso.py          # EVE SSO login + require_write_auth decorator (/api/auth/*)
 │   └── static_routes.py     # / and /entosis (serves Vite SPA)
 │
 ├── mock/                    # Demo mock blueprints (no ESI calls)
@@ -79,8 +84,9 @@ lawn-eve-intel-dashboard/
 │   └── src/
 │       ├── App.jsx          # Root component — state, fetching, tab nav
 │       ├── pages/           # Full-page routes (EntosisPage.jsx — /entosis)
-│       ├── utils/           # admHelpers, campaignHelpers, formatters, upgradeHelpers, mapHelpers
-│       └── components/      # 14 feature components + 3 common components
+│       ├── hooks/           # useNotifications (browser push alerts)
+│       ├── utils/           # admHelpers, campaignHelpers, formatters, upgradeHelpers, mapHelpers, useAuth, useAiSummary
+│       └── components/      # feature components + common/ (CornerBrackets, AiSummary, EveLoginButton, …)
 │
 ├── static/
 │   ├── index.html           # Legacy CDN-React fallback (no build step required)
@@ -107,6 +113,8 @@ lawn-eve-intel-dashboard/
 7. **SQLite persistence** — `db.py` snapshots ADM and activity data hourly (deduplicated). All rows tagged with `deployment_id`; reads filter to the active deployment so history doesn't bleed between deployments. WAL mode for concurrent reads.
 8. **Sov upgrades are manual** — ESI doesn't expose iHub upgrade fittings without SSO auth. The active deployment's `SYSTEM_UPGRADES` dict (initially empty after bootstrap) is updated by hand as upgrades come online. `UPGRADE_TYPES` lives in `eve_constants.py` since it's universal across EVE.
 9. **Docker volume gotcha** — The `./intel.db:/app/intel.db` volume mount requires `intel.db` to exist as a file on the host before `docker-compose up`. If it doesn't exist, Docker creates it as a directory and SQLite fails. The update scripts run `touch intel.db` to prevent this.
+10. **Write auth (SSO + password)** — Write actions (timers, entosis claims, annotations, jump bridges, AI summaries) are gated by `require_write_auth` in `routes/auth_sso.py`, which accepts EITHER a valid EVE SSO session cookie OR the legacy `X-Timer-Auth` password header. SSO ("Log in with EVE", identity-only — no ESI scopes) authorizes by alliance membership (`AUTH_ALLOWED_ALLIANCE_IDS`, primary alliance always allowed) or character allowlist (`AUTH_ALLOWED_CHARACTER_IDS`); the access-token JWT is verified against EVE's JWKS, issuer (`SSO_ISSUERS` — accepts both scheme and bare-host forms), and `aud`/`azp` = our client_id. When the three `EVE_*` vars are unset, `SSO_ENABLED` is false and only the password path applies. Frontend reads `/api/auth/me` via the `useAuth` hook.
+11. **AI threat summaries** — `routes/ai_routes.py` calls the Gemini API (`google-genai`, model `gemini-2.5-flash`) to summarize parsed D-scan/Local intel. Gated by `require_write_auth` so the paid API can't be driven anonymously; bounded by `max_output_tokens` + a client timeout; user-pasted data is wrapped in a delimited "untrusted data" block as a prompt-injection guard. Needs `GEMINI_API_KEY`; absent that the endpoint returns 501 and the frontend hides the button. Frontend logic is shared via the `useAiSummary` hook + `common/AiSummary.jsx`.
 
 ## Development
 
@@ -172,6 +180,11 @@ Resolves names to numeric IDs for `config.py`. Uses ESI `POST /universe/ids/` fo
 - `POST /api/timers` — add timer (requires `X-Timer-Auth` header)
 - `DELETE /api/timers/<id>` — delete timer (requires `X-Timer-Auth` header)
 - `POST /api/auth/check` — verify timer password
+- `GET /api/auth/me` — current auth state (`sso_enabled`, `logged_in`, `character_name`, `authorized`)
+- `GET /api/auth/sso/login` — begin EVE SSO OAuth2 flow (redirects to login.eveonline.com)
+- `GET /api/auth/sso/callback` — SSO redirect target; exchanges code, validates JWT, sets session
+- `POST /api/auth/logout` — clear the SSO session
+- `POST /api/ai/threat_summary` — Gemini threat summary from D-scan/Local data (`{type, data}`); write-auth gated (SSO session or `X-Timer-Auth`); needs `GEMINI_API_KEY` or returns 501
 - `GET /api/pi_data` — planetary interaction data (per-planet `type_id`/`type` for every planet in the active deployment's primary systems)
 - `GET /api/status` — health check
 
@@ -322,6 +335,7 @@ See [ROADMAP.md](ROADMAP.md) for full details and backlog.
 - [x] **RMC coalition standings** — ~50 RMC alliance IDs + 8 standalone +5 corps added to `lawn_perrigen.py`; new `FRIENDLY_STANDING_CORPORATIONS` deployment key (list of `{id, name}` dicts) for standalone corps not covered by alliance IDs; `config.py` derives `FRIENDLY_STANDING_CORP_IDS`/`_NAMES` sets used by intel/local-scan/hostile routes
 - [x] **Performance & security pass** — parallel killmail prefetch via `ThreadPoolExecutor` in kill feed and hostile feed; bulk ESI name resolution primes cache before enrichment loop; compound DB indexes on `(deployment_id, system_id, timestamp)`; thread-safe ESI cache with `_cache_lock` and per-entry expiry timestamps; HMAC-based timer password check
 - [x] **SQLite-backed sov change tracking** — `sov_state` + `sov_changes` tables replace in-memory dict; `db.record_sov_changes()` persists neighbor sov events across restarts; served via `/api/intel/sov_changes`
+- [x] **AI threat summaries** — "AI SUMMARY" button in D-scan + Local scanner panels sends parsed intel to Gemini (`gemini-2.5-flash`) for a 1-3 sentence tactical read-out; `routes/ai_routes.py` (`POST /api/ai/threat_summary`), gated by `require_write_auth`, token/timeout bounded, prompt-injection guarded; shared `useAiSummary` hook + `common/AiSummary.jsx`; needs `GEMINI_API_KEY`
 
 **Priority 2 — Operational:**
 - [x] Browser push notifications (PVP alerts, sov campaigns, ADM drops) — ALERTS button in header, `useNotifications` hook + `NotificationBell.jsx`
@@ -331,7 +345,7 @@ See [ROADMAP.md](ROADMAP.md) for full details and backlog.
 
 **Priority 3 — Long-term:**
 - [ ] Discord webhook alerts (ADM drops, hostile activity spikes, new sov campaigns)
-- [ ] EVE SSO auth for character-specific data
+- [x] **EVE SSO auth (identity-only)** — "Log in with EVE" gates write actions by alliance/character; `routes/auth_sso.py` + `useAuth` hook; no ESI scopes yet (character/corp-specific data still future work)
 - [ ] Fleet composition analyzer
 - [ ] Moon mining tracker
 
