@@ -12,6 +12,7 @@ No ESI scopes are requested.
 """
 
 import hmac
+import logging
 import secrets
 from functools import wraps
 from urllib.parse import urlencode, urlparse
@@ -19,6 +20,8 @@ from urllib.parse import urlencode, urlparse
 import jwt
 import requests
 from flask import Blueprint, jsonify, redirect, request, session
+
+log = logging.getLogger(__name__)
 
 import config
 from esi_client import esi_get
@@ -159,9 +162,24 @@ def api_sso_callback():
                      "Host": "login.eveonline.com"},
             timeout=15,
         )
-        resp.raise_for_status()
+        if resp.status_code != 200:
+            # EVE returns a JSON body describing the failure, e.g.
+            # {"error": "invalid_client"} (bad client_id/secret) or
+            # {"error": "invalid_grant"} (callback URL mismatch / reused code).
+            log.error("EVE token exchange failed: HTTP %s — %s",
+                      resp.status_code, resp.text[:500])
+            try:
+                err_json = resp.json()
+                eve_error = (err_json.get("error_description")
+                             or err_json.get("error") or resp.text[:200])
+            except Exception:
+                eve_error = resp.text[:200]
+            return jsonify({"error": "Token exchange failed",
+                            "eve_status": resp.status_code,
+                            "eve_error": eve_error}), 502
         access_token = resp.json()["access_token"]
     except Exception:
+        log.exception("EVE token exchange request raised")
         return jsonify({"error": "Token exchange failed"}), 502
 
     # Validate the access-token JWT: signature (EVE JWKS), issuer, and that the
@@ -178,8 +196,16 @@ def api_sso_callback():
             issuer=SSO_ISSUER,
             audience=config.EVE_CLIENT_ID,
         )
-    except Exception:
-        return jsonify({"error": "Invalid SSO token"}), 502
+    except jwt.InvalidTokenError as exc:
+        # Expected client-side failures (expired/invalid/malformed token).
+        log.warning("EVE access-token JWT validation failed: %s", exc)
+        return jsonify({"error": "Invalid SSO token",
+                        "detail": str(exc)[:200]}), 502
+    except Exception as exc:
+        # Unexpected: JWKS fetch / network / programming errors.
+        log.exception("Unexpected error during EVE access-token JWT validation")
+        return jsonify({"error": "Invalid SSO token",
+                        "detail": str(exc)[:200]}), 502
 
     aud = claims.get("aud") or []
     if isinstance(aud, str):
