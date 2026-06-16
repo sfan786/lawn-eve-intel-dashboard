@@ -346,7 +346,7 @@ See [ROADMAP.md](ROADMAP.md) for full details and backlog.
 **Priority 3 — Long-term:**
 - [ ] Discord webhook alerts (ADM drops, hostile activity spikes, new sov campaigns)
 - [x] **EVE SSO auth (identity-only)** — "Log in with EVE" gates write actions by alliance/character; `routes/auth_sso.py` + `useAuth` hook; no ESI scopes yet (character/corp-specific data still future work)
-- [ ] Fleet composition analyzer
+- [~] **Fleet composition analyzer** — live fleet-paste analyzer shipped (`POST /api/fleet/analyze`, `FleetCompAnalyzer.jsx`): per-pilot standing/risk/role classification + aggregate summary. Doctrine profiling and LAWN-vs-neighbor comparison still future work
 - [ ] Moon mining tracker
 
 ## UI Layout Principles — Information Density First
