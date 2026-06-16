@@ -24,6 +24,7 @@ from mock.mock_jb_routes import mock_jb_bp
 from mock.mock_entosis_routes import mock_entosis_bp
 from mock.mock_auth_routes import mock_auth_bp
 from routes.static_routes import static_bp
+from mock.mock_ai_routes import mock_ai_bp
 from mock.mock_data import MOCK_CONFIG
 
 
@@ -31,7 +32,7 @@ def create_demo_app():
     app = Flask(__name__)
     for bp in [
         mock_config_bp, mock_sov_bp, mock_activity_bp, mock_zkill_bp,
-        mock_history_bp, mock_intel_bp, mock_hostile_bp, mock_timer_bp, mock_annotation_bp, mock_jb_bp, mock_entosis_bp, mock_auth_bp, static_bp,
+        mock_history_bp, mock_intel_bp, mock_hostile_bp, mock_timer_bp, mock_annotation_bp, mock_jb_bp, mock_entosis_bp, mock_auth_bp, static_bp, mock_ai_bp
     ]:
         app.register_blueprint(bp)
     return app

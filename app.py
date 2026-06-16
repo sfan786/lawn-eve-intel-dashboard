@@ -29,6 +29,7 @@ from routes.jb_routes import jb_bp
 from routes.entosis_routes import entosis_bp
 from routes.auth_sso import auth_sso_bp
 from routes.static_routes import static_bp
+from routes.ai_routes import ai_bp
 import db
 
 
@@ -40,7 +41,7 @@ def create_app():
         SESSION_COOKIE_SAMESITE="Lax",
         SESSION_COOKIE_SECURE=not FLASK_DEBUG,
     )
-    for bp in [config_bp, sov_bp, activity_bp, zkill_bp, history_bp, intel_bp, hostile_bp, timer_bp, annotation_bp, jb_bp, entosis_bp, auth_sso_bp, static_bp]:
+    for bp in [config_bp, sov_bp, activity_bp, zkill_bp, history_bp, intel_bp, hostile_bp, timer_bp, annotation_bp, jb_bp, entosis_bp, auth_sso_bp, static_bp, ai_bp]:
         app.register_blueprint(bp)
     return app
 

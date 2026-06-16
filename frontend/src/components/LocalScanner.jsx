@@ -46,6 +46,9 @@ export default function LocalScanner() {
     const [riskMap, setRiskMap] = useState({}) // character_id → risk tier data
     const [scanning, setScanning] = useState(false)
     const [error, setError] = useState(null)
+    const [aiSummary, setAiSummary] = useState(null)
+    const [generatingAiSummary, setGeneratingAiSummary] = useState(false)
+    const [aiError, setAiError] = useState(null)
     const debounceTimer = useRef(null)
 
     const names = parseNames(rawInput)
@@ -93,6 +96,51 @@ export default function LocalScanner() {
         setResults(null)
         setRiskMap({})
         setError(null)
+        setAiSummary(null)
+        setAiError(null)
+    }
+
+    // Reset AI summary when input changes
+    React.useEffect(() => {
+        setAiSummary(null)
+        setAiError(null)
+    }, [rawInput])
+
+    async function generateAiSummary() {
+        if (!results || results.length === 0) return
+        setGeneratingAiSummary(true)
+        setAiError(null)
+        setAiSummary(null)
+        
+        try {
+            const pilotData = results.map(r => {
+                const risk = r.character_id ? riskMap[String(r.character_id)] : null
+                const corp = r.corporation_name || 'Unknown Corp'
+                const alliance = r.alliance_name || 'Unknown Alliance'
+                const tier = risk ? risk.label : 'UNRESOLVED'
+                const roles = risk && risk.roles && risk.roles.length > 0 ? ` [${risk.roles.join(', ')}]` : ''
+                return `${r.name} (${corp} / ${alliance}) - Standing: ${r.standing}, Threat: ${tier}${roles}`
+            }).join('\n')
+            
+            const payload = {
+                type: 'local',
+                data: `Total Pilots: ${results.length}\n${pilotData}`
+            }
+            
+            const resp = await fetch('/api/ai/threat_summary', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            })
+            
+            const data = await resp.json()
+            if (!resp.ok) throw new Error(data.error || 'Server error')
+            setAiSummary(data.summary)
+        } catch (e) {
+            setAiError(e.message)
+        } finally {
+            setGeneratingAiSummary(false)
+        }
     }
 
     const counts = results ? {
@@ -162,6 +210,47 @@ export default function LocalScanner() {
                     {scanning ? 'SCANNING...' : 'SCAN LOCAL'}
                 </button>
             </div>
+
+            {results && results.length > 0 && (
+                <div style={{ marginTop: 10, display: 'flex', justifyContent: 'flex-end' }}>
+                    <button
+                        onClick={generateAiSummary}
+                        disabled={generatingAiSummary}
+                        style={{
+                            background: generatingAiSummary ? 'rgba(0,212,255,0.2)' : 'none',
+                            border: '1px solid var(--cyan-dim)',
+                            color: 'var(--cyan)', cursor: generatingAiSummary ? 'default' : 'pointer',
+                            fontFamily: 'Orbitron, sans-serif', fontSize: 9, letterSpacing: 1, fontWeight: 600,
+                            padding: '4px 8px', transition: 'all 0.2s'
+                        }}
+                    >
+                        {generatingAiSummary ? 'ANALYZING...' : 'AI SUMMARY'}
+                    </button>
+                </div>
+            )}
+
+            {/* AI Summary Box */}
+            {(aiSummary || aiError) && (
+                <div style={{
+                    marginTop: 10, padding: '10px 12px',
+                    background: aiError ? 'rgba(255,51,85,0.05)' : 'rgba(0,212,255,0.05)',
+                    border: `1px solid ${aiError ? 'var(--red-dim)' : 'var(--cyan-dim)'}`,
+                    borderLeft: `3px solid ${aiError ? 'var(--red)' : 'var(--cyan)'}`,
+                }}>
+                    <div style={{
+                        fontFamily: 'Orbitron, sans-serif', fontSize: 9, letterSpacing: 2,
+                        color: aiError ? 'var(--red)' : 'var(--cyan)', marginBottom: 6, fontWeight: 700
+                    }}>
+                        TACTICAL AI ANALYSIS
+                    </div>
+                    <div style={{
+                        fontFamily: 'Rajdhani, sans-serif', fontSize: 14, color: 'var(--text-primary)',
+                        lineHeight: 1.4
+                    }}>
+                        {aiError ? `ERROR: ${aiError}` : aiSummary}
+                    </div>
+                </div>
+            )}
 
             {error && (
                 <div style={{
