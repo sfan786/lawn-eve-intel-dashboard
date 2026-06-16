@@ -1,5 +1,8 @@
 import React, { useState, useMemo } from 'react'
 import CornerBrackets from './common/CornerBrackets'
+import { AiSummaryButton, AiSummaryBox } from './common/AiSummary'
+import { useAiSummary } from '../utils/useAiSummary'
+import { useAuth } from '../utils/useAuth'
 
 // Lowercase-keyed version built at module load for case-insensitive matching
 const GROUP_CATEGORIES_LOWER = {}
@@ -309,9 +312,11 @@ function buildCopyText(result, shipCatRows, structureCounts) {
 export default function DscanParser() {
     const [rawInput, setRawInput] = useState('')
     const [copied, setCopied] = useState(false)
-    const [aiSummary, setAiSummary] = useState(null)
-    const [generatingAiSummary, setGeneratingAiSummary] = useState(false)
-    const [aiError, setAiError] = useState(null)
+    const { authorized, ssoEnabled } = useAuth()
+    // Show the AI button when the session can write (SSO) or when SSO is off
+    // (demo / no-SSO) — matches the backend require_write_auth gate.
+    const canUseAi = authorized || !ssoEnabled
+    const { summary: aiSummary, generating: generatingAiSummary, error: aiError, generate } = useAiSummary(rawInput)
 
     const result = useMemo(() => parseDscan(rawInput), [rawInput])
 
@@ -329,44 +334,18 @@ export default function DscanParser() {
         return acc
     }, {}) || {}
 
-    // Reset AI summary when input changes
-    React.useEffect(() => {
-        setAiSummary(null)
-        setAiError(null)
-    }, [rawInput])
-
-    async function generateAiSummary() {
+    function generateAiSummary() {
         if (!result) return
-        setGeneratingAiSummary(true)
-        setAiError(null)
-        setAiSummary(null)
-        
-        try {
-            const shipData = shipCatRows.map(({ cat, count, types }) => {
-                const typesStr = Object.entries(types)
-                    .map(([t, n]) => n > 1 ? `${t} x${n}` : t).join(', ')
-                return `${CATEGORY_LABELS[cat]}: ${count} (${typesStr})`
-            }).join('\n')
-            
-            const payload = {
-                type: 'dscan',
-                data: `Total Combat Ships: ${result.ships}\n${shipData}`
-            }
-            
-            const resp = await fetch('/api/ai/threat_summary', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            })
-            
-            const data = await resp.json()
-            if (!resp.ok) throw new Error(data.error || 'Server error')
-            setAiSummary(data.summary)
-        } catch (e) {
-            setAiError(e.message)
-        } finally {
-            setGeneratingAiSummary(false)
-        }
+        const shipData = shipCatRows.map(({ cat, count, types }) => {
+            const typesStr = Object.entries(types)
+                .map(([t, n]) => n > 1 ? `${t} x${n}` : t).join(', ')
+            return `${CATEGORY_LABELS[cat]}: ${count} (${typesStr})`
+        }).join('\n')
+
+        generate({
+            type: 'dscan',
+            data: `Total Combat Ships: ${result.ships}\n${shipData}`,
+        })
     }
 
     return (
@@ -449,44 +428,17 @@ export default function DscanParser() {
                             {result.ships} combat ships · {result.structures.length} structures
                             {result.unrecognized > 0 && ` · ${result.unrecognized} unrecognized`}
                         </span>
-                        <div style={{ flex: 1 }} />
-                        <button
-                            onClick={generateAiSummary}
-                            disabled={generatingAiSummary || result.ships === 0}
-                            style={{
-                                background: generatingAiSummary ? 'rgba(0,212,255,0.2)' : 'none',
-                                border: '1px solid var(--cyan-dim)',
-                                color: 'var(--cyan)', cursor: generatingAiSummary || result.ships === 0 ? 'default' : 'pointer',
-                                fontFamily: 'Orbitron, sans-serif', fontSize: 9, letterSpacing: 1, fontWeight: 600,
-                                padding: '4px 8px', transition: 'all 0.2s', opacity: result.ships === 0 ? 0.3 : 1
-                            }}
-                        >
-                            {generatingAiSummary ? 'ANALYZING...' : 'AI SUMMARY'}
-                        </button>
+                        {canUseAi && <>
+                            <div style={{ flex: 1 }} />
+                            <AiSummaryButton
+                                generating={generatingAiSummary}
+                                disabled={result.ships === 0}
+                                onClick={generateAiSummary}
+                            />
+                        </>}
                     </div>
 
-                    {/* AI Summary Box */}
-                    {(aiSummary || aiError) && (
-                        <div style={{
-                            marginTop: 10, padding: '10px 12px',
-                            background: aiError ? 'rgba(255,51,85,0.05)' : 'rgba(0,212,255,0.05)',
-                            border: `1px solid ${aiError ? 'var(--red-dim)' : 'var(--cyan-dim)'}`,
-                            borderLeft: `3px solid ${aiError ? 'var(--red)' : 'var(--cyan)'}`,
-                        }}>
-                            <div style={{
-                                fontFamily: 'Orbitron, sans-serif', fontSize: 9, letterSpacing: 2,
-                                color: aiError ? 'var(--red)' : 'var(--cyan)', marginBottom: 6, fontWeight: 700
-                            }}>
-                                TACTICAL AI ANALYSIS
-                            </div>
-                            <div style={{
-                                fontFamily: 'Rajdhani, sans-serif', fontSize: 14, color: 'var(--text-primary)',
-                                lineHeight: 1.4
-                            }}>
-                                {aiError ? `ERROR: ${aiError}` : aiSummary}
-                            </div>
-                        </div>
-                    )}
+                    <AiSummaryBox summary={aiSummary} error={aiError} />
 
                     {/* Ship Groups */}
                     {shipCatRows.length > 0 && (
