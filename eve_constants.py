@@ -17,7 +17,10 @@ ZKILL_RECENT_HOURS = 24
 SSO_AUTHORIZE_URL = "https://login.eveonline.com/v2/oauth/authorize"
 SSO_TOKEN_URL = "https://login.eveonline.com/v2/oauth/token"
 SSO_JWKS_URL = "https://login.eveonline.com/oauth/jwks"
-SSO_ISSUER = "login.eveonline.com"
+# EVE has been inconsistent about the JWT `iss` claim: v2 access tokens use the
+# full URL ("https://login.eveonline.com") while older/some tokens use the bare
+# host. Accept both so a format change on CCP's side doesn't break login.
+SSO_ISSUERS = ["https://login.eveonline.com", "login.eveonline.com"]
 
 CACHE_TTL = {
     "sovereignty": 300,                # 5 min — sov changes slowly
