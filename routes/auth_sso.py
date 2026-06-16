@@ -168,9 +168,15 @@ def api_sso_callback():
             # {"error": "invalid_grant"} (callback URL mismatch / reused code).
             log.error("EVE token exchange failed: HTTP %s — %s",
                       resp.status_code, resp.text[:500])
+            try:
+                err_json = resp.json()
+                eve_error = (err_json.get("error_description")
+                             or err_json.get("error") or resp.text[:200])
+            except Exception:
+                eve_error = resp.text[:200]
             return jsonify({"error": "Token exchange failed",
                             "eve_status": resp.status_code,
-                            "eve_error": resp.text[:200]}), 502
+                            "eve_error": eve_error}), 502
         access_token = resp.json()["access_token"]
     except Exception:
         log.exception("EVE token exchange request raised")
@@ -190,8 +196,14 @@ def api_sso_callback():
             issuer=SSO_ISSUER,
             audience=config.EVE_CLIENT_ID,
         )
+    except jwt.InvalidTokenError as exc:
+        # Expected client-side failures (expired/invalid/malformed token).
+        log.warning("EVE access-token JWT validation failed: %s", exc)
+        return jsonify({"error": "Invalid SSO token",
+                        "detail": str(exc)[:200]}), 502
     except Exception as exc:
-        log.exception("EVE access-token JWT validation failed")
+        # Unexpected: JWKS fetch / network / programming errors.
+        log.exception("Unexpected error during EVE access-token JWT validation")
         return jsonify({"error": "Invalid SSO token",
                         "detail": str(exc)[:200]}), 502
 
