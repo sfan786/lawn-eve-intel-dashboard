@@ -4,7 +4,8 @@
 echo "[*] Killing existing Flask and Vite instances..."
 pkill -f "python app.py" 2>/dev/null
 pkill -f "python demo.py" 2>/dev/null
-pkill -f "vite" 2>/dev/null
+# Only free our own Vite port (3000) rather than pkill-ing every vite on the box.
+lsof -ti:3000 2>/dev/null | xargs -r kill 2>/dev/null
 sleep 0.5
 
 if not test -d ".venv"
@@ -32,6 +33,11 @@ if test $mode = "demo"
     python demo.py &
     set flask_pid $last_pid
     echo "[*] Demo Flask PID: $flask_pid"
+    sleep 1
+    if not kill -0 $flask_pid 2>/dev/null
+        echo "[-] Demo Flask failed to start — see the error above."
+        exit 1
+    end
 
     if test -d "frontend"
         cd frontend
@@ -51,6 +57,11 @@ else
     python app.py &
     set flask_pid $last_pid
     echo "[*] Live Flask PID: $flask_pid"
+    sleep 1
+    if not kill -0 $flask_pid 2>/dev/null
+        echo "[-] Live Flask failed to start — see the error above."
+        exit 1
+    end
 
     if test -d "frontend"
         cd frontend
