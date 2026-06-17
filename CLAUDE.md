@@ -35,7 +35,7 @@ The bootstrap resolves ESI IDs, walks the gate graph for the whole region, fetch
 
 ## Tech Stack
 - **Backend:** Python 3.11 + Flask, split into Flask Blueprint modules under `routes/` (live) and `mock/` (demo)
-- **Frontend:** React 18 + Vite 5 — source in `frontend/src/`, built to `static/dist/`
+- **Frontend:** React 19 + Vite 8 — source in `frontend/src/`, built to `static/dist/` (build needs Node ≥20.19 / ≥22.12; CI + Docker use Node 22)
 - **Data source:** EVE ESI public endpoints (esi.evetech.net) — no auth needed
 - **Production:** Docker multi-stage build (Node 20 Vite build → Python 3.11 + Gunicorn)
 - **Legacy fallback:** `static/index.html` (CDN Babel/React, no build step) — kept for reference
@@ -98,8 +98,8 @@ lawn-eve-intel-dashboard/
 │
 ├── Dockerfile               # Multi-stage: Node (Vite build) → Python (gunicorn)
 ├── docker-compose.yml
-├── setup.fish               # Local first-time setup (venv + npm install)
-├── run_dev.fish             # Local dev launcher (Flask + Vite, accepts 'demo' arg)
+├── setup.sh / setup.fish    # Local first-time setup (venv + npm install) — .sh default, .fish for fish users
+├── run_dev.sh / run_dev.fish # Local dev launcher (Flask + Vite, accepts 'demo' arg)
 └── requirements.txt
 ```
 
@@ -119,15 +119,18 @@ lawn-eve-intel-dashboard/
 ## Development
 
 ### First-Time Setup
-```fish
-./setup.fish    # creates .venv, pip install, npm install in frontend/
+```bash
+./setup.sh      # creates .venv, pip install, npm install in frontend/  (fish: ./setup.fish)
 ```
 
 ### Running Locally
-```fish
-./run_dev.fish          # Live ESI mode: Flask :5000 + Vite :3000
-./run_dev.fish demo     # Demo mode:     Flask :5001 + Vite :3000
+```bash
+./run_dev.sh            # Live ESI mode: Flask :5000 + Vite :3000   (fish: ./run_dev.fish)
+./run_dev.sh demo       # Demo mode:     Flask :5001 + Vite :3000   (fish: ./run_dev.fish demo)
 ```
+
+The `.sh` scripts are the default for bash-based systems (most VPS hosts); the `.fish`
+equivalents are kept for fish users.
 
 Or manually:
 ```fish
