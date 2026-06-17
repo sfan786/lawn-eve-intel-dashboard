@@ -414,7 +414,7 @@ export default function IntelChannelParser({ config, onBoardChange }) {
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                     {primaryAlerts > 0 && (
                         <span className="panel-badge" style={{ background: 'rgba(255,51,85,0.2)', borderColor: '#ff3355', color: '#ff3355' }}>
-                            {primaryAlerts} PRIMARY{primaryAlerts > 1 ? '' : ''}
+                            {primaryAlerts} PRIMARY
                         </span>
                     )}
                     {activeCount > 0 && <span className="panel-badge">{activeCount} active</span>}
