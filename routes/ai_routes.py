@@ -92,7 +92,7 @@ def api_threat_summary():
     if not template:
         return jsonify({"error": "Unknown scan type."}), 400
 
-    ally = config.ALLIANCE.get("name", "our alliance")
+    ally = config.ALLIANCE.get("name") or "our alliance"
     prompt = template.format(ally=ally, data=data["data"])
 
     try:
