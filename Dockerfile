@@ -1,5 +1,5 @@
 # ─── Stage 1: Build Vite frontend ───────────────────────────────────────────
-FROM node:20-slim AS frontend-builder
+FROM node:22-slim AS frontend-builder
 WORKDIR /build
 
 # Install deps first (cached unless package.json changes)

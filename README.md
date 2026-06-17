@@ -85,8 +85,8 @@ lawn-eve-intel-dashboard/
 │   └── server-setup.sh      # One-time setup for a fresh Debian/Ubuntu VPS
 ├── .github/workflows/
 │   └── deploy.yml           # CD: auto-deploy to server on push to main
-├── setup.fish               # Local first-time setup (venv + npm install)
-├── run_dev.fish             # Local dev launcher (Flask + Vite together)
+├── setup.sh / setup.fish    # Local first-time setup (venv + npm install)
+├── run_dev.sh / run_dev.fish # Local dev launcher (Flask + Vite together)
 └── requirements.txt
 ```
 
@@ -96,32 +96,35 @@ lawn-eve-intel-dashboard/
 
 ### First-Time Setup
 
-```fish
+```bash
 git clone git@github.com:sfan786/lawn-eve-intel-dashboard.git
 cd lawn-eve-intel-dashboard
-./setup.fish
+./setup.sh
 ```
 
 Creates the Python venv, installs pip deps, and runs `npm install` in `frontend/`.
 
+> fish users can run the `./setup.fish` / `./run_dev.fish` equivalents instead — the `.sh`
+> scripts are the default for bash-based systems (most VPS hosts).
+
 ### Running Locally
 
 **Demo mode** — mock data, no ESI connection needed:
-```fish
-./run_dev.fish demo
+```bash
+./run_dev.sh demo
 # Flask mock API: http://localhost:5001
 # Vite dev server: http://localhost:3000  ← open this
 ```
 
 **Live mode** — real ESI data:
-```fish
-./run_dev.fish
+```bash
+./run_dev.sh
 # Flask:          http://localhost:5000
 # Vite dev server: http://localhost:3000  ← open this
 ```
 
 Or run each manually:
-```fish
+```bash
 # Terminal 1
 FLASK_PORT=5001 python demo.py    # or: python app.py
 
@@ -352,7 +355,7 @@ python tools/esi_lookup.py zkill     "Deepwater Hooligans"
 | Layer | Tech |
 |-------|------|
 | Backend | Python 3.11, Flask, Flask Blueprints |
-| Frontend | React 18, Vite 5 |
+| Frontend | React 19, Vite 8 |
 | Persistence | SQLite (WAL mode) |
 | Production server | Gunicorn (2 workers) behind Nginx |
 | Containerisation | Docker multi-stage build, Docker Compose |
