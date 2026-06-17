@@ -72,14 +72,15 @@ function findSystem(message, lookup) {
 function extractCount(msg) {
     let m
     m = msg.match(/[+]?(\d+)\s*(?:neut|neutral|red|hostile|unk)\w*/i)
-    if (m) return parseInt(m[1])
+    if (m) return parseInt(m[1], 10)
     m = msg.match(/(?:neut|neutral|red|hostile)s?\s+(\d+)/i)
-    if (m) return parseInt(m[1])
-    // Leading number e.g. "5 in J9A" or "+3". Require the digits to be
-    // followed by whitespace or end-of-string so a system name that starts
-    // with a digit+hyphen (e.g. "6-1T6Z", "6-8QLA") isn't read as a count.
-    m = msg.match(/^[+]?(\d+)(?=\s|$)/)
-    if (m) return parseInt(m[1])
+    if (m) return parseInt(m[1], 10)
+    // Leading number e.g. "5 in J9A", "+3", or "10+"/"5?". Require the digits,
+    // plus an optional trailing + or ? indicator, to be followed by whitespace
+    // or end-of-string so a system name starting with a digit+hyphen (e.g.
+    // "6-1T6Z", "6-8QLA") isn't read as a count.
+    m = msg.match(/^[+]?(\d+)[+?]?(?=\s|$)/)
+    if (m) return parseInt(m[1], 10)
     return null
 }
 
