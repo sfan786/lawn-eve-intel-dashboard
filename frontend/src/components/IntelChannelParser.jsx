@@ -75,8 +75,10 @@ function extractCount(msg) {
     if (m) return parseInt(m[1])
     m = msg.match(/(?:neut|neutral|red|hostile)s?\s+(\d+)/i)
     if (m) return parseInt(m[1])
-    // Leading number e.g. "5 in J9A" or "+3"
-    m = msg.match(/^[+]?(\d+)\b/)
+    // Leading number e.g. "5 in J9A" or "+3". Require the digits to be
+    // followed by whitespace or end-of-string so a system name that starts
+    // with a digit+hyphen (e.g. "6-1T6Z", "6-8QLA") isn't read as a count.
+    m = msg.match(/^[+]?(\d+)(?=\s|$)/)
     if (m) return parseInt(m[1])
     return null
 }
