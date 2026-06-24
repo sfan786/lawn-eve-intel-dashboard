@@ -57,6 +57,12 @@ jobs:
           print("OK: demo endpoints return 200")
           PY
 
+      - name: Install dev deps
+        run: pip install -r requirements-dev.txt
+
+      - name: Run pytest
+        run: pytest tests/ -v
+
   frontend:
     name: Frontend (build)
     runs-on: ubuntu-latest
@@ -77,3 +83,6 @@ jobs:
 
       - name: Build
         run: npm run build
+
+      - name: Run frontend tests
+        run: npm test
