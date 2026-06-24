@@ -115,7 +115,8 @@ describe('SystemTable', () => {
                 activity: { 1: {} },
                 lawnSystemIds: new Set(),
             })
-            expect(screen.getAllByText('—').length).toBeGreaterThan(0)
+            // Both the ADM cell and sov-holder cell render "—" → at least 2
+            expect(screen.getAllByText('—').length).toBeGreaterThanOrEqual(2)
         })
     })
 

@@ -1,15 +1,6 @@
-"""
-Tests for db.py — SQLite persistence layer.
-
-Uses the `tmp_db` fixture from conftest.py which:
-  - Points DB_PATH at a fresh temp file
-  - Sets DEPLOYMENT_ID to 'test_deploy'
-  - Clears in-memory dedup caches
-  - Calls db.init()
-"""
+# Tests for db.py — SQLite persistence layer (uses tmp_db fixture from conftest.py).
 
 import sqlite3
-import time
 from datetime import datetime, timezone, timedelta
 
 import pytest

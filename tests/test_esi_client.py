@@ -1,10 +1,4 @@
-"""
-Tests for esi_client.py — in-memory caching, eviction, and error handling.
-
-Patches `requests.get` / `requests.post` via pytest-mock so no real network
-calls are made. Clears the module-level `_cache` dict before each test to
-avoid state leakage between tests.
-"""
+# Tests for esi_client.py — TTL cache, eviction, thread safety, chunking, error handling.
 
 import time
 import threading
