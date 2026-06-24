@@ -1,10 +1,21 @@
-import { describe, it, expect } from 'vitest'
+import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest'
 import {
     getAdmColor,
     getAdmStatus,
     computeGrindingRate,
     compute24hChange,
 } from '../admHelpers'
+
+const now = 1700000000000
+
+beforeEach(() => {
+    vi.useFakeTimers()
+    vi.setSystemTime(now)
+})
+
+afterEach(() => {
+    vi.useRealTimers()
+})
 
 // ---------------------------------------------------------------------------
 // getAdmColor
@@ -79,8 +90,6 @@ describe('getAdmStatus', () => {
 // ---------------------------------------------------------------------------
 
 describe('computeGrindingRate', () => {
-    const now = Date.now()
-
     const ago = (hours) => new Date(now - hours * 3600 * 1000).toISOString()
 
     it('returns null for null or empty history', () => {
@@ -137,7 +146,6 @@ describe('computeGrindingRate', () => {
 // ---------------------------------------------------------------------------
 
 describe('compute24hChange', () => {
-    const now = Date.now()
     const ago = (hours) => new Date(now - hours * 3600 * 1000).toISOString()
 
     it('returns 0 for empty history', () => {

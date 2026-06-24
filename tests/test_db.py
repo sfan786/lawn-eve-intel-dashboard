@@ -200,6 +200,14 @@ class TestDeploymentIsolation:
         monkeypatch.setattr(db, "DEPLOYMENT_ID", "other_deploy")
         assert db.get_adm_history(system_id=1, hours=24) == {}
 
+    def test_annotations_unique_constraint_per_deployment(self, tmp_db, monkeypatch):
+        db.upsert_annotation("Sys1", "Note A")
+        monkeypatch.setattr(db, "DEPLOYMENT_ID", "other_deploy")
+        db.upsert_annotation("Sys1", "Note B")
+        assert db.get_all_annotations()["Sys1"]["note"] == "Note B"
+        monkeypatch.setattr(db, "DEPLOYMENT_ID", "test_deploy")
+        assert db.get_all_annotations()["Sys1"]["note"] == "Note A"
+
 
 # ---------------------------------------------------------------------------
 # Timer CRUD
