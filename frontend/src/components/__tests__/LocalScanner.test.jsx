@@ -44,6 +44,9 @@ function makeFetchMock(response = MOCK_SCAN_RESPONSE, ok = true) {
 }
 
 describe('LocalScanner', () => {
+    // Fake timers are only active inside the debounce describe block.
+    // Tests that use waitFor() require real timers so waitFor's internal
+    // setTimeout polling can fire.
     afterEach(() => {
         vi.restoreAllMocks()
     })
@@ -81,7 +84,7 @@ describe('LocalScanner', () => {
             global.fetch = makeFetchMock()
 
             render(<LocalScanner />)
-            // Use a newline-separated name so it's not split on spaces
+            // Single word avoids space-split: "PilotAlpha" stays as one name
             fireEvent.change(
                 screen.getByPlaceholderText(/Paste pilot names from local chat/i),
                 { target: { value: 'PilotAlpha' } }
@@ -172,6 +175,39 @@ describe('LocalScanner', () => {
 
             await waitFor(() => {
                 expect(screen.getByText('LAWN')).toBeInTheDocument()
+            })
+        })
+
+        it('displays risk tier label and roles from /api/chars/analyze', async () => {
+            const scanResponse = [{
+                name: 'Dangerous Pilot',
+                character_id: 789,
+                corporation_name: 'Hostile Corp',
+                alliance_name: 'Hostile Alliance',
+                standing: 'unknown',
+            }]
+            const riskResponse = {
+                789: { tier: 'very_dangerous', label: 'VERY DANGEROUS', kills: 1500, isk_eff: 90, danger: 85, roles: ['TITAN', 'BLOPS'] },
+            }
+            global.fetch = vi.fn()
+                .mockResolvedValueOnce({ ok: true, status: 200, json: vi.fn().mockResolvedValue(scanResponse) })
+                .mockResolvedValueOnce({ ok: true, status: 200, json: vi.fn().mockResolvedValue(riskResponse) })
+
+            render(<LocalScanner />)
+            fireEvent.change(
+                screen.getByPlaceholderText(/Paste pilot names from local chat/i),
+                { target: { value: 'Dangerous Pilot' } }
+            )
+
+            await act(async () => {
+                fireEvent.click(screen.getByText('SCAN LOCAL'))
+            })
+
+            await waitFor(() => {
+                expect(screen.getByText('VERY DANGEROUS')).toBeInTheDocument()
+                expect(screen.getByText('TITAN')).toBeInTheDocument()
+                expect(screen.getByText('BLOPS')).toBeInTheDocument()
+                expect(screen.getByText(/1\.5k kills/)).toBeInTheDocument()
             })
         })
     })

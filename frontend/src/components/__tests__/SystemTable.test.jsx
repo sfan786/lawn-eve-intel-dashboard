@@ -157,4 +157,24 @@ describe('SystemTable', () => {
             expect(screen.getByText('Watch this gate')).toBeInTheDocument()
         })
     })
+
+    describe('sorting logic', () => {
+        it('places hostile systems first, then sorts friendly systems by PVP kills then jumps', () => {
+            const sov = {
+                1: { alliance_name: 'Get Off My Lawn', is_friendly: true,  adm: 5.0 },
+                2: { alliance_name: 'Hostile Alliance', is_friendly: false, adm: 3.0 },
+                3: { alliance_name: 'Get Off My Lawn', is_friendly: true,  adm: 1.5 },
+            }
+            const act = {
+                1: { ship_kills: 10, pod_kills: 5,  npc_kills: 100, jumps: 50  }, // PVP=15
+                2: { ship_kills: 2,  pod_kills: 1,  npc_kills: 50,  jumps: 10  }, // hostile
+                3: { ship_kills: 20, pod_kills: 5,  npc_kills: 200, jumps: 100 }, // PVP=25
+            }
+            renderTable({ sovereignty: sov, activity: act })
+            const rows = screen.getAllByRole('row').slice(1) // skip header
+            expect(rows[0]).toHaveTextContent('Sys-Beta')   // hostile → first
+            expect(rows[1]).toHaveTextContent('Sys-Gamma')  // friendly, PVP=25
+            expect(rows[2]).toHaveTextContent('Sys-Alpha')  // friendly, PVP=15
+        })
+    })
 })
