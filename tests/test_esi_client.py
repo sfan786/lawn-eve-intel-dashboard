@@ -128,7 +128,7 @@ class TestCacheEviction:
 class TestThreadSafety:
     def test_concurrent_reads_no_exception(self, mocker):
         """20 threads concurrently calling get_system_info() must not raise."""
-        mocker.patch("requests.get", return_value=_mock_response({"system_id": 1}))
+        mocker.patch("requests.get", new=lambda *args, **kwargs: _mock_response({"system_id": 1}))
         errors = []
 
         def call():
