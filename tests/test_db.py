@@ -164,6 +164,42 @@ class TestAdmHistory:
 
 
 # ---------------------------------------------------------------------------
+# Activity baseline
+# ---------------------------------------------------------------------------
+
+def _insert_activity(tmp_db, system_id, ship_kills, jumps, ts):
+    with _conn(tmp_db) as c:
+        c.execute(
+            "INSERT INTO activity_snapshots "
+            "(deployment_id, system_id, ship_kills, pod_kills, npc_kills, jumps, timestamp) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?)",
+            ("test_deploy", system_id, ship_kills, 0, 0, jumps, ts),
+        )
+        c.commit()
+
+
+class TestActivityBaseline:
+    def test_empty_system_ids_returns_empty(self, tmp_db):
+        assert db.get_activity_baseline([]) == {}
+
+    def test_averages_kills_and_jumps_over_window(self, tmp_db):
+        for hours, kills, jumps in [(1, 10, 100), (2, 20, 200), (3, 30, 300)]:
+            _insert_activity(tmp_db, 1, kills, jumps, _old_ts(hours=hours))
+        baseline = db.get_activity_baseline([1])
+        assert baseline[1]["avg_kills"] == 20.0
+        assert baseline[1]["avg_jumps"] == 200.0
+        assert baseline[1]["sample_count"] == 3
+
+    def test_excludes_rows_outside_window(self, tmp_db):
+        # One row inside the 7-day window, one well outside it.
+        _insert_activity(tmp_db, 1, 10, 100, _old_ts(hours=1))
+        _insert_activity(tmp_db, 1, 999, 999, _old_ts(hours=8 * 24))
+        baseline = db.get_activity_baseline([1], days=7)
+        assert baseline[1]["sample_count"] == 1
+        assert baseline[1]["avg_kills"] == 10.0
+
+
+# ---------------------------------------------------------------------------
 # Deployment isolation
 # ---------------------------------------------------------------------------
 
@@ -230,6 +266,13 @@ class TestTimerCrud:
         db.add_timer("Sys1", "Citadel", "Hostiles", "armor", t1)
         timers = db.get_active_timers()
         assert timers[0]["system_name"] == "Sys1"  # earlier timer first
+
+    def test_expired_timer_excluded(self, tmp_db):
+        # A timer more than 24h in the past is not "active" and must be excluded.
+        db.add_timer("Stale", "iHub", "Hostiles", "hull", _old_ts(hours=30))
+        db.add_timer("Fresh", "Citadel", "Hostiles", "armor", _future_ts())
+        timers = db.get_active_timers()
+        assert [t["system_name"] for t in timers] == ["Fresh"]
 
 
 # ---------------------------------------------------------------------------
@@ -375,3 +418,12 @@ class TestSovChanges:
         changes = db.get_recent_sov_changes()
         # Newest event should have new_alliance=222
         assert changes[0]["new_alliance"] == 222
+
+    def test_ring_buffer_pruned_to_max(self, tmp_db):
+        # Seed 60 systems, then flip every alliance in one call → 60 change
+        # events at once, exceeding SOV_CHANGES_MAX (50).
+        names = {i: f"Sys{i}" for i in range(60)}
+        db.record_sov_changes({i: 1000 for i in range(60)}, names)
+        db.record_sov_changes({i: 2000 for i in range(60)}, names)
+        # The table is capped at SOV_CHANGES_MAX rows regardless of limit asked.
+        assert _count(tmp_db, "sov_changes") == db.SOV_CHANGES_MAX
