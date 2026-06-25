@@ -87,7 +87,10 @@ lawn-eve-intel-dashboard/
 │   └── deploy.yml           # CD: auto-deploy to server on push to main
 ├── setup.sh / setup.fish    # Local first-time setup (venv + npm install)
 ├── run_dev.sh / run_dev.fish # Local dev launcher (Flask + Vite together)
-└── requirements.txt
+├── requirements.txt
+├── requirements-dev.txt     # Dev-only: pytest, pytest-flask, pytest-mock
+├── pytest.ini               # pytest config (testpaths = tests/)
+└── tests/                   # Python test suite (pytest)
 ```
 
 ---

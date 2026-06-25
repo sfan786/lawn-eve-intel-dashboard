@@ -121,6 +121,16 @@ lawn-eve-intel-dashboard/
 ### First-Time Setup
 ```bash
 ./setup.sh      # creates .venv, pip install, npm install in frontend/  (fish: ./setup.fish)
+pip install -r requirements-dev.txt  # pytest + pytest-flask + pytest-mock (dev-only)
+```
+
+### Running Tests
+```bash
+# Backend
+pytest tests/ -v
+
+# Frontend
+cd frontend && npm test
 ```
 
 ### Running Locally
