@@ -349,6 +349,7 @@ See [ROADMAP.md](ROADMAP.md) for full details and backlog.
 - [x] **Performance & security pass** — parallel killmail prefetch via `ThreadPoolExecutor` in kill feed and hostile feed; bulk ESI name resolution primes cache before enrichment loop; compound DB indexes on `(deployment_id, system_id, timestamp)`; thread-safe ESI cache with `_cache_lock` and per-entry expiry timestamps; HMAC-based timer password check
 - [x] **SQLite-backed sov change tracking** — `sov_state` + `sov_changes` tables replace in-memory dict; `db.record_sov_changes()` persists neighbor sov events across restarts; served via `/api/intel/sov_changes`
 - [x] **AI threat summaries** — "AI SUMMARY" button in D-scan + Local scanner panels sends parsed intel to Gemini (`gemini-2.5-flash`) for a 1-3 sentence tactical read-out; `routes/ai_routes.py` (`POST /api/ai/threat_summary`), gated by `require_write_auth`, token/timeout bounded, prompt-injection guarded; shared `useAiSummary` hook + `common/AiSummary.jsx`; needs `GEMINI_API_KEY`
+- [x] **UX polish** — SystemTable live name-filter input (count badge + ✕ clear); LocalScanner COPY button (formats as `NAME (Corp/Alliance) [STANDING] RISK [ROLES]`); FleetCompAnalyzer COPY button (fleet summary); DscanParser COPY button (threat tier + ship counts)
 
 **Priority 2 — Operational:**
 - [x] Browser push notifications (PVP alerts, sov campaigns, ADM drops) — ALERTS button in header, `useNotifications` hook + `NotificationBell.jsx`
