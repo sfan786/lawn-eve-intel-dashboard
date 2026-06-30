@@ -91,12 +91,34 @@ function ThreatBar({ distribution, total }) {
     )
 }
 
+function buildFleetCopyText(s, pilots) {
+    const total = (s.unknown || 0) + (s.friendly || 0) + (s.lawn || 0) + (s.unresolved || 0)
+    const lines = [`FLEET ANALYSIS — ${total} pilots`]
+    lines.push(`Threat: ${s.avg_danger ?? 0}% avg danger | Caps: ${s.capitals || 0}`)
+    const dist = s.risk_distribution || {}
+    const distParts = []
+    if (dist.very_dangerous) distParts.push(`${dist.very_dangerous} VERY DANGEROUS`)
+    if (dist.dangerous) distParts.push(`${dist.dangerous} DANGEROUS`)
+    if (dist.moderate) distParts.push(`${dist.moderate} MODERATE`)
+    if (dist.snuggly) distParts.push(`${dist.snuggly} SNUGGLY`)
+    if (dist.newbie) distParts.push(`${dist.newbie} NEWBIE`)
+    if (distParts.length) lines.push(`Risk: ${distParts.join(', ')}`)
+    const roles = Object.entries(s.role_counts || {})
+    if (roles.length) lines.push(`Roles: ${roles.map(([r, n]) => n > 1 ? `${r} ×${n}` : r).join(', ')}`)
+    const fleetRoles = Object.entries(s.fleet_role_counts || {})
+    if (fleetRoles.length) lines.push(`Fleet roles: ${fleetRoles.map(([r, n]) => n > 1 ? `${r} ×${n}` : r).join(', ')}`)
+    const topAlliances = (s.top_alliances || []).slice(0, 5)
+    if (topAlliances.length) lines.push(`Top alliances: ${topAlliances.map(a => `${a.name} (${a.count})`).join(', ')}`)
+    return lines.join('\n')
+}
+
 export default function FleetCompAnalyzer() {
     const [rawInput, setRawInput] = useState('')
     const [result, setResult] = useState(null)
     const [scanning, setScanning] = useState(false)
     const [error, setError] = useState(null)
     const [showPilots, setShowPilots] = useState(false)
+    const [copied, setCopied] = useState(false)
 
     const names = parseNames(rawInput)
 
@@ -153,6 +175,30 @@ export default function FleetCompAnalyzer() {
                             {s.lawn > 0 && <span style={{ color: 'var(--text-muted)' }}> · <span style={{ color: STANDING_CONFIG.lawn.color }}>{s.lawn} lawn</span></span>}
                             {s.capitals > 0 && <span style={{ color: 'var(--text-muted)' }}> · <span style={{ color: '#ff7744' }}>{s.capitals} caps</span></span>}
                         </span>
+                    )}
+                    {s && (
+                        <button
+                            onClick={async () => {
+                                const text = buildFleetCopyText(s, pilots)
+                                try { await navigator.clipboard.writeText(text) } catch {
+                                    const el = document.createElement('textarea')
+                                    el.value = text
+                                    document.body.appendChild(el)
+                                    el.select()
+                                    document.execCommand('copy')
+                                    document.body.removeChild(el)
+                                }
+                                setCopied(true)
+                                setTimeout(() => setCopied(false), 2000)
+                            }}
+                            style={{
+                                background: 'none', border: '1px solid var(--border-dim)',
+                                color: copied ? 'var(--green)' : 'var(--cyan)',
+                                cursor: 'pointer', fontFamily: 'Share Tech Mono, monospace',
+                                fontSize: 10, padding: '2px 8px', letterSpacing: 1,
+                                transition: 'color 0.2s',
+                            }}
+                        >{copied ? 'COPIED' : 'COPY'}</button>
                     )}
                     {(rawInput || result) && (
                         <button onClick={handleClear} style={{

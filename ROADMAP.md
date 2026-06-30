@@ -43,6 +43,7 @@
 - [x] **AI threat summaries** — "AI SUMMARY" button in the D-scan and Local scanner panels sends parsed intel to the Gemini API (`gemini-2.5-flash`) for a concise tactical read-out; `routes/ai_routes.py` (`POST /api/ai/threat_summary`) gated by `require_write_auth`, bounded by `max_output_tokens` + client timeout, with a prompt-injection guard on pasted data; shared `useAiSummary` hook + `common/AiSummary.jsx`; requires `GEMINI_API_KEY` (endpoint returns 501 / button hidden when unset)
 - [x] **Automated test suite** — pytest 8.3.5 + Vitest 2; 63 Python tests (`tests/test_db.py`, `tests/test_esi_client.py`) covering SQLite CRUD, deduplication, deployment isolation, ESI cache/eviction/threading/chunking; 95 JS tests across 3 utility modules and 3 React components (DscanParser, LocalScanner, SystemTable); both suites run in CI via `smoke-test.yml`
 - [x] **Fleet composition analyzer (live fleet paste)** — paste a fleet/pilot list → `POST /api/fleet/analyze` (`routes/intel_routes.py`) resolves each pilot's standing (lawn/friendly/unknown/unresolved), risk tier, and capital + fleet role badges (reusing `_compute_risk_tier`/`_detect_roles`/`_detect_fleet_roles`), plus an aggregate summary (risk distribution, role/fleet-role counts, capital count, avg danger/kills, top hostile alliances); `FleetCompAnalyzer.jsx`. (The doctrine-profile / blue-vs-red comparison from the Priority 3 item is still open.)
+- [x] **UX polish: system filter + clipboard copy** — SystemTable live name-filter input (with count badge + ✕ clear); LocalScanner COPY button (formats pilots as `NAME (Corp/Alliance) [STANDING] RISK [ROLES]`); FleetCompAnalyzer COPY button (exports fleet summary); all follow the existing DscanParser COPY pattern
 
 ---
 
@@ -57,6 +58,7 @@
 - [x] Ship class breakdown — subcaps vs caps vs supers in region
 - [x] Repeat offender tracking — flag pilots/corps seen multiple times
 - [x] Expandable kill details (fitted ship value, attacker list)
+- [x] Kill age display ("Xm ago" / "Xh ago") on each feed entry
 - **Data sources:** zKillboard API + websocket for real-time
 
 

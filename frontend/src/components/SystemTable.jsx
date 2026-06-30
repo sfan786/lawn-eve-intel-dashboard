@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { getAdmColor } from '../utils/admHelpers'
 import { classifyKills } from '../utils/formatters'
 import { getSystemUpgrades } from '../utils/upgradeHelpers'
@@ -14,6 +14,8 @@ function ActivityBar({ value, max, type = "npc" }) {
 }
 
 export default function SystemTable({ systems, sovereignty, activity, selectedSystem, onSelectSystem, lawnSystemIds, config, annotations = {} }) {
+    const [nameFilter, setNameFilter] = useState('')
+
     const sorted = [...systems].sort((a, b) => {
         const sovA = sovereignty[a.system_id] || {}, sovB = sovereignty[b.system_id] || {}
         const actA = activity[a.system_id] || {}, actB = activity[b.system_id] || {}
@@ -24,10 +26,37 @@ export default function SystemTable({ systems, sovereignty, activity, selectedSy
         if (pvpB !== pvpA) return pvpB - pvpA
         return (actB.jumps || 0) - (actA.jumps || 0)
     })
+    const filtered = nameFilter
+        ? sorted.filter(s => s.name?.toLowerCase().includes(nameFilter.toLowerCase()))
+        : sorted
     const maxNPC = Math.max(...systems.map(s => (activity[s.system_id] || {}).npc_kills || 0), 1)
     const maxJumps = Math.max(...systems.map(s => (activity[s.system_id] || {}).jumps || 0), 1)
 
     return (
+        <div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 8px', borderBottom: '1px solid var(--border-dim)', background: 'rgba(0,0,0,0.2)' }}>
+            <input
+                value={nameFilter}
+                onChange={e => setNameFilter(e.target.value)}
+                placeholder="Filter systems..."
+                style={{
+                    background: 'rgba(0,0,0,0.3)', border: '1px solid var(--border-dim)',
+                    color: 'var(--text-primary)', fontFamily: 'Share Tech Mono, monospace',
+                    fontSize: 11, padding: '2px 8px', outline: 'none', width: 160,
+                }}
+            />
+            {nameFilter && (
+                <button onClick={() => setNameFilter('')} style={{
+                    background: 'none', border: 'none', color: 'var(--text-muted)',
+                    cursor: 'pointer', fontFamily: 'Share Tech Mono, monospace', fontSize: 11, padding: '2px 4px',
+                }}>✕</button>
+            )}
+            {nameFilter && (
+                <span style={{ fontFamily: 'Share Tech Mono, monospace', fontSize: 10, color: 'var(--text-muted)' }}>
+                    {filtered.length} / {sorted.length} systems
+                </span>
+            )}
+        </div>
         <div className="table-scroll-wrapper">
         <table className="sys-table">
             <thead>
@@ -47,7 +76,7 @@ export default function SystemTable({ systems, sovereignty, activity, selectedSy
                 </tr>
             </thead>
             <tbody>
-                {sorted.map(sys => {
+                {filtered.map(sys => {
                     const sov = sovereignty[sys.system_id] || {}
                     const act = activity[sys.system_id] || {}
                     const pvp = act.ship_kills || 0, pods = act.pod_kills || 0, npc = act.npc_kills || 0, jumps = act.jumps || 0
@@ -134,6 +163,7 @@ export default function SystemTable({ systems, sovereignty, activity, selectedSy
                 })}
             </tbody>
         </table>
+        </div>
         </div>
     )
 }
