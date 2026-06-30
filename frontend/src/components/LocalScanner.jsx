@@ -43,12 +43,29 @@ function parseNames(raw) {
     return [...new Set(names)] // deduplicate
 }
 
+function buildLocalCopyText(results, riskMap) {
+    const unknownCount = results.filter(r => r.standing === 'unknown').length
+    const lines = [`LOCAL SCAN — ${results.length} pilots, ${unknownCount} unknown`]
+    lines.push('')
+    for (const r of results) {
+        const risk = r.character_id ? riskMap[String(r.character_id)] : null
+        const corp = r.corporation_name || 'Unknown Corp'
+        const alliance = r.alliance_name ? ` / ${r.alliance_name}` : ''
+        const standing = r.standing.toUpperCase()
+        const tier = risk ? risk.label : ''
+        const roles = risk?.roles?.length ? ` [${risk.roles.join(', ')}]` : ''
+        lines.push(`${r.name} (${corp}${alliance}) [${standing}]${tier ? ` ${tier}` : ''}${roles}`)
+    }
+    return lines.join('\n')
+}
+
 export default function LocalScanner() {
     const [rawInput, setRawInput] = useState('')
     const [results, setResults] = useState(null)
-    const [riskMap, setRiskMap] = useState({}) // character_id → risk tier data
+    const [riskMap, setRiskMap] = useState({})
     const [scanning, setScanning] = useState(false)
     const [error, setError] = useState(null)
+    const [copied, setCopied] = useState(false)
     const { authorized, ssoEnabled } = useAuth()
     // Show the AI button when the session can write (SSO) or when SSO is off
     // (demo / no-SSO) — matches the backend require_write_auth gate.
@@ -146,6 +163,30 @@ export default function LocalScanner() {
                             {counts.unresolved > 0 && <span style={{ color: 'var(--text-muted)' }}> · </span>}
                             {counts.unresolved > 0 && <span style={{ color: STANDING_CONFIG.unresolved.color }}>{counts.unresolved} unresolved</span>}
                         </span>
+                    )}
+                    {results && results.length > 0 && (
+                        <button
+                            onClick={async () => {
+                                const text = buildLocalCopyText(results, riskMap)
+                                try { await navigator.clipboard.writeText(text) } catch {
+                                    const el = document.createElement('textarea')
+                                    el.value = text
+                                    document.body.appendChild(el)
+                                    el.select()
+                                    document.execCommand('copy')
+                                    document.body.removeChild(el)
+                                }
+                                setCopied(true)
+                                setTimeout(() => setCopied(false), 2000)
+                            }}
+                            style={{
+                                background: 'none', border: '1px solid var(--border-dim)',
+                                color: copied ? 'var(--green)' : 'var(--cyan)',
+                                cursor: 'pointer', fontFamily: 'Share Tech Mono, monospace',
+                                fontSize: 10, padding: '2px 8px', letterSpacing: 1,
+                                transition: 'color 0.2s',
+                            }}
+                        >{copied ? 'COPIED' : 'COPY'}</button>
                     )}
                     {(rawInput || results) && (
                         <button
