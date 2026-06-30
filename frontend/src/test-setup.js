@@ -1,5 +1,5 @@
 import '@testing-library/jest-dom'
-import { vi } from 'vitest'
+import { vi, beforeEach } from 'vitest'
 
 // jsdom does not provide a working localStorage in this environment, so
 // components that read it during render (e.g. the X-Timer-Auth header in
@@ -13,4 +13,9 @@ if (typeof globalThis.localStorage === 'undefined') {
         removeItem: vi.fn((key) => { store.delete(key) }),
         clear: vi.fn(() => { store.clear() }),
     }
+
+    // Reset between tests so writes don't leak across test boundaries.
+    beforeEach(() => {
+        globalThis.localStorage.clear()
+    })
 }
