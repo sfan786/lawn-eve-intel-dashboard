@@ -51,7 +51,7 @@ function buildLocalCopyText(results, riskMap) {
         const risk = r.character_id ? riskMap[String(r.character_id)] : null
         const corp = r.corporation_name || 'Unknown Corp'
         const alliance = r.alliance_name ? ` / ${r.alliance_name}` : ''
-        const standing = r.standing.toUpperCase()
+        const standing = (r.standing || '').toUpperCase()
         const tier = risk ? risk.label : ''
         const roles = risk?.roles?.length ? ` [${risk.roles.join(', ')}]` : ''
         lines.push(`${r.name} (${corp}${alliance}) [${standing}]${tier ? ` ${tier}` : ''}${roles}`)

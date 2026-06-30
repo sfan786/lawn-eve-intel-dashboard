@@ -27,7 +27,7 @@ export default function SystemTable({ systems, sovereignty, activity, selectedSy
         return (actB.jumps || 0) - (actA.jumps || 0)
     })
     const filtered = nameFilter
-        ? sorted.filter(s => s.name.toLowerCase().includes(nameFilter.toLowerCase()))
+        ? sorted.filter(s => s.name?.toLowerCase().includes(nameFilter.toLowerCase()))
         : sorted
     const maxNPC = Math.max(...systems.map(s => (activity[s.system_id] || {}).npc_kills || 0), 1)
     const maxJumps = Math.max(...systems.map(s => (activity[s.system_id] || {}).jumps || 0), 1)

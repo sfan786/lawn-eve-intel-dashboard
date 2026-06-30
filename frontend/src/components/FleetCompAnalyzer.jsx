@@ -107,7 +107,7 @@ function buildFleetCopyText(s, pilots) {
     if (roles.length) lines.push(`Roles: ${roles.map(([r, n]) => n > 1 ? `${r} ×${n}` : r).join(', ')}`)
     const fleetRoles = Object.entries(s.fleet_role_counts || {})
     if (fleetRoles.length) lines.push(`Fleet roles: ${fleetRoles.map(([r, n]) => n > 1 ? `${r} ×${n}` : r).join(', ')}`)
-    const topAlliances = (s.top_hostile_alliances || []).slice(0, 5)
+    const topAlliances = (s.top_alliances || []).slice(0, 5)
     if (topAlliances.length) lines.push(`Top alliances: ${topAlliances.map(a => `${a.name} (${a.count})`).join(', ')}`)
     return lines.join('\n')
 }
