@@ -315,6 +315,7 @@ export default function EntosisPage() {
             ])
             let camp = null
             let sov = null
+            let act = {}
             if (campRes?.ok) {
                 const data = await campRes.json()
                 if (Array.isArray(data)) { camp = data; setCampaigns(data) }
@@ -325,7 +326,7 @@ export default function EntosisPage() {
             }
             if (actRes?.ok) {
                 const data = await actRes.json()
-                if (data && typeof data === 'object' && !data.error) setActivity(data)
+                if (data && typeof data === 'object' && !data.error) { act = data; setActivity(data) }
             }
             fetch('/api/zkill/feed')
                 .then(r => (r.ok ? r.json() : []))
@@ -344,7 +345,7 @@ export default function EntosisPage() {
                     })
                 })
                 const allianceShort = cfg?.alliance?.short_name || cfg?.alliance?.ticker || 'PRIMARY'
-                checkAndNotify(camp, sov, {}, primaryIds, names, allianceShort)
+                checkAndNotify(camp, sov, act, primaryIds, names, allianceShort)
             }
         } catch (_) {}
     }, [checkAndNotify])
