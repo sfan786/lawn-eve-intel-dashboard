@@ -4,6 +4,7 @@ import {
     constellationNamesForCampaigns,
     filterConfigToConstellations,
     systemsForConstellation,
+    campaignSystemIds,
     eventTypeLabel,
 } from '../entosisHelpers'
 
@@ -17,8 +18,8 @@ const laterCampaign = { campaign_id: 3, system_name: 'C-3', constellation_id: 20
 
 const config = {
     constellations: {
-        '100': { name: 'Const-A', systems: { '30001': { name: 'A-1' }, '30002': { name: 'A-2' } } },
-        '200': { name: 'Const-B', systems: { '30003': { name: 'B-2' } } },
+        '100': { name: 'Const-A', systems: { '30001': { system_id: 30001, name: 'A-1' }, '30002': { system_id: 30002, name: 'A-2' } } },
+        '200': { name: 'Const-B', systems: { '30003': { system_id: 30003, name: 'B-2' } } },
     },
     map_layout: {
         'A-1': { x: 0, y: 0, constellation: 'Const-A', lawn: true },
@@ -155,6 +156,28 @@ describe('systemsForConstellation', () => {
     it('returns empty list for unknown constellation or missing config', () => {
         expect(systemsForConstellation(config, 999)).toEqual([])
         expect(systemsForConstellation(null, 100)).toEqual([])
+    })
+})
+
+// ---------------------------------------------------------------------------
+// campaignSystemIds
+// ---------------------------------------------------------------------------
+
+describe('campaignSystemIds', () => {
+    it('collects string ids for every system in campaign constellations', () => {
+        const ids = campaignSystemIds([activeCampaign], config)
+        expect([...ids].sort()).toEqual(['30001', '30002'])
+    })
+
+    it('merges systems across multiple campaigns', () => {
+        const ids = campaignSystemIds([activeCampaign, upcomingCampaign], config)
+        expect(ids.size).toBe(3)
+    })
+
+    it('returns empty set for no campaigns, unknown constellations, or missing config', () => {
+        expect(campaignSystemIds([], config).size).toBe(0)
+        expect(campaignSystemIds([{ constellation_id: 999 }], config).size).toBe(0)
+        expect(campaignSystemIds([activeCampaign], null).size).toBe(0)
     })
 })
 

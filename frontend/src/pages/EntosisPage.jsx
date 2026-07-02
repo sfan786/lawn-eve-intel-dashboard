@@ -6,11 +6,16 @@ import ConstellationMap from '../components/ConstellationMap'
 import DscanParser from '../components/DscanParser'
 import LocalScanner from '../components/LocalScanner'
 import TimerBoard from '../components/TimerBoard'
+import FleetCompAnalyzer from '../components/FleetCompAnalyzer'
+import KillFeed from '../components/KillFeed'
+import NotificationBell from '../components/NotificationBell'
 import { useAuth } from '../utils/useAuth'
+import { useNotifications } from '../hooks/useNotifications'
 import { getCampaignPhase, formatCountdown, formatEveTime, formatLocalTime, formatVulnWindow } from '../utils/campaignHelpers'
 import {
     groupNodesByEvent, constellationNamesForCampaigns,
     filterConfigToConstellations, systemsForConstellation, eventTypeLabel,
+    campaignSystemIds,
 } from '../utils/entosisHelpers'
 
 const STATUS_META = {
@@ -257,6 +262,7 @@ export default function EntosisPage() {
     const [config, setConfig] = useState(null)
     const [campaigns, setCampaigns] = useState([])
     const [sovereignty, setSovereignty] = useState({})
+    const [killFeed, setKillFeed] = useState([])
     const [selectedSystem, setSelectedSystem] = useState(null)
     const [mapMode, setMapMode] = useState('subway')
     const [callsign, setCallsign] = useState(() => localStorage.getItem('entosis_callsign') || '')
@@ -270,8 +276,10 @@ export default function EntosisPage() {
     const [lastUpdate, setLastUpdate] = useState(null)
     const pollRef = useRef(null)
     const intelPollRef = useRef(null)
+    const configRef = useRef(null)
 
     const auth = useAuth()
+    const { settings: notifSettings, saveSettings: saveNotifSettings, permStatus, requestPermission, checkAndNotify } = useNotifications()
     // FC-level actions (add/delete/clear nodes); identity used for claims; ability to claim.
     const canManage = auth.ssoEnabled ? auth.authorized : isAuth
     const myName = auth.ssoEnabled ? auth.characterName : callsign
@@ -288,7 +296,11 @@ export default function EntosisPage() {
     const fetchConfig = useCallback(async () => {
         try {
             const res = await fetch('/api/config')
-            if (res.ok) setConfig(await res.json())
+            if (res.ok) {
+                const cfg = await res.json()
+                configRef.current = cfg
+                setConfig(cfg)
+            }
         } catch (_) {}
     }, [])
 
@@ -298,16 +310,37 @@ export default function EntosisPage() {
                 fetch('/api/campaigns'),
                 fetch('/api/sovereignty'),
             ])
+            let camp = null
+            let sov = null
             if (campRes.ok) {
                 const data = await campRes.json()
-                if (Array.isArray(data)) setCampaigns(data)
+                if (Array.isArray(data)) { camp = data; setCampaigns(data) }
             }
             if (sovRes.ok) {
                 const data = await sovRes.json()
-                if (data && typeof data === 'object' && !data.error) setSovereignty(data)
+                if (data && typeof data === 'object' && !data.error) { sov = data; setSovereignty(data) }
+            }
+            fetch('/api/zkill/feed')
+                .then(r => (r.ok ? r.json() : []))
+                .then(data => { if (Array.isArray(data)) setKillFeed(data) })
+                .catch(() => {})
+
+            // Browser alerts: new campaigns + nodes-spawned + ADM drops
+            const cfg = configRef.current
+            if (camp && sov && cfg?.constellations) {
+                const primaryIds = new Set()
+                const names = {}
+                Object.values(cfg.constellations).forEach(c => {
+                    Object.values(c.systems || {}).forEach(s => {
+                        names[s.system_id] = s.name
+                        if (c.is_primary ?? c.is_lawn) primaryIds.add(String(s.system_id))
+                    })
+                })
+                const allianceShort = cfg?.alliance?.short_name || cfg?.alliance?.ticker || 'PRIMARY'
+                checkAndNotify(camp, sov, {}, primaryIds, names, allianceShort)
             }
         } catch (_) {}
-    }, [])
+    }, [checkAndNotify])
 
     useEffect(() => {
         fetchNodes()
@@ -432,6 +465,11 @@ export default function EntosisPage() {
         if (!config) return null
         return filterConfigToConstellations(config, constellationNamesForCampaigns(campaigns, config))
     }, [config, campaigns])
+    // Kill feed scoped to systems in campaign constellations (where nodes spawn)
+    const opKills = useMemo(() => {
+        const ids = campaignSystemIds(campaigns, config)
+        return (killFeed || []).filter(k => ids.has(String(k.system_id)))
+    }, [killFeed, campaigns, config])
     const mapHasSystems = focusedConfig && Object.keys(
         (mapMode === 'subway' ? focusedConfig.map_layout_subway : focusedConfig.map_layout) || {}
     ).length > 0
@@ -500,6 +538,12 @@ export default function EntosisPage() {
 
                 {/* Right controls */}
                 <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+                    <NotificationBell
+                        settings={notifSettings}
+                        saveSettings={saveNotifSettings}
+                        permStatus={permStatus}
+                        requestPermission={requestPermission}
+                    />
                     {/* Callsign — only in legacy password mode; SSO uses the EVE character */}
                     {!auth.ssoEnabled && (
                         <div style={{ display: 'flex', gap: 5, alignItems: 'center' }}>
@@ -649,6 +693,12 @@ export default function EntosisPage() {
                     </CollapsibleTool>
                     <CollapsibleTool title="LOCAL SCANNER" defaultOpen>
                         <LocalScanner />
+                    </CollapsibleTool>
+                    <CollapsibleTool title="OP KILL FEED" defaultOpen>
+                        <KillFeed kills={opKills} config={config} />
+                    </CollapsibleTool>
+                    <CollapsibleTool title="FLEET COMP ANALYZER" defaultOpen={false}>
+                        <FleetCompAnalyzer />
                     </CollapsibleTool>
                     <CollapsibleTool title="TIMERBOARD" defaultOpen={false}>
                         <TimerBoard />

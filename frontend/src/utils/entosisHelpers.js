@@ -73,6 +73,19 @@ export function systemsForConstellation(config, constellationId) {
     return Object.values(c.systems).map(s => s.name).sort()
 }
 
+// Set of String system ids across all campaign constellations — used to scope
+// the op kill feed to systems where command nodes can spawn.
+export function campaignSystemIds(campaigns, config) {
+    const ids = new Set()
+    if (!config?.constellations) return ids
+    for (const campaign of campaigns || []) {
+        const c = config.constellations[String(campaign.constellation_id)]
+        if (!c?.systems) continue
+        for (const s of Object.values(c.systems)) ids.add(String(s.system_id))
+    }
+    return ids
+}
+
 // Short badge label for an ESI campaign event_type.
 export function eventTypeLabel(eventType) {
     if (!eventType) return 'SOV'

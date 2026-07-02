@@ -1,4 +1,5 @@
 import { useState, useCallback, useRef } from 'react'
+import { getCampaignPhase } from '../utils/campaignHelpers'
 
 const STORAGE_KEY = 'lawn-notif-settings'
 const DEFAULTS = {
@@ -68,6 +69,8 @@ export function useNotifications() {
     const checkAndNotify = useCallback((campaigns, sovereignty, activity, primarySysIds, sysNames, allianceShort = 'PRIMARY') => {
         // Build current snapshot
         const campaignIds = new Set(campaigns.map(c => c.campaign_id))
+        const campaignPhases = {}
+        campaigns.forEach(c => { campaignPhases[c.campaign_id] = getCampaignPhase(c).phase })
         const admBySystem = {}
         primarySysIds.forEach(id => {
             const sov = sovereignty[id]
@@ -96,6 +99,17 @@ export function useNotifications() {
                             `⚠ SOV CAMPAIGN — ${c.system_name}`,
                             `${label} contested${tag}`,
                             `campaign-${c.campaign_id}`
+                        )
+                    }
+                })
+
+                // 1b. Reinforced campaign flips to nodes-out
+                campaigns.forEach(c => {
+                    if (prev.campaignPhases?.[c.campaign_id] === 'reinforced' && campaignPhases[c.campaign_id] === 'nodes') {
+                        sendNotif(
+                            `⚔ NODES SPAWNED — ${c.system_name}`,
+                            `Command nodes are out — entosis contest live`,
+                            `nodes-${c.campaign_id}`
                         )
                     }
                 })
@@ -131,7 +145,7 @@ export function useNotifications() {
         }
 
         // Always update snapshot (including on init)
-        prevRef.current = { campaignIds, admBySystem, primaryPVP }
+        prevRef.current = { campaignIds, campaignPhases, admBySystem, primaryPVP }
     }, [settings, sendNotif])
 
     return { settings, saveSettings, permStatus, requestPermission, checkAndNotify }
