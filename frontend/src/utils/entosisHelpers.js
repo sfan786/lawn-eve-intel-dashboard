@@ -7,8 +7,8 @@ import { getCampaignPhase } from './campaignHelpers'
 // into unlinked (a resolved campaign disappears from ESI — its nodes surface
 // there as "event ended").
 export function groupNodesByEvent(nodes, campaigns) {
-    const safeNodes = Array.isArray(nodes) ? nodes : []
-    const safeCampaigns = Array.isArray(campaigns) ? campaigns : []
+    const safeNodes = (Array.isArray(nodes) ? nodes : []).filter(n => n && typeof n === 'object')
+    const safeCampaigns = (Array.isArray(campaigns) ? campaigns : []).filter(c => c && typeof c === 'object')
 
     const byId = new Map(safeCampaigns.map(c => [String(c.campaign_id), { campaign: c, nodes: [] }]))
     const unlinked = []
@@ -46,7 +46,7 @@ export function constellationNamesForCampaigns(campaigns, config) {
 // constellation is in the set, and connections kept only when both endpoints
 // survive. Everything else (constellations, neighbor_systems, ...) is left
 // intact — ConstellationMap needs those for lookups/tooltips.
-export function filterConfigToConstellations(config, constellationNames) {
+export function filterConfigToConstellations(config, constellationNames = new Set()) {
     if (!config) return config
     const filterLayout = (layout) => Object.fromEntries(
         Object.entries(layout || {}).filter(([, pos]) => constellationNames.has(pos.constellation))
@@ -88,7 +88,7 @@ export function campaignSystemIds(campaigns, config) {
 
 // Short badge label for an ESI campaign event_type.
 export function eventTypeLabel(eventType) {
-    if (!eventType) return 'SOV'
+    if (typeof eventType !== 'string' || !eventType) return 'SOV'
     if (eventType.startsWith('ihub')) return 'IHUB'
     if (eventType.startsWith('tcu')) return 'TCU'
     if (eventType.startsWith('station')) return 'STATION'

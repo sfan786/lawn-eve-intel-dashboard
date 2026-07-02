@@ -262,6 +262,7 @@ export default function EntosisPage() {
     const [config, setConfig] = useState(null)
     const [campaigns, setCampaigns] = useState([])
     const [sovereignty, setSovereignty] = useState({})
+    const [activity, setActivity] = useState({})
     const [killFeed, setKillFeed] = useState([])
     const [selectedSystem, setSelectedSystem] = useState(null)
     const [mapMode, setMapMode] = useState('subway')
@@ -306,19 +307,25 @@ export default function EntosisPage() {
 
     const fetchIntel = useCallback(async () => {
         try {
-            const [campRes, sovRes] = await Promise.all([
-                fetch('/api/campaigns'),
-                fetch('/api/sovereignty'),
+            // Individual catches: one failing endpoint must not discard the others
+            const [campRes, sovRes, actRes] = await Promise.all([
+                fetch('/api/campaigns').catch(() => null),
+                fetch('/api/sovereignty').catch(() => null),
+                fetch('/api/activity').catch(() => null),
             ])
             let camp = null
             let sov = null
-            if (campRes.ok) {
+            if (campRes?.ok) {
                 const data = await campRes.json()
                 if (Array.isArray(data)) { camp = data; setCampaigns(data) }
             }
-            if (sovRes.ok) {
+            if (sovRes?.ok) {
                 const data = await sovRes.json()
                 if (data && typeof data === 'object' && !data.error) { sov = data; setSovereignty(data) }
+            }
+            if (actRes?.ok) {
+                const data = await actRes.json()
+                if (data && typeof data === 'object' && !data.error) setActivity(data)
             }
             fetch('/api/zkill/feed')
                 .then(r => (r.ok ? r.json() : []))
@@ -621,7 +628,7 @@ export default function EntosisPage() {
                             <ConstellationMap
                                 config={focusedConfig}
                                 sovereignty={sovereignty}
-                                activity={{}}
+                                activity={activity}
                                 campaigns={campaigns}
                                 selectedSystem={selectedSystem}
                                 onSelectSystem={setSelectedSystem}

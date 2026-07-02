@@ -80,6 +80,16 @@ describe('groupNodesByEvent', () => {
     it('handles campaigns with every node unassigned and non-array inputs', () => {
         expect(groupNodesByEvent(null, undefined)).toEqual({ events: [], unlinked: [] })
     })
+
+    it('ignores null/garbage elements inside the arrays', () => {
+        const { events, unlinked } = groupNodesByEvent(
+            [null, { id: 1, campaign_id: 1 }, undefined],
+            [null, activeCampaign]
+        )
+        expect(events).toHaveLength(1)
+        expect(events[0].nodes).toHaveLength(1)
+        expect(unlinked).toEqual([])
+    })
 })
 
 // ---------------------------------------------------------------------------
@@ -192,8 +202,9 @@ describe('eventTypeLabel', () => {
         expect(eventTypeLabel('station_defense')).toBe('STATION')
     })
 
-    it('falls back gracefully for unknown/missing types', () => {
+    it('falls back gracefully for unknown/missing/non-string types', () => {
         expect(eventTypeLabel(undefined)).toBe('SOV')
+        expect(eventTypeLabel(42)).toBe('SOV')
         expect(eventTypeLabel('freeport')).toBe('FREEPORT')
     })
 })
