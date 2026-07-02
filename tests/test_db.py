@@ -348,6 +348,20 @@ class TestEntosisNodes:
         assert nodes[0]["label"] == "Node A"
         assert node_id == nodes[0]["id"]
 
+    def test_campaign_id_defaults_to_none(self, tmp_db):
+        db.add_entosis_node("Sys1")
+        assert db.get_entosis_nodes()[0]["campaign_id"] is None
+
+    def test_campaign_id_round_trips(self, tmp_db):
+        db.add_entosis_node("Sys1", label="node", campaign_id=123456)
+        assert db.get_entosis_nodes()[0]["campaign_id"] == 123456
+
+    def test_init_db_idempotent_with_campaign_id(self, tmp_db):
+        # Re-running init must not fail or drop the campaign_id column
+        db.init()
+        db.add_entosis_node("Sys1", campaign_id=42)
+        assert db.get_entosis_nodes()[0]["campaign_id"] == 42
+
     def test_update_status_and_claimed_by(self, tmp_db):
         node_id = db.add_entosis_node("Sys1")
         db.update_entosis_node(node_id, status="running", claimed_by="Pilot X")

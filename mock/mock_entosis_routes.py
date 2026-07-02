@@ -5,12 +5,61 @@ mock_entosis_bp = Blueprint("mock_entosis", __name__)
 
 _MOCK_NODES = []
 _next_id = 1
+_seeded = False
 
 VALID_STATUSES = {"unclaimed", "running", "contested", "captured", "lost"}
 
 
+def _seed_nodes():
+    """Seed demo nodes on first read: a spread of command nodes linked to the
+    nodes-active mock campaign (across its constellation, mixed statuses) plus
+    one unlinked legacy node to exercise the UNLINKED section."""
+    global _next_id, _seeded
+    if _seeded:
+        return
+    _seeded = True
+
+    from mock.mock_data import get_mock_campaigns, _systems_by_name
+
+    campaigns = get_mock_campaigns()
+    active = next(
+        (c for c in campaigns if c["campaign_id"] == 999002),
+        campaigns[-1] if campaigns else None,
+    )
+    if active is None:
+        return
+
+    target = active["system_name"]
+    target_const = _systems_by_name[target]["constellation_name"]
+    siblings = sorted(
+        n for n, m in _systems_by_name.items()
+        if m["constellation_name"] == target_const and n != target
+    )
+    spread = [target] + siblings[:2]
+    seeds = [
+        (spread[0], "node alpha", "running", "Demo Pilot", active["campaign_id"]),
+        (spread[min(1, len(spread) - 1)], "node bravo", "unclaimed", None, active["campaign_id"]),
+        (spread[min(2, len(spread) - 1)], "node charlie", "contested", "Demo Pilot 2", active["campaign_id"]),
+        (target, None, "unclaimed", None, active["campaign_id"]),
+        (target, "manual note", "running", "Legacy Pilot", None),
+    ]
+    for system_name, label, status, claimed_by, campaign_id in seeds:
+        _MOCK_NODES.append({
+            "id": _next_id,
+            "system_name": system_name,
+            "label": label,
+            "status": status,
+            "claimed_by": claimed_by,
+            "campaign_id": campaign_id,
+            "created_at": "2026-01-01T00:00:00Z",
+            "updated_at": "2026-01-01T00:00:00Z",
+        })
+        _next_id += 1
+
+
 @mock_entosis_bp.route("/api/entosis/nodes", methods=["GET"])
 def api_get_nodes():
+    _seed_nodes()
     return jsonify(list(_MOCK_NODES))
 
 
@@ -26,12 +75,16 @@ def api_add_node():
     if not isinstance(system_name, str) or not system_name.strip():
         return jsonify({"error": "system_name must be a non-empty string"}), 400
     label = data.get("label")
+    campaign_id = data.get("campaign_id")
+    if campaign_id is not None and (isinstance(campaign_id, bool) or not isinstance(campaign_id, int)):
+        return jsonify({"error": "campaign_id must be an integer"}), 400
     node = {
         "id": _next_id,
         "system_name": system_name.strip(),
         "label": label.strip() if isinstance(label, str) and label.strip() else None,
         "status": "unclaimed",
         "claimed_by": None,
+        "campaign_id": campaign_id,
         "created_at": "2026-01-01T00:00:00Z",
         "updated_at": "2026-01-01T00:00:00Z",
     }

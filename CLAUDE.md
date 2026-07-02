@@ -83,9 +83,9 @@ lawn-eve-intel-dashboard/
 │   ├── vite.config.js       # Proxy /api → Flask, build → static/dist/
 │   └── src/
 │       ├── App.jsx          # Root component — state, fetching, tab nav
-│       ├── pages/           # Full-page routes (EntosisPage.jsx — /entosis)
+│       ├── pages/           # Full-page routes (EntosisPage.jsx — /entosis event board + focused op map)
 │       ├── hooks/           # useNotifications (browser push alerts)
-│       ├── utils/           # admHelpers, campaignHelpers, formatters, upgradeHelpers, mapHelpers, useAuth, useAiSummary
+│       ├── utils/           # admHelpers, campaignHelpers, entosisHelpers, formatters, upgradeHelpers, mapHelpers, useAuth, useAiSummary
 │       └── components/      # feature components + common/ (CornerBrackets, AiSummary, EveLoginButton, …)
 │
 ├── static/
@@ -184,8 +184,8 @@ Resolves names to numeric IDs for `config.py`. Uses ESI `POST /universe/ids/` fo
 - `POST /api/local/scan` — resolve pilot names from local chat → corp/alliance lookup → classify lawn/friendly/unknown/unresolved
 - `POST /api/chars/analyze` — risk-rate up to 25 pilot IDs (VERY DANGEROUS / DANGEROUS / MODERATE / SNUGGLY / NEWBIE) with capital/covert role detection
 - `POST /api/fleet/analyze` — bulk fleet composition analysis: per-pilot standings, risk tier, role badges, and aggregate summary
-- `GET /api/entosis/nodes` — list active entosis command node assignments
-- `POST /api/entosis/nodes` — add node (requires `X-Timer-Auth` header)
+- `GET /api/entosis/nodes` — list active entosis command node assignments (includes `campaign_id` linking a node to an ESI sov campaign, null for manual nodes)
+- `POST /api/entosis/nodes` — add node (requires `X-Timer-Auth` header); optional integer `campaign_id` links it to a campaign from `/api/campaigns`
 - `PATCH /api/entosis/nodes/<id>` — update node status or claimed_by pilot
 - `DELETE /api/entosis/nodes/<id>` — remove node (requires `X-Timer-Auth` header)
 - `DELETE /api/entosis/nodes` — clear all nodes (requires `X-Timer-Auth` header)
@@ -345,6 +345,7 @@ See [ROADMAP.md](ROADMAP.md) for full details and backlog.
 - [x] Ally expansion — The Skeleton Crew [MEAN] (99008788) and Weapons Of Mass Production [WOMP] (99010468) added as friendly alliances
 - [x] Wide screen layout — dashboard expands to max-width 2000px at 1400px+ (all panels remain full-width)
 - [x] **Entosis command node board** — dedicated `/entosis` page (`EntosisPage.jsx`); pilots claim nodes with a callsign; status machine (unclaimed → running → contested → captured/lost); password-gated add/delete; 5s auto-refresh; `routes/entosis_routes.py` + SQLite `entosis_nodes` table
+- [x] **Entosis ops redesign (event board)** — `/entosis` is organized around ESI-detected sov campaigns: one event panel per campaign (active first, score bar / node-spawn countdown / vuln window), command nodes nested under their event via a nullable `entosis_nodes.campaign_id`, per-event add-node dropdown scoped to the campaign's constellation (nodes spawn constellation-wide), UNLINKED NODES fallback for manual/legacy nodes; focused OP MAP renders `ConstellationMap` with a config filtered to campaign constellations (`utils/entosisHelpers.js`); collapsible side column: D-Scan Parser, Local Scanner, OP KILL FEED (zkill feed filtered to campaign-constellation systems), Fleet Comp Analyzer, Timerboard; ALERTS bell with browser push for new campaigns / nodes-spawned (reinforced→nodes transition alert added to `useNotifications`) / ADM drops
 - [x] **RMC coalition standings** — ~50 RMC alliance IDs + 8 standalone +5 corps added to `lawn_perrigen.py`; new `FRIENDLY_STANDING_CORPORATIONS` deployment key (list of `{id, name}` dicts) for standalone corps not covered by alliance IDs; `config.py` derives `FRIENDLY_STANDING_CORP_IDS`/`_NAMES` sets used by intel/local-scan/hostile routes
 - [x] **Performance & security pass** — parallel killmail prefetch via `ThreadPoolExecutor` in kill feed and hostile feed; bulk ESI name resolution primes cache before enrichment loop; compound DB indexes on `(deployment_id, system_id, timestamp)`; thread-safe ESI cache with `_cache_lock` and per-entry expiry timestamps; HMAC-based timer password check
 - [x] **SQLite-backed sov change tracking** — `sov_state` + `sov_changes` tables replace in-memory dict; `db.record_sov_changes()` persists neighbor sov events across restarts; served via `/api/intel/sov_changes`
