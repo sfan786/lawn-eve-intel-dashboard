@@ -1077,3 +1077,15 @@ body::after {
         letter-spacing: 1px;
     }
 }
+
+/* ============ Entosis ops page ============ */
+
+.entosis-body {
+    grid-template-columns: minmax(0, 1fr) minmax(340px, 420px);
+}
+
+@media (max-width: 1000px) {
+    .entosis-body {
+        grid-template-columns: 1fr;
+    }
+}

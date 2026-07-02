@@ -124,6 +124,7 @@ def init():
             label        TEXT,
             status       TEXT NOT NULL DEFAULT 'unclaimed',
             claimed_by   TEXT,
+            campaign_id  INTEGER,
             created_at   TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')),
             updated_at   TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))
         );
@@ -134,6 +135,11 @@ def init():
         cols = {row["name"] for row in conn.execute(f"PRAGMA table_info({table})")}
         if "deployment_id" not in cols:
             conn.execute(f"ALTER TABLE {table} ADD COLUMN deployment_id TEXT NOT NULL DEFAULT '{LEGACY_DEPLOYMENT_ID}'")
+
+    # 2b. Add campaign_id to entosis_nodes if missing (links nodes to ESI sov campaigns)
+    cols = {row["name"] for row in conn.execute("PRAGMA table_info(entosis_nodes)")}
+    if "campaign_id" not in cols:
+        conn.execute("ALTER TABLE entosis_nodes ADD COLUMN campaign_id INTEGER")
 
     # 3. Migrate system_annotations to composite unique constraint
     row = conn.execute("SELECT sql FROM sqlite_master WHERE type='table' AND name='system_annotations'").fetchone()
@@ -600,7 +606,7 @@ def get_entosis_nodes():
     """Return all nodes for the active deployment, ordered by creation time."""
     conn = get_connection()
     rows = conn.execute(
-        "SELECT id, system_name, label, status, claimed_by, created_at, updated_at "
+        "SELECT id, system_name, label, status, claimed_by, campaign_id, created_at, updated_at "
         "FROM entosis_nodes WHERE deployment_id = ? ORDER BY created_at ASC",
         (DEPLOYMENT_ID,),
     ).fetchall()
@@ -608,12 +614,12 @@ def get_entosis_nodes():
     return [dict(row) for row in rows]
 
 
-def add_entosis_node(system_name, label=None):
-    """Add a command node. Returns new id."""
+def add_entosis_node(system_name, label=None, campaign_id=None):
+    """Add a command node, optionally linked to an ESI sov campaign. Returns new id."""
     conn = get_connection()
     cur = conn.execute(
-        "INSERT INTO entosis_nodes (deployment_id, system_name, label) VALUES (?, ?, ?)",
-        (DEPLOYMENT_ID, system_name.strip(), label.strip() if label else None),
+        "INSERT INTO entosis_nodes (deployment_id, system_name, label, campaign_id) VALUES (?, ?, ?, ?)",
+        (DEPLOYMENT_ID, system_name.strip(), label.strip() if label else None, campaign_id),
     )
     new_id = cur.lastrowid
     conn.commit()

@@ -204,8 +204,8 @@ def build_enriched_sovereignty():
         vuln_end = base_vuln_start + timedelta(hours=vuln_hours)
         enriched[sys_id] = {
             **sov_data,
-            "vulnerable_start_time": base_vuln_start.isoformat() + "Z",
-            "vulnerable_end_time": vuln_end.isoformat() + "Z",
+            "vulnerable_start_time": base_vuln_start.strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "vulnerable_end_time": vuln_end.strftime("%Y-%m-%dT%H:%M:%SZ"),
         }
     return enriched
 
@@ -281,10 +281,10 @@ def get_mock_campaigns():
             "event_type": "ihub_defense",
             "structure_id": 1051234567890,
             "structure_type_id": 32876,
-            "start_time": reffed_time.isoformat() + "Z",
+            "start_time": reffed_time.strftime("%Y-%m-%dT%H:%M:%SZ"),
             "attackers_score": 0.4, "defender_score": 0.6,
-            "vulnerable_start_time": vuln_start.isoformat() + "Z",
-            "vulnerable_end_time": vuln_end.isoformat() + "Z",
+            "vulnerable_start_time": vuln_start.strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "vulnerable_end_time": vuln_end.strftime("%Y-%m-%dT%H:%M:%SZ"),
             "is_primary": True,
             "is_lawn": True,
             "defender_is_friendly": True,
@@ -297,10 +297,10 @@ def get_mock_campaigns():
             "event_type": "tcu_defense",
             "structure_id": 1051234567891,
             "structure_type_id": 32876,
-            "start_time": nodes_time.isoformat() + "Z",
+            "start_time": nodes_time.strftime("%Y-%m-%dT%H:%M:%SZ"),
             "attackers_score": 0.35, "defender_score": 0.65,
-            "vulnerable_start_time": vuln_start.isoformat() + "Z",
-            "vulnerable_end_time": vuln_end.isoformat() + "Z",
+            "vulnerable_start_time": vuln_start.strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "vulnerable_end_time": vuln_end.strftime("%Y-%m-%dT%H:%M:%SZ"),
             "is_primary": True,
             "is_lawn": True,
             "defender_is_friendly": True,

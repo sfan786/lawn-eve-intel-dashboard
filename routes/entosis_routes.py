@@ -26,7 +26,10 @@ def api_add_node():
     if label is not None and not isinstance(label, str):
         return jsonify({"error": "label must be a string"}), 400
     label = label.strip()[:80] if label else None
-    node_id = db.add_entosis_node(system_name, label)
+    campaign_id = data.get("campaign_id")
+    if campaign_id is not None and (isinstance(campaign_id, bool) or not isinstance(campaign_id, int)):
+        return jsonify({"error": "campaign_id must be an integer"}), 400
+    node_id = db.add_entosis_node(system_name, label, campaign_id)
     return jsonify({"id": node_id}), 201
 
 
