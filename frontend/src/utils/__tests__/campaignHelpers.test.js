@@ -5,6 +5,7 @@ import {
     formatEveTime,
     formatLocalTime,
     formatVulnWindow,
+    buildCampaignCopyText,
 } from '../campaignHelpers'
 
 // ---------------------------------------------------------------------------
@@ -155,5 +156,54 @@ describe('formatVulnWindow', () => {
     it('zero-pads hours and minutes', () => {
         const result = formatVulnWindow('2026-01-15T09:05:00Z', '2026-01-15T10:00:00Z')
         expect(result).toBe('09:05 - 10:00 EVE')
+    })
+})
+
+// ---------------------------------------------------------------------------
+// buildCampaignCopyText
+// ---------------------------------------------------------------------------
+
+describe('buildCampaignCopyText', () => {
+    const isPrimaryCampaign = (c) => (c.is_primary ?? c.is_lawn) !== false
+
+    it('formats a nodes-active primary campaign with the score line', () => {
+        const c = {
+            system_name: '9BGY-6',
+            campaign_type: 'IHUB',
+            is_primary: true,
+            defender_is_friendly: true,
+            attackers_score: 0.62,
+            defender_score: 0.38,
+            phaseInfo: { phase: 'nodes', nodesSpawnTime: new Date('2020-01-01T00:00:00Z') },
+        }
+        const text = buildCampaignCopyText([c], 'LAWN', isPrimaryCampaign)
+        expect(text).toContain('9BGY-6 — IHUB — LAWN DEFENSE — NODES ACTIVE (62% vs 38%)')
+    })
+
+    it('formats a reinforced campaign with the countdown line', () => {
+        const c = {
+            system_name: 'WXB-RY',
+            campaign_type: 'TCU',
+            is_primary: true,
+            defender_is_friendly: false,
+            phaseInfo: { phase: 'reinforced', nodesSpawnTime: new Date('2099-01-01T00:00:00Z') },
+        }
+        const text = buildCampaignCopyText([c], 'LAWN', isPrimaryCampaign)
+        expect(text).toContain('WXB-RY — TCU — RECONQUEST — Reinforced, nodes spawn in')
+    })
+
+    it('labels non-primary campaigns as REGIONAL', () => {
+        const c = {
+            system_name: 'X-SYS',
+            is_primary: false,
+            phaseInfo: { phase: 'reinforced', nodesSpawnTime: new Date('2099-01-01T00:00:00Z') },
+        }
+        const text = buildCampaignCopyText([c], 'LAWN', isPrimaryCampaign)
+        expect(text).toContain('X-SYS — REGIONAL —')
+    })
+
+    it('starts with a header line', () => {
+        const text = buildCampaignCopyText([], 'LAWN', isPrimaryCampaign)
+        expect(text.split('\n')[0]).toBe('SOV CAMPAIGNS')
     })
 })

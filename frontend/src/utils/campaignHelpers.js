@@ -52,6 +52,27 @@ export function formatLocalTime(date) {
     return `${month}/${day} ${hours}:${minutes} ${ampm}`;
 }
 
+export function buildCampaignCopyText(enrichedCampaigns, allianceShort, isPrimaryCampaign) {
+    const lines = ['SOV CAMPAIGNS', '']
+    for (const c of enrichedCampaigns) {
+        const phase = c.phaseInfo
+        const isPrimary = isPrimaryCampaign(c)
+        const label = isPrimary
+            ? (c.defender_is_friendly ? `${allianceShort} DEFENSE` : 'RECONQUEST')
+            : 'REGIONAL'
+        const type = c.campaign_type ? `${c.campaign_type} — ` : ''
+
+        if (phase.phase === 'nodes') {
+            const atk = ((c.attackers_score || 0) * 100).toFixed(0)
+            const def = ((c.defender_score || 0) * 100).toFixed(0)
+            lines.push(`${c.system_name} — ${type}${label} — NODES ACTIVE (${atk}% vs ${def}%)`)
+        } else {
+            lines.push(`${c.system_name} — ${type}${label} — Reinforced, nodes spawn in ${formatCountdown(phase.nodesSpawnTime)} (${formatEveTime(phase.nodesSpawnTime)})`)
+        }
+    }
+    return lines.join('\n')
+}
+
 export function formatVulnWindow(start, end) {
     if (!start || !end) return null;
 
