@@ -1,8 +1,9 @@
-import React from 'react'
-import { getCampaignPhase, formatCountdown, formatEveTime, formatLocalTime } from '../utils/campaignHelpers'
+import React, { useState } from 'react'
+import { getCampaignPhase, formatCountdown, formatEveTime, formatLocalTime, buildCampaignCopyText } from '../utils/campaignHelpers'
 import CornerBrackets from './common/CornerBrackets'
 
 export default function CampaignAlerts({ campaigns, config }) {
+    const [copied, setCopied] = useState(false)
     const allianceShort = config?.alliance?.short_name || config?.alliance?.ticker || 'PRIMARY'
     const isPrimaryCampaign = (c) => (c.is_primary ?? c.is_lawn) !== false
     if (!campaigns || campaigns.length === 0) {
@@ -37,9 +38,37 @@ export default function CampaignAlerts({ campaigns, config }) {
             <CornerBrackets />
             <div className="panel-header">
                 <span className="panel-title">⚠ Sovereignty Campaigns</span>
-                <div className="panel-badge">
-                    {activeCount > 0 && <span style={{ color: '#ff3355', marginRight: 8 }}>{activeCount} ACTIVE</span>}
-                    {reffedCount > 0 && <span style={{ color: '#ffaa00' }}>{reffedCount} REINFORCED</span>}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <div className="panel-badge">
+                        {activeCount > 0 && <span style={{ color: '#ff3355', marginRight: 8 }}>{activeCount} ACTIVE</span>}
+                        {reffedCount > 0 && <span style={{ color: '#ffaa00' }}>{reffedCount} REINFORCED</span>}
+                    </div>
+                    <button
+                        onClick={async () => {
+                            const text = buildCampaignCopyText(enrichedCampaigns, allianceShort, isPrimaryCampaign)
+                            try {
+                                await navigator.clipboard.writeText(text)
+                            } catch {
+                                const el = document.createElement('textarea')
+                                el.value = text
+                                document.body.appendChild(el)
+                                el.select()
+                                document.execCommand('copy')
+                                document.body.removeChild(el)
+                            }
+                            setCopied(true)
+                            setTimeout(() => setCopied(false), 2000)
+                        }}
+                        style={{
+                            background: 'none',
+                            border: `1px solid ${copied ? '#00ff8866' : 'var(--border-dim)'}`,
+                            color: copied ? '#00ff88' : 'var(--text-secondary)',
+                            cursor: 'pointer',
+                            fontFamily: 'Share Tech Mono, monospace',
+                            fontSize: 10, padding: '2px 8px', letterSpacing: 1,
+                            transition: 'color 0.2s, border-color 0.2s',
+                        }}
+                    >{copied ? 'COPIED!' : 'COPY'}</button>
                 </div>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
