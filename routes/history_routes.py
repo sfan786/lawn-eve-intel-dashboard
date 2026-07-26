@@ -1,4 +1,5 @@
 from flask import Blueprint, jsonify, request
+
 import db
 
 history_bp = Blueprint("history", __name__)

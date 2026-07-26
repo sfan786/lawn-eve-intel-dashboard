@@ -1,10 +1,17 @@
 from concurrent.futures import ThreadPoolExecutor, wait
+
 from flask import Blueprint, jsonify
-from config import (
-    REGION_ID, FRIENDLY_ALLIANCE_IDS, FRIENDLY_ALLIANCES, FRIENDLY_CORPORATIONS,
-    FRIENDLY_STANDING_CORP_IDS, FRIENDLY_STANDING_CORP_NAMES, LAWN_ALLIANCE_ID,
-)
+
 import esi_client
+from config import (
+    FRIENDLY_ALLIANCE_IDS,
+    FRIENDLY_ALLIANCES,
+    FRIENDLY_CORPORATIONS,
+    FRIENDLY_STANDING_CORP_IDS,
+    FRIENDLY_STANDING_CORP_NAMES,
+    LAWN_ALLIANCE_ID,
+    REGION_ID,
+)
 from routes.system_state import state
 
 hostile_bp = Blueprint("hostile", __name__)

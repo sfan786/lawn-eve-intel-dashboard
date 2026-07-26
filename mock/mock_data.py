@@ -10,20 +10,14 @@ Switching deployments (DEPLOYMENT=lawn_perrigen → DEPLOYMENT=other) automatica
 rebrands the mock without code changes.
 """
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import config
 from deployments import ACTIVE as DEPLOYMENT
 
-
 _constellations_by_id = {}      # cid -> {name, system_ids}
 _systems_by_name = {}           # name -> {system_id, constellation_id, security}
 _systems_by_id = {}             # sid -> {name, constellation_id, security}
-
-for cid, cdata in (
-    {c["constellation_id"]: c for c in []}  # filled below
-).items():
-    pass
 
 # Walk the deployment's MAP_LAYOUT to build a stable system list. We don't have
 # real ESI system_ids here without ESI calls, so we mint deterministic ones from
@@ -61,9 +55,12 @@ _primary_const_ids = list(DEPLOYMENT.PRIMARY_CONSTELLATION_IDS)
 # Map primary constellation name → real constellation id (assumes parallel order
 # of PRIMARY_CONSTELLATION_NAMES and PRIMARY_CONSTELLATION_IDS, which the
 # bootstrap tool guarantees).
+# strict=True: a length mismatch means the deployment module is malformed and
+# constellations would be silently mis-mapped, so fail loudly at import instead.
 _primary_name_to_cid = dict(zip(
     getattr(DEPLOYMENT, "PRIMARY_CONSTELLATION_NAMES", []),
     DEPLOYMENT.PRIMARY_CONSTELLATION_IDS,
+    strict=True,
 ))
 
 
@@ -192,7 +189,7 @@ def _get_vuln_duration(adm):
 
 
 def build_enriched_sovereignty():
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     base_vuln_start = now.replace(hour=16, minute=0, second=0, microsecond=0)
     if base_vuln_start < now:
         base_vuln_start += timedelta(days=1)
@@ -254,7 +251,7 @@ def get_mock_campaigns():
     """Two campaigns, one in each primary constellation, to exercise the alert
     panel. Falls back to single campaign in the first primary system when only
     one constellation is configured."""
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     reffed_time = now + timedelta(hours=28)
     nodes_time = now - timedelta(hours=2)
     vuln_start = now.replace(hour=16, minute=0, second=0, microsecond=0)
@@ -311,7 +308,7 @@ def get_mock_campaigns():
 # ============ Kill Feed ============
 
 def _mock_time(minutes_ago):
-    return (datetime.now(timezone.utc) - timedelta(minutes=minutes_ago)).strftime("%Y-%m-%dT%H:%M:%SZ")
+    return (datetime.now(UTC) - timedelta(minutes=minutes_ago)).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
 def _build_kill_feed():
@@ -423,7 +420,7 @@ MOCK_KILL_FEED = _build_kill_feed()
 def generate_mock_adm_history():
     """7-day per-system trend that ramps up gently with a small wobble. Used by
     the ADM trends sparklines so the demo has something to plot."""
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     history = {}
     for name in DEPLOYMENT.PRIMARY_SYSTEMS:
         meta = _systems_by_name.get(name)

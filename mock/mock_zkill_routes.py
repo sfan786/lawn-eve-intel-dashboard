@@ -1,4 +1,5 @@
 from flask import Blueprint, jsonify
+
 from mock.mock_data import MOCK_KILL_FEED
 
 mock_zkill_bp = Blueprint("mock_zkill", __name__)

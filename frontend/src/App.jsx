@@ -53,18 +53,29 @@ export default function App() {
     const [mobileTab, setMobileTab] = useState(0)
     const [intelAlerts, setIntelAlerts] = useState([])
     const timer = useRef(null)
+    // Mirrors `config` so fetchData can read it without taking it as a dependency
+    // (which would rebuild the poll timer every time config lands).
+    const configRef = useRef(null)
     const { settings: notifSettings, saveSettings: saveNotifSettings, permStatus, requestPermission, checkAndNotify } = useNotifications()
 
     const fetchData = useCallback(async (init = false) => {
         try {
             if (!init) setRefreshing(true)
-            const [cfg, sov, act, camp] = await Promise.all([
-                checkedFetch("/api/config"),
+            // /api/config is static per deployment — map layout, connections,
+            // system lists, upgrade catalog. Fetch it once rather than re-sending
+            // the whole payload every 5 minutes. Keyed on "do we have it yet"
+            // rather than on `init` so a failed first load still self-heals on a
+            // later poll instead of leaving the app stuck on "NO DATA".
+            const needConfig = init || !configRef.current
+            const [cfgFresh, sov, act, camp] = await Promise.all([
+                needConfig ? checkedFetch("/api/config") : Promise.resolve(null),
                 checkedFetch("/api/sovereignty"),
                 checkedFetch("/api/activity"),
                 checkedFetch("/api/campaigns"),
             ])
-            setConfig(cfg); setSovereignty(sov); setActivity(act); setCampaigns(camp)
+            const cfg = cfgFresh || configRef.current
+            if (cfgFresh) { configRef.current = cfgFresh; setConfig(cfgFresh) }
+            setSovereignty(sov); setActivity(act); setCampaigns(camp)
             checkedFetch("/api/zkill/feed").then(setKillFeed).catch(e => console.warn("Kill feed unavailable:", e.message))
             checkedFetch("/api/history/adm").then(setAdmHistory).catch(e => console.warn("ADM history unavailable:", e.message))
             checkedFetch("/api/annotations").then(setAnnotations).catch(e => console.warn("Annotations unavailable:", e.message))

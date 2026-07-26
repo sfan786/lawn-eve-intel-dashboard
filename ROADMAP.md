@@ -41,11 +41,12 @@
 - [x] **SQLite-backed sov change tracking** — `sov_state` + `sov_changes` tables replace in-memory dict; `db.record_sov_changes()` persists neighbor sov events across restarts; changes exposed via `/api/intel/sov_changes`
 - [x] **EVE SSO auth (identity-only)** — "Log in with EVE" OAuth2 flow gates write actions (timers, entosis claims, annotations, jump bridges, AI summaries) by alliance membership / character allowlist; access-token JWT verified against EVE JWKS + issuer + `aud`/`azp`; `TIMER_PASSWORD`/`X-Timer-Auth` retained as fallback via the shared `require_write_auth` decorator; `routes/auth_sso.py`, `useAuth` hook, `EveLoginButton.jsx`. No ESI scopes yet
 - [x] **AI threat summaries** — "AI SUMMARY" button in the D-scan and Local scanner panels sends parsed intel to the Gemini API (`gemini-2.5-flash`) for a concise tactical read-out; `routes/ai_routes.py` (`POST /api/ai/threat_summary`) gated by `require_write_auth`, bounded by `max_output_tokens` + client timeout, with a prompt-injection guard on pasted data; shared `useAiSummary` hook + `common/AiSummary.jsx`; requires `GEMINI_API_KEY` (endpoint returns 501 / button hidden when unset)
-- [x] **Automated test suite** — pytest 8.3.5 + Vitest 2; 63 Python tests (`tests/test_db.py`, `tests/test_esi_client.py`) covering SQLite CRUD, deduplication, deployment isolation, ESI cache/eviction/threading/chunking; 95 JS tests across 3 utility modules and 3 React components (DscanParser, LocalScanner, SystemTable); both suites run in CI via `smoke-test.yml`
+- [x] **Automated test suite** — pytest 8.3.5 + Vitest 2; 107 Python tests (`tests/test_db.py`, `tests/test_esi_client.py`, `tests/test_routes.py`) covering SQLite CRUD, deduplication, deployment isolation, ESI cache/eviction/threading/chunking, session + error-limit backoff, and route-level auth gating / payload validation; 122 JS tests across 4 utility modules and 3 React components; both suites plus ruff and eslint run in CI via `smoke-test.yml`
 - [x] **Fleet composition analyzer (live fleet paste)** — paste a fleet/pilot list → `POST /api/fleet/analyze` (`routes/intel_routes.py`) resolves each pilot's standing (lawn/friendly/unknown/unresolved), risk tier, and capital + fleet role badges (reusing `_compute_risk_tier`/`_detect_roles`/`_detect_fleet_roles`), plus an aggregate summary (risk distribution, role/fleet-role counts, capital count, avg danger/kills, top hostile alliances); `FleetCompAnalyzer.jsx`. (The doctrine-profile / blue-vs-red comparison from the Priority 3 item is still open.)
 - [x] **Entosis ops redesign (event board)** — `/entosis` reorganized around ESI-detected sov campaigns instead of a blank node list: one event panel per campaign (active-first ordering, attacker/defender score bar, node-spawn countdown, vuln window, IHUB/TCU + DEFENSE/RECONQUEST badges); command nodes link to campaigns via nullable `entosis_nodes.campaign_id` (nodes spawn constellation-wide, so the per-event add dropdown lists the campaign's whole constellation); UNLINKED NODES section for manual/legacy nodes (stale-campaign nodes flagged EVENT ENDED); focused OP MAP shows only constellations with active/upcoming events (`utils/entosisHelpers.js` filters the map config, `ConstellationMap` reused unchanged); collapsible side column with D-Scan Parser, Local Scanner, OP KILL FEED (regional zkill feed filtered to campaign-constellation systems), Fleet Comp Analyzer, and Timerboard; ALERTS bell with browser push for new campaigns, nodes-spawned (new reinforced→nodes transition alert in `useNotifications`, also fires on the main dashboard), and ADM drops; demo mode seeds linked nodes
 - [x] **UX polish: system filter + clipboard copy** — SystemTable live name-filter input (with count badge + ✕ clear); LocalScanner COPY button (formats pilots as `NAME (Corp/Alliance) [STANDING] RISK [ROLES]`); FleetCompAnalyzer COPY button (exports fleet summary); all follow the existing DscanParser COPY pattern
 - [x] **CampaignAlerts COPY button** — panel-header COPY button on the Sovereignty Campaigns panel formats every active/reinforced campaign as a fleet-ping-ready line (`SYSTEM — TYPE — LABEL — NODES ACTIVE (X% vs Y%)` or `... Reinforced, nodes spawn in Xh Ym (date EVE)`) for pasting into Discord/fleet chat; `buildCampaignCopyText` in `campaignHelpers.js`
+- [x] **Reliability & operations pass** — history collection decoupled from page views: `routes/poller.py` samples ESI on a fixed interval (`POLL_INTERVAL_SECONDS`) instead of snapshotting as a side effect of `GET /api/sovereignty` and `GET /api/activity`, so ADM sparklines, grinding rates, the heatmap, and the 7-day spike baselines no longer have holes whenever nobody has the dashboard open. All ESI/zKill HTTP moved onto one pooled `requests.Session` with retry/backoff, plus cooperative backoff on ESI's `X-Esi-Error-Limit-Remain` budget (exhausting it gets the IP temp-banned by CCP). `gunicorn.conf.py` adds `preload_app` so the startup region walk happens once in the master and workers inherit the warm cache via fork, with the poller started from `post_fork` (threads don't survive fork). Per-IP rate limits (`flask-limiter`) on the unauthenticated zKill-fanout endpoints and the Gemini endpoint; 20k-char input cap on AI summaries. `print()` replaced with the `logging` module throughout the backend. Legacy CDN-React `static/index.html` fallback removed — a missing Vite build now fails loudly instead of silently serving a stale UI. ruff + eslint added and wired into CI (eslint caught a real conditional-`useMemo` rules-of-hooks bug in `UpgradesOverview.jsx`). Route-level test suite added
 
 ---
 
@@ -64,6 +65,32 @@
 - **Data sources:** zKillboard API + websocket for real-time
 
 
+
+### ISK War Ledger
+**Why:** Both kill-feed routes already parse full killmails with `zkb.totalValue`, then throw the aggregate away every request. Persisting it answers "how did the week go?" at a glance.
+- [ ] `kill_ledger` table (deployment-scoped): killmail_id, timestamp, system_id, isk_value, our_loss vs our_kill
+- [ ] Populate from the background poller so it accrues without page views
+- [ ] Daily kills-vs-losses sparkline panel; 7/30-day ISK efficiency
+- [ ] Per-corp breakdown — who is bleeding ships
+- **Data sources:** zKillboard regional feed + ESI killmails (already fetched), SQLite
+- **Depends on:** background poller (done)
+
+### Battle Report Aggregation
+**Why:** The kill feed shows individual kills; fights are what actually matter for AARs and for knowing what the enemy committed.
+- [ ] Cluster kills by system + 20-minute window into "engagements"
+- [ ] Per-engagement: participant counts per side, ISK destroyed/lost, ship classes committed, duration
+- [ ] Link out to a zKillboard related-kills URL for the full BR
+- [ ] Surface recent engagements on the dashboard and on `/entosis` for the active op
+- **Data sources:** pure post-processing over data the kill feed already fetches
+- **Depends on:** ISK war ledger (shared table)
+
+### ADM Forecast
+**Why:** `computeGrindingRate` already derives +X.X/day per system; projecting it forward answers the question the Grinding Plan panel exists to answer.
+- [ ] "Days to ADM 5" projection per system from the observed rate
+- [ ] Alliance-wide ETA to all-systems-safe, and which systems are trending *down*
+- [ ] Flag systems whose rate is too low to reach target before the next vuln window
+- **Data sources:** SQLite `adm_snapshots` (already collected)
+- **Notes:** small addition to `GrindingPlan.jsx` + `admHelpers.js`
 
 ### Mobile Responsive Layout
 **Why:** Need to be able to check the dashboard on mobile.
@@ -86,6 +113,31 @@
 - [x] Configurable per-type toggles + PVP threshold; settings persisted in localStorage
 - [x] ALERTS button in header status bar — pulsing amber dot when active
 - **Data sources:** Existing API endpoints, polled client-side
+
+### PWA / Service Worker Alerts
+**Why:** Browser notifications currently only fire while a tab is open. For a tool people check on a phone mid-fight, that is the difference between the alert working and not.
+- [ ] Service worker + web app manifest (installable on mobile home screen)
+- [ ] Move alert evaluation into the worker so campaigns/nodes/ADM alerts fire with the app closed
+- [ ] Offline shell — last-known map and system table render without a connection
+- **Data sources:** existing `/api/campaigns`, `/api/sovereignty`, `/api/activity`
+- **Notes:** highest-leverage follow-up to the background poller — server-side truth plus client-side delivery
+
+### Hostile Pilot Watchlist
+**Why:** BLOPS/RECON/COVOPS role detection already exists, but only runs on demand when someone pastes Local. Known droppers should be flagged automatically.
+- [ ] `hostile_watchlist` table — pilots flagged from scans, with detected roles and last-seen
+- [ ] Auto-flag watchlisted pilots when they appear in the kill feed or a Local scan
+- [ ] Manual add/remove (write-auth gated), with a note field
+- [ ] "Seen in our space in the last 24h" panel
+- **Data sources:** existing `_detect_roles()` output + zKill feed
+- **Depends on:** background poller for passive detection
+
+### zKillboard RedisQ Stream
+**Why:** The feed currently polls with a 120s cache. RedisQ (long-poll) gives near-real-time kills and removes the polling entirely.
+- [ ] Background RedisQ consumer feeding the same enrichment path as the current feed
+- [ ] Push new kills to the browser (SSE or WebSocket) instead of 5-minute refreshes
+- [ ] Drives PVP notifications directly, cutting alert latency from minutes to seconds
+- **Data sources:** zKillboard RedisQ
+- **Depends on:** background poller (same lifecycle/threading model)
 
 ### Regional Intel Aggregation *(complete)*
 **Why:** Need early warning from neighboring regions before hostiles reach LAWN.
@@ -117,6 +169,14 @@
 - Corp-level: structure list, fuel levels, moon extractions, wallet (needs scopes)
 - Fleet tracking — who's in fleet, what they're flying (needs scopes)
 - **Prerequisite for:** Structure tracking, fleet comp analysis, PI tracking
+
+### Sov Campaign History
+**Why:** `sov_changes` already records neighbor sov flips, but nothing records how our own campaigns resolved — so there is no defense record to look back on.
+- [ ] Persist each ESI campaign we see through to its outcome (held / lost / undefended)
+- [ ] Per-system defense record and win rate; which TZs we keep losing in
+- [ ] Correlate outcomes with fleet participation from the battle reports
+- **Data sources:** `/sovereignty/campaigns/` polled by the background poller, SQLite
+- **Depends on:** background poller, battle report aggregation
 
 ### Fleet Composition Analyzer *(partially done)*
 **Why:** Know what LAWN can field vs what neighbors bring.

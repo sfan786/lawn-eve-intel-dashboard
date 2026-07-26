@@ -27,7 +27,7 @@ jobs:
         run: pip install -r requirements.txt
 
       - name: Byte-compile (syntax check)
-        run: python -m compileall -q app.py demo.py config.py db.py esi_client.py eve_constants.py routes mock deployments
+        run: python -m compileall -q app.py demo.py config.py db.py esi_client.py eve_constants.py gunicorn.conf.py routes mock deployments tools
 
       - name: Import live route modules (no network)
         run: |
@@ -40,6 +40,7 @@ jobs:
               "routes.history_routes", "routes.intel_routes", "routes.hostile_routes",
               "routes.timer_routes", "routes.annotation_routes", "routes.jb_routes",
               "routes.entosis_routes", "routes.static_routes",
+              "routes.limiter", "routes.poller",
           ]
           for m in mods:
               importlib.import_module(m)
@@ -59,6 +60,9 @@ jobs:
 
       - name: Install dev deps
         run: pip install -r requirements-dev.txt
+
+      - name: Lint (ruff)
+        run: ruff check .
 
       - name: Run pytest
         run: pytest tests/ -v
@@ -80,6 +84,9 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
+
+      - name: Lint (eslint)
+        run: npm run lint
 
       - name: Build
         run: npm run build

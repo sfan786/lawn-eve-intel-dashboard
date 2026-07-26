@@ -1,4 +1,5 @@
 from flask import Blueprint, jsonify
+
 from mock.mock_data import generate_mock_adm_history
 
 mock_history_bp = Blueprint("mock_history", __name__)

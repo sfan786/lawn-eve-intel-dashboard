@@ -21,8 +21,6 @@ import jwt
 import requests
 from flask import Blueprint, jsonify, redirect, request, session
 
-log = logging.getLogger(__name__)
-
 import config
 from esi_client import esi_get
 from eve_constants import (
@@ -31,6 +29,8 @@ from eve_constants import (
     SSO_JWKS_URL,
     SSO_TOKEN_URL,
 )
+
+log = logging.getLogger(__name__)
 
 auth_sso_bp = Blueprint("auth_sso", __name__)
 

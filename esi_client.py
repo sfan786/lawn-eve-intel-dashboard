@@ -1,13 +1,34 @@
 """
 EVE ESI API Client with in-memory caching.
 Handles all data fetching from ESI and zKillboard.
+
+All HTTP goes through a single pooled Session (`_session`) so the parallel
+killmail prefetches reuse connections instead of paying a TLS handshake each,
+and through `_pause_if_error_limited()` so every thread cooperatively backs off
+when ESI's rolling error budget runs low.
 """
 
+import logging
 import threading
 import time
+
 import requests
-from typing import Optional
-from eve_constants import ESI_BASE, ESI_DATASOURCE, CACHE_TTL, ZKILL_BASE
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
+
+from eve_constants import (
+    CACHE_TTL,
+    ESI_BASE,
+    ESI_DATASOURCE,
+    ESI_ERROR_LIMIT_FLOOR,
+    HTTP_MAX_RETRIES,
+    HTTP_POOL_SIZE,
+    HTTP_RETRY_STATUSES,
+    USER_AGENT,
+    ZKILL_BASE,
+)
+
+log = logging.getLogger(__name__)
 
 # Simple in-memory cache. Routes fetch killmails from ThreadPoolExecutor
 # workers, so all _cache access must hold _cache_lock.
@@ -16,7 +37,75 @@ _cache_lock = threading.Lock()
 MAX_CACHE_SIZE = 1000  # Maximum number of items in cache
 
 
-def _get_cached(key: str) -> Optional[dict]:
+def _build_session() -> requests.Session:
+    """Pooled session with transparent retry on transient upstream failures.
+
+    raise_on_status=False leaves the final response for the caller to inspect —
+    we still want to read the error-limit headers off a failed response before
+    raise_for_status() fires.
+    """
+    session = requests.Session()
+    retry = Retry(
+        total=HTTP_MAX_RETRIES,
+        backoff_factor=0.5,
+        status_forcelist=HTTP_RETRY_STATUSES,
+        allowed_methods=frozenset({"GET", "POST"}),
+        raise_on_status=False,
+        respect_retry_after_header=True,
+    )
+    adapter = HTTPAdapter(
+        pool_connections=HTTP_POOL_SIZE,
+        pool_maxsize=HTTP_POOL_SIZE,
+        max_retries=retry,
+    )
+    session.mount("https://", adapter)
+    session.mount("http://", adapter)
+    session.headers.update({"Accept": "application/json", "User-Agent": USER_AGENT})
+    return session
+
+
+_session = _build_session()
+
+# Cooperative error-limit backoff shared by every thread.
+_error_limit_lock = threading.Lock()
+_error_limit_until = 0.0
+
+
+def _pause_if_error_limited():
+    """Block while an ESI error-limit backoff is armed."""
+    while True:
+        with _error_limit_lock:
+            wait = _error_limit_until - time.time()
+        if wait <= 0:
+            return
+        time.sleep(min(wait, 5))
+
+
+def _note_error_limit(resp):
+    """Arm a backoff when ESI reports the error budget is nearly spent.
+
+    A 420 means we already blew through it; a low remaining count means we are
+    about to. Either way every thread pauses until the window resets.
+    """
+    global _error_limit_until
+    try:
+        remain = int(resp.headers.get("X-Esi-Error-Limit-Remain"))
+        reset = int(resp.headers.get("X-Esi-Error-Limit-Reset") or 60)
+    except (TypeError, ValueError):
+        return  # header absent or non-numeric (also covers mocked responses)
+
+    if resp.status_code == 420 or remain <= ESI_ERROR_LIMIT_FLOOR:
+        with _error_limit_lock:
+            until = time.time() + max(reset, 1)
+            if until > _error_limit_until:
+                _error_limit_until = until
+                log.warning(
+                    "ESI error budget low (remain=%s, status=%s) — pausing all requests for %ss",
+                    remain, resp.status_code, reset,
+                )
+
+
+def _get_cached(key: str) -> dict | None:
     """Return cached data if still valid, else None."""
     with _cache_lock:
         if key in _cache:
@@ -55,19 +144,53 @@ def _set_cache(key: str, data, ttl_category: str):
 
 def esi_get(path: str, params: dict = None) -> dict:
     """Make a GET request to ESI."""
-    url = f"{ESI_BASE}{path}"
-    if params is None:
-        params = {}
+    params = dict(params or {})
     params["datasource"] = ESI_DATASOURCE
-    
-    headers = {
-        "Accept": "application/json",
-        "User-Agent": "AstrumMechanica-IntelDash/1.0 (contact: in-game)"
-    }
-    
-    resp = requests.get(url, params=params, headers=headers, timeout=15)
+
+    _pause_if_error_limited()
+    resp = _session.get(f"{ESI_BASE}{path}", params=params, timeout=15)
+    _note_error_limit(resp)
     resp.raise_for_status()
     return resp.json()
+
+
+def esi_post(path: str, payload) -> dict:
+    """Make a POST request to ESI (bulk resolution endpoints)."""
+    _pause_if_error_limited()
+    resp = _session.post(
+        f"{ESI_BASE}{path}",
+        json=payload,
+        params={"datasource": ESI_DATASOURCE},
+        headers={"Content-Type": "application/json"},
+        timeout=15,
+    )
+    _note_error_limit(resp)
+    resp.raise_for_status()
+    return resp.json()
+
+
+def _zkill_get(path: str, cache_key: str, ttl_category: str = "zkill", timeout: int = 10):
+    """Fetch a zKillboard endpoint, returning the cached value when fresh.
+
+    zKill is a best-effort source — every caller treats an outage as "no kills"
+    rather than an error, so failures are logged and flattened to a default.
+    """
+    cached = _get_cached(cache_key)
+    if cached is not None:
+        return cached
+
+    try:
+        resp = _session.get(f"{ZKILL_BASE}{path}", timeout=timeout)
+        resp.raise_for_status()
+        data = resp.json()
+    except Exception as e:
+        log.warning("zKill error for %s: %s", path, e)
+        return {} if ttl_category == "zkill_stats" else []
+
+    if ttl_category == "zkill_stats":
+        data = data or {}
+    _set_cache(cache_key, data, ttl_category)
+    return data
 
 
 # ============ Universe / Static Data ============
@@ -78,7 +201,7 @@ def get_all_constellation_ids() -> list:
     cached = _get_cached(cache_key)
     if cached is not None:
         return cached
-    
+
     data = esi_get("/universe/constellations/")
     _set_cache(cache_key, data, "constellation_info")
     return data
@@ -90,7 +213,7 @@ def get_constellation_info(constellation_id: int) -> dict:
     cached = _get_cached(cache_key)
     if cached is not None:
         return cached
-    
+
     data = esi_get(f"/universe/constellations/{constellation_id}/")
     _set_cache(cache_key, data, "constellation_info")
     return data
@@ -119,16 +242,7 @@ def post_universe_ids(names: list) -> dict:
     if cached is not None:
         return cached
 
-    url = f"{ESI_BASE}/universe/ids/"
-    headers = {
-        "Accept": "application/json",
-        "Content-Type": "application/json",
-        "User-Agent": "AstrumMechanica-IntelDash/1.0 (contact: in-game)"
-    }
-    params = {"datasource": ESI_DATASOURCE}
-    resp = requests.post(url, json=names, headers=headers, params=params, timeout=15)
-    resp.raise_for_status()
-    data = resp.json()
+    data = esi_post("/universe/ids/", names)
     _set_cache(cache_key, data, "region_info")
     return data
 
@@ -139,13 +253,13 @@ def get_system_info(system_id: int) -> dict:
     cached = _get_cached(cache_key)
     if cached is not None:
         return cached
-    
+
     data = esi_get(f"/universe/systems/{system_id}/")
     _set_cache(cache_key, data, "system_info")
     return data
 
 
-def resolve_constellation_name(name: str) -> Optional[int]:
+def resolve_constellation_name(name: str) -> int | None:
     """Find a constellation ID by name using POST /universe/ids/."""
     cache_key = f"constellation_resolve_{name}"
     cached = _get_cached(cache_key)
@@ -160,7 +274,7 @@ def resolve_constellation_name(name: str) -> Optional[int]:
             _set_cache(cache_key, result, "constellation_info")
             return result
     except Exception as e:
-        print(f"Failed to resolve constellation '{name}': {e}")
+        log.warning("Failed to resolve constellation '%s': %s", name, e)
 
     return None
 
@@ -173,7 +287,7 @@ def get_sovereignty_map() -> list:
     cached = _get_cached(cache_key)
     if cached is not None:
         return cached
-    
+
     data = esi_get("/sovereignty/map/")
     _set_cache(cache_key, data, "sovereignty")
     return data
@@ -201,7 +315,7 @@ def get_sovereignty_campaigns() -> list:
     cached = _get_cached(cache_key)
     if cached is not None:
         return cached
-    
+
     data = esi_get("/sovereignty/campaigns/")
     _set_cache(cache_key, data, "sovereignty")
     return data
@@ -215,7 +329,7 @@ def get_system_kills() -> list:
     cached = _get_cached(cache_key)
     if cached is not None:
         return cached
-    
+
     data = esi_get("/universe/system_kills/")
     _set_cache(cache_key, data, "system_kills")
     return data
@@ -227,7 +341,7 @@ def get_system_jumps() -> list:
     cached = _get_cached(cache_key)
     if cached is not None:
         return cached
-    
+
     data = esi_get("/universe/system_jumps/")
     _set_cache(cache_key, data, "system_jumps")
     return data
@@ -241,7 +355,7 @@ def get_alliance_info(alliance_id: int) -> dict:
     cached = _get_cached(cache_key)
     if cached is not None:
         return cached
-    
+
     data = esi_get(f"/alliances/{alliance_id}/")
     _set_cache(cache_key, data, "entity_info")
     return data
@@ -253,7 +367,7 @@ def get_corporation_info(corp_id: int) -> dict:
     cached = _get_cached(cache_key)
     if cached is not None:
         return cached
-    
+
     data = esi_get(f"/corporations/{corp_id}/")
     _set_cache(cache_key, data, "entity_info")
     return data
@@ -328,18 +442,9 @@ def bulk_resolve_names(ids: list) -> None:
     if not uncached:
         return
     try:
-        url = f"{ESI_BASE}/universe/names/"
-        headers = {
-            "Accept": "application/json",
-            "Content-Type": "application/json",
-            "User-Agent": "AstrumMechanica-IntelDash/1.0 (contact: in-game)",
-        }
-        params = {"datasource": ESI_DATASOURCE}
         for chunk_start in range(0, len(uncached), 1000):
             chunk = uncached[chunk_start:chunk_start + 1000]
-            resp = requests.post(url, json=chunk, headers=headers, params=params, timeout=15)
-            resp.raise_for_status()
-            for item in resp.json():
+            for item in esi_post("/universe/names/", chunk):
                 eid = item["id"]
                 name = item["name"]
                 category = item.get("category", "")
@@ -353,7 +458,7 @@ def bulk_resolve_names(ids: list) -> None:
                 elif category == "inventory_type":
                     _set_cache(f"type_{eid}", name, "system_info")
     except Exception as e:
-        print(f"bulk_resolve_names error: {e}")
+        log.warning("bulk_resolve_names error: %s", e)
 
 
 def bulk_character_affiliations(character_ids: list) -> list:
@@ -368,16 +473,7 @@ def bulk_character_affiliations(character_ids: list) -> list:
     if cached is not None:
         return cached
 
-    url = f"{ESI_BASE}/characters/affiliation/"
-    headers = {
-        "Accept": "application/json",
-        "Content-Type": "application/json",
-        "User-Agent": "AstrumMechanica-IntelDash/1.0 (contact: in-game)"
-    }
-    params = {"datasource": ESI_DATASOURCE}
-    resp = requests.post(url, json=character_ids, headers=headers, params=params, timeout=15)
-    resp.raise_for_status()
-    data = resp.json()
+    data = esi_post("/characters/affiliation/", character_ids)
     _set_cache(cache_key, data, "sovereignty")
     return data
 
@@ -402,115 +498,31 @@ def get_character_name(character_id: int) -> str:
 
 def get_zkill_system(system_id: int) -> list:
     """Get recent kills in a system from zKillboard."""
-    cache_key = f"zkill_system_{system_id}"
-    cached = _get_cached(cache_key)
-    if cached is not None:
-        return cached
-    
-    try:
-        headers = {
-            "Accept": "application/json",
-            "User-Agent": "AstrumMechanica-IntelDash/1.0"
-        }
-        url = f"{ZKILL_BASE}/kills/systemID/{system_id}/"
-        resp = requests.get(url, headers=headers, timeout=10)
-        resp.raise_for_status()
-        data = resp.json()
-        _set_cache(cache_key, data, "zkill")
-        return data
-    except Exception as e:
-        print(f"zKill error for system {system_id}: {e}")
-        return []
+    return _zkill_get(f"/kills/systemID/{system_id}/", f"zkill_system_{system_id}")
 
 
 def get_zkill_region(region_id: int) -> list:
     """Get recent kills in a region from zKillboard."""
-    cache_key = f"zkill_region_{region_id}"
-    cached = _get_cached(cache_key)
-    if cached is not None:
-        return cached
-    
-    try:
-        headers = {
-            "Accept": "application/json",
-            "User-Agent": "AstrumMechanica-IntelDash/1.0"
-        }
-        url = f"{ZKILL_BASE}/kills/regionID/{region_id}/"
-        resp = requests.get(url, headers=headers, timeout=10)
-        resp.raise_for_status()
-        data = resp.json()
-        _set_cache(cache_key, data, "zkill")
-        return data
-    except Exception as e:
-        print(f"zKill error for region {region_id}: {e}")
-        return []
+    return _zkill_get(f"/kills/regionID/{region_id}/", f"zkill_region_{region_id}")
 
 
 def get_zkill_alliance(alliance_id: int) -> list:
-    """Get recent kills for an alliance from zKillboard."""
-    cache_key = f"zkill_alliance_{alliance_id}"
-    cached = _get_cached(cache_key)
-    if cached is not None:
-        return cached
-    
-    try:
-        headers = {
-            "Accept": "application/json",
-            "User-Agent": "AstrumMechanica-IntelDash/1.0"
-        }
-        # Fetching kills where alliance is attacker or victim? Usually "kills/allianceID/..." gets both
-        # To get intel on what they fly, we mostly care about their kills (attackers)
-        url = f"{ZKILL_BASE}/kills/allianceID/{alliance_id}/"
-        resp = requests.get(url, headers=headers, timeout=15)
-        resp.raise_for_status()
-        data = resp.json()
-        _set_cache(cache_key, data, "zkill")
-        return data
-    except Exception as e:
-        print(f"zKill error for alliance {alliance_id}: {e}")
-        return []
+    """Get recent kills for an alliance from zKillboard.
+
+    Returns kills where the alliance appears on either side; doctrine analysis
+    filters to the attacker side to see what they actually fly.
+    """
+    return _zkill_get(f"/kills/allianceID/{alliance_id}/", f"zkill_alliance_{alliance_id}", timeout=15)
 
 
 def get_zkill_corporation(corp_id: int) -> list:
     """Get recent kills for a corporation from zKillboard."""
-    cache_key = f"zkill_corporation_{corp_id}"
-    cached = _get_cached(cache_key)
-    if cached is not None:
-        return cached
-    
-    try:
-        headers = {
-            "Accept": "application/json",
-            "User-Agent": "AstrumMechanica-IntelDash/1.0"
-        }
-        url = f"{ZKILL_BASE}/kills/corporationID/{corp_id}/"
-        resp = requests.get(url, headers=headers, timeout=15)
-        resp.raise_for_status()
-        data = resp.json()
-        _set_cache(cache_key, data, "zkill")
-        return data
-    except Exception as e:
-        print(f"zKill error for corporation {corp_id}: {e}")
-        return []
+    return _zkill_get(f"/kills/corporationID/{corp_id}/", f"zkill_corporation_{corp_id}", timeout=15)
 
 
 def get_zkill_char_stats(char_id: int) -> dict:
     """Get lifetime kill stats for a character from zKillboard stats API."""
-    cache_key = f"zkill_stats_{char_id}"
-    cached = _get_cached(cache_key)
-    if cached is not None:
-        return cached
-    try:
-        headers = {"Accept": "application/json", "User-Agent": "AstrumMechanica-IntelDash/1.0"}
-        url = f"{ZKILL_BASE}/stats/characterID/{char_id}/"
-        resp = requests.get(url, headers=headers, timeout=10)
-        resp.raise_for_status()
-        data = resp.json() or {}
-        _set_cache(cache_key, data, "zkill_stats")
-        return data
-    except Exception as e:
-        print(f"zKill stats error for char {char_id}: {e}")
-        return {}
+    return _zkill_get(f"/stats/characterID/{char_id}/", f"zkill_stats_{char_id}", ttl_category="zkill_stats")
 
 
 def get_killmail(killmail_id: int, killmail_hash: str) -> dict:
@@ -527,5 +539,5 @@ def get_killmail(killmail_id: int, killmail_hash: str) -> dict:
         _set_cache(cache_key, data, "killmail")
         return data
     except Exception as e:
-        print(f"ESI error for killmail {killmail_id}: {e}")
+        log.warning("ESI error for killmail %s: %s", killmail_id, e)
         return {}

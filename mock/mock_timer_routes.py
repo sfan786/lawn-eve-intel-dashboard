@@ -1,4 +1,5 @@
 from flask import Blueprint, jsonify, request
+
 from config import TIMER_PASSWORD
 
 mock_timer_bp = Blueprint("mock_timer", __name__)

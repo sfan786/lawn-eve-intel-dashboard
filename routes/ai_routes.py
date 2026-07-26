@@ -5,6 +5,7 @@ from flask import Blueprint, jsonify, request
 
 import config
 from routes.auth_sso import require_write_auth
+from routes.limiter import AI_LIMIT, limiter
 
 try:
     from google import genai
@@ -20,6 +21,10 @@ ai_bp = Blueprint("ai", __name__)
 # Bound the response so a misbehaving model can't run up cost/latency — the
 # prompt asks for 1-3 sentences, this enforces it server-side.
 _MAX_OUTPUT_TOKENS = 256
+# Bound the *input* too. A full D-scan or Local paste is a few KB; anything past
+# this is truncated rather than billed. Without it, one oversized paste from an
+# authorized user is an unbounded prompt.
+_MAX_INPUT_CHARS = 20000
 # Per-request timeout (seconds) applied to the Gemini HTTP client.
 _REQUEST_TIMEOUT_S = 20
 
@@ -79,21 +84,29 @@ _PROMPTS = {
 
 @ai_bp.route("/api/ai/threat_summary", methods=["POST"])
 @require_write_auth
+@limiter.limit(AI_LIMIT)
 def api_threat_summary():
     client = get_client()
     if not client:
         return jsonify({"error": "AI features are not configured (missing GEMINI_API_KEY or google-genai package)."}), 501
 
     data = request.get_json(silent=True)
-    if not data or "type" not in data or "data" not in data:
+    if not isinstance(data, dict) or "type" not in data or "data" not in data:
         return jsonify({"error": "Invalid payload."}), 400
 
     template = _PROMPTS.get(data["type"])
     if not template:
         return jsonify({"error": "Unknown scan type."}), 400
 
+    scan_data = data["data"]
+    if not isinstance(scan_data, str):
+        return jsonify({"error": "data must be a string."}), 400
+    if len(scan_data) > _MAX_INPUT_CHARS:
+        log.info("Truncating threat-summary input from %d to %d chars", len(scan_data), _MAX_INPUT_CHARS)
+        scan_data = scan_data[:_MAX_INPUT_CHARS]
+
     ally = config.ALLIANCE.get("name") or "our alliance"
-    prompt = template.format(ally=ally, data=data["data"])
+    prompt = template.format(ally=ally, data=scan_data)
 
     try:
         response = client.models.generate_content(

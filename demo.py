@@ -10,22 +10,24 @@ Usage: python demo.py
 """
 
 import os
+
 from flask import Flask
-from mock.mock_config_routes import mock_config_bp
-from mock.mock_sov_routes import mock_sov_bp
+
 from mock.mock_activity_routes import mock_activity_bp
-from mock.mock_zkill_routes import mock_zkill_bp
-from mock.mock_history_routes import mock_history_bp
-from mock.mock_intel_routes import mock_intel_bp
-from mock.mock_hostile_routes import mock_hostile_bp
-from mock.mock_timer_routes import mock_timer_bp
-from mock.mock_annotation_routes import mock_annotation_bp
-from mock.mock_jb_routes import mock_jb_bp
-from mock.mock_entosis_routes import mock_entosis_bp
-from mock.mock_auth_routes import mock_auth_bp
-from routes.static_routes import static_bp
 from mock.mock_ai_routes import mock_ai_bp
+from mock.mock_annotation_routes import mock_annotation_bp
+from mock.mock_auth_routes import mock_auth_bp
+from mock.mock_config_routes import mock_config_bp
 from mock.mock_data import MOCK_CONFIG
+from mock.mock_entosis_routes import mock_entosis_bp
+from mock.mock_history_routes import mock_history_bp
+from mock.mock_hostile_routes import mock_hostile_bp
+from mock.mock_intel_routes import mock_intel_bp
+from mock.mock_jb_routes import mock_jb_bp
+from mock.mock_sov_routes import mock_sov_bp
+from mock.mock_timer_routes import mock_timer_bp
+from mock.mock_zkill_routes import mock_zkill_bp
+from routes.static_routes import static_bp
 
 
 def create_demo_app():

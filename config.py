@@ -11,7 +11,11 @@ import os
 import secrets
 
 from deployments import ACTIVE as _D
-from eve_constants import (
+
+# Re-exported for backwards compatibility: callers do `from config import
+# UPGRADE_TYPES` etc. noqa: F401 marks them as deliberately "unused" here so
+# the linter doesn't strip a module whose whole job is re-export.
+from eve_constants import (  # noqa: F401
     CACHE_TTL,
     ESI_BASE,
     ESI_DATASOURCE,

@@ -10,6 +10,21 @@ ESI_BASE = "https://esi.evetech.net/latest"
 ESI_DATASOURCE = "tranquility"
 ZKILL_BASE = "https://zkillboard.com/api"
 ZKILL_RECENT_HOURS = 24
+USER_AGENT = "AstrumMechanica-IntelDash/1.0 (contact: in-game)"
+
+# Connection pool sizing. The killmail prefetch paths fan out to 20 parallel
+# workers, so the pool must be at least that wide or requests serialize on it.
+HTTP_POOL_SIZE = 32
+HTTP_MAX_RETRIES = 3
+HTTP_RETRY_STATUSES = (500, 502, 503, 504)
+# ESI publishes a rolling error budget (X-Esi-Error-Limit-Remain). Exhausting it
+# gets the deployment's IP temporarily banned, so back off before reaching zero.
+ESI_ERROR_LIMIT_FLOOR = 10
+
+# ===== Sovereignty structure type IDs =====
+# Infrastructure Hub / Sovereignty Hub — the structures that carry the ADM
+# (vulnerability_occupancy_level) reading in /sovereignty/structures/.
+SOV_HUB_TYPE_IDS = (32458, 32876)
 
 # ===== EVE SSO (OAuth2) =====
 # Used by routes/auth_sso.py for "Log in with EVE" identity. No ESI scopes are

@@ -1,5 +1,6 @@
-from flask import Blueprint, jsonify
 import time
+
+from flask import Blueprint, jsonify
 
 mock_ai_bp = Blueprint("mock_ai", __name__)
 

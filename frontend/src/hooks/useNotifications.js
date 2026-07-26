@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 import { getCampaignPhase } from '../utils/campaignHelpers'
 
 const STORAGE_KEY = 'lawn-notif-settings'
@@ -28,6 +28,14 @@ export function useNotifications() {
 
     // Snapshot of previous poll data for change detection
     const prevRef = useRef(null)
+
+    // checkAndNotify reads settings through a ref rather than closing over them.
+    // App's fetchData depends on checkAndNotify, so if this callback changed
+    // identity on every settings edit, ticking a single alert checkbox would
+    // re-run the mount effect — refetching every endpoint and resetting the
+    // 5-minute poll timer.
+    const settingsRef = useRef(settings)
+    useEffect(() => { settingsRef.current = settings }, [settings])
 
     const saveSettings = useCallback((updater) => {
         setSettings(prev => {
@@ -83,6 +91,7 @@ export function useNotifications() {
         })
 
         const prev = prevRef.current
+        const settings = settingsRef.current
 
         if (prev && settings.enabled && supported() && Notification.permission === 'granted') {
             // 1. New sov campaigns
@@ -146,7 +155,7 @@ export function useNotifications() {
 
         // Always update snapshot (including on init)
         prevRef.current = { campaignIds, campaignPhases, admBySystem, primaryPVP }
-    }, [settings, sendNotif])
+    }, [sendNotif])
 
     return { settings, saveSettings, permStatus, requestPermission, checkAndNotify }
 }

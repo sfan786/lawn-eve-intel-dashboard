@@ -1,14 +1,24 @@
+import logging
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
+
 from flask import Blueprint, jsonify, request
-from config import (
-    NEIGHBOR_ENTITIES, LAWN_ALLIANCE_ID, FRIENDLY_ALLIANCE_IDS, FRIENDLY_CORPORATIONS,
-    FRIENDLY_STANDING_CORP_IDS, FRIENDLY_STANDING_CORP_NAMES,
-)
-from eve_constants import THREAT_SHIP_GROUPS, FLEET_ROLE_GROUPS
+
 import db
 import esi_client
+from config import (
+    FRIENDLY_ALLIANCE_IDS,
+    FRIENDLY_CORPORATIONS,
+    FRIENDLY_STANDING_CORP_IDS,
+    FRIENDLY_STANDING_CORP_NAMES,
+    LAWN_ALLIANCE_ID,
+    NEIGHBOR_ENTITIES,
+)
+from eve_constants import FLEET_ROLE_GROUPS, THREAT_SHIP_GROUPS
+from routes.limiter import INTEL_SCAN_LIMIT, limiter
 from routes.system_state import state
+
+log = logging.getLogger(__name__)
 
 intel_bp = Blueprint("intel", __name__)
 
@@ -59,7 +69,7 @@ def _build_pinned_profile(entity, pinned_set):
     total_isk = sum(k.get("zkb", {}).get("totalValue", 0) for k in kills[:100])
 
     doctrine_counts = {}   # ship_type_id -> count
-    hourly_activity = {h: 0 for h in range(24)}
+    hourly_activity = dict.fromkeys(range(24), 0)
     neighbor_region_hits = {}  # region_name -> count
 
     neighbor_ids = set(state.neighbor_systems.keys())
@@ -102,7 +112,7 @@ def _build_pinned_profile(entity, pinned_set):
                     neighbor_region_hits[region] = neighbor_region_hits.get(region, 0) + 1
 
             except Exception as e:
-                print(f"[!] Killmail error for {name}: {e}")
+                log.warning("Killmail error for %s: %s", name, e)
 
     # Resolve top 5 doctrine ships and detect capital roles
     top_type_ids = sorted(doctrine_counts, key=doctrine_counts.get, reverse=True)[:5]
@@ -265,7 +275,7 @@ def api_neighbor_intel():
         return jsonify(_neighbors_cache["data"])
 
     pinned_results = []
-    pinned_ids = set(e["id"] for e in NEIGHBOR_ENTITIES)
+    pinned_ids = {e["id"] for e in NEIGHBOR_ENTITIES}
 
     with ThreadPoolExecutor(max_workers=3) as pool:
         futures = {pool.submit(_build_pinned_profile, entity, pinned_ids): entity for entity in NEIGHBOR_ENTITIES}
@@ -274,7 +284,7 @@ def api_neighbor_intel():
                 pinned_results.append(future.result())
             except Exception as e:
                 entity = futures[future]
-                print(f"[!] Failed to build profile for {entity['name']}: {e}")
+                log.warning("Failed to build profile for %s: %s", entity["name"], e)
 
     pinned_results.sort(key=lambda r: {"High": 0, "Medium": 1, "Low": 2}.get(r["threat_level"], 3))
 
@@ -297,6 +307,7 @@ def _get_names_list(payload, key="names", limit=100):
 
 
 @intel_bp.route("/api/local/scan", methods=["POST"])
+@limiter.limit(INTEL_SCAN_LIMIT)
 def api_local_scan():
     names = _get_names_list(request.json)
     if names is None:
@@ -323,7 +334,7 @@ def api_local_scan():
             for a in affiliations:
                 affil_by_id[a["character_id"]] = a
         except Exception as e:
-            print(f"Affiliation lookup failed: {e}")
+            log.warning("Affiliation lookup failed: %s", e)
 
     # 3. Build results
     results = []
@@ -442,6 +453,7 @@ def _detect_roles(groups: dict) -> list:
 
 
 @intel_bp.route("/api/chars/analyze", methods=["POST"])
+@limiter.limit(INTEL_SCAN_LIMIT)
 def api_chars_analyze():
     payload = request.json if isinstance(request.json, dict) else {}
     raw_ids = payload.get("char_ids") or []
@@ -465,7 +477,7 @@ def api_chars_analyze():
                 risk["roles"] = _detect_roles(stats.get("groups", {}))
                 results[str(cid)] = risk
             except Exception as e:
-                print(f"Risk analyze error for {cid}: {e}")
+                log.warning("Risk analyze error for %s: %s", cid, e)
                 results[str(cid)] = {"tier": "nodata", "label": "NO DATA", "kills": 0, "losses": 0, "danger": 0, "gang_ratio": 0, "solo_kills": 0, "isk_eff": 0, "roles": []}
 
     return jsonify(results)
@@ -488,6 +500,7 @@ def _detect_fleet_roles(groups: dict) -> list:
 
 
 @intel_bp.route("/api/fleet/analyze", methods=["POST"])
+@limiter.limit(INTEL_SCAN_LIMIT)
 def api_fleet_analyze():
     names = _get_names_list(request.json)
     if names is None:

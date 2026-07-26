@@ -9,12 +9,15 @@ Existing pre-migration rows are tagged 'lawn-kalevala' so they remain
 visible if you ever switch back.
 """
 
-import sqlite3
+import logging
 import os
+import sqlite3
 import time
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from config import DEPLOYMENT_ID
+
+log = logging.getLogger(__name__)
 
 DB_PATH = os.environ.get("INTEL_DB_PATH") or os.path.join(os.path.dirname(os.path.abspath(__file__)), "intel.db")
 
@@ -28,7 +31,7 @@ SNAPSHOT_INTERVAL = 3600  # At most one snapshot per system per hour
 
 def _iso_cutoff(hours):
     """ISO-8601 UTC timestamp N hours ago, matching the stored timestamp format."""
-    return (datetime.now(timezone.utc) - timedelta(hours=hours)).strftime("%Y-%m-%dT%H:%M:%SZ")
+    return (datetime.now(UTC) - timedelta(hours=hours)).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
 def get_connection():
@@ -186,7 +189,7 @@ def init():
         CREATE INDEX IF NOT EXISTS idx_activity_system_time ON activity_snapshots(system_id, timestamp);
         CREATE INDEX IF NOT EXISTS idx_timer_time ON custom_timers(timestamp);
         CREATE INDEX IF NOT EXISTS idx_annotation_system ON system_annotations(system_name);
-        
+
         CREATE INDEX IF NOT EXISTS idx_adm_deployment_time ON adm_snapshots(deployment_id, timestamp);
         CREATE INDEX IF NOT EXISTS idx_adm_deploy_system_time ON adm_snapshots(deployment_id, system_id, timestamp);
         CREATE INDEX IF NOT EXISTS idx_activity_deployment_time ON activity_snapshots(deployment_id, timestamp);
@@ -197,7 +200,7 @@ def init():
 
     conn.commit()
     conn.close()
-    print(f"[*] Database initialized: {DB_PATH} (deployment={DEPLOYMENT_ID})")
+    log.info("Database initialized: %s (deployment=%s)", DB_PATH, DEPLOYMENT_ID)
 
 
 def snapshot_adm_batch(systems):
@@ -632,9 +635,11 @@ def update_entosis_node(node_id, status=None, claimed_by=None):
     conn = get_connection()
     sets, params = [], []
     if status is not None:
-        sets.append("status = ?"); params.append(status)
+        sets.append("status = ?")
+        params.append(status)
     if claimed_by is not None:
-        sets.append("claimed_by = ?"); params.append(claimed_by or None)
+        sets.append("claimed_by = ?")
+        params.append(claimed_by or None)
     if sets:
         sets.append("updated_at = strftime('%Y-%m-%dT%H:%M:%SZ', 'now')")
         params.extend([node_id, DEPLOYMENT_ID])

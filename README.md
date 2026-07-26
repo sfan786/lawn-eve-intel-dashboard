@@ -67,8 +67,6 @@ lawn-eve-intel-dashboard/
 │   (map layout is served by `/api/config` — no static map module)
 │
 ├── static/
-│   ├── index.html           # Legacy CDN-React fallback (no build step required)
-│   ├── map_data.js          # Source of truth for map layout data
 │   └── dist/                # Vite build output (gitignored, served by Flask in prod)
 │
 ├── tools/

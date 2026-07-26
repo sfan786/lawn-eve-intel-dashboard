@@ -1,7 +1,11 @@
+import logging
+
 from flask import Blueprint, jsonify
+
 import esi_client
-import db
 from routes.system_state import state
+
+log = logging.getLogger(__name__)
 
 activity_bp = Blueprint("activity", __name__)
 
@@ -12,7 +16,7 @@ def api_activity():
         kills_data = esi_client.get_system_kills()
         jumps_data = esi_client.get_system_jumps()
     except Exception as e:
-        print(f"[!] ESI activity data unavailable: {e}")
+        log.warning("ESI activity data unavailable: %s", e)
         return jsonify({"error": "ESI unavailable"}), 503
 
     kills_by_system = {entry["system_id"]: entry for entry in kills_data}
@@ -30,10 +34,6 @@ def api_activity():
             "jumps": jumps.get("ship_jumps", 0),
         }
 
-    activity_batch = [
-        (sid, d["ship_kills"], d["pod_kills"], d["npc_kills"], d["jumps"])
-        for sid, d in result.items()
-    ]
-    db.snapshot_activity_batch(activity_batch)
-
+    # Activity history is written by routes/poller.py on a fixed interval, not
+    # here — snapshotting from a read handler made the record depend on page views.
     return jsonify(result)

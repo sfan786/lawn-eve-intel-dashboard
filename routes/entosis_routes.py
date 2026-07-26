@@ -1,6 +1,7 @@
 from flask import Blueprint, jsonify, request
-from routes.auth_sso import require_write_auth, current_character_name
+
 import db
+from routes.auth_sso import current_character_name, require_write_auth
 
 entosis_bp = Blueprint("entosis", __name__)
 

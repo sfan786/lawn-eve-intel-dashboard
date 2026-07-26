@@ -4,19 +4,17 @@ import CornerBrackets from './common/CornerBrackets'
 import UpgradeBadges from './common/UpgradeBadges'
 
 export default function UpgradesOverview({ config }) {
-    if (!config || !config.system_upgrades || !config.upgrade_types) return null
-
-    const upgradeTypes = config.upgrade_types
-    const systemUpgrades = config.system_upgrades
-
-    const primarySystems = useMemo(() => config.primary_systems || [], [config])
+    // Hooks must run before any early return — React requires the same hook
+    // sequence on every render, so bailing out above a useMemo throws
+    // "Rendered fewer hooks than expected" the moment config goes absent.
+    const primarySystems = useMemo(() => config?.primary_systems || [], [config])
 
     // Map system name → constellation name so each card can show which
     // constellation it belongs to. Derived from config so it stays correct
     // for any deployment.
     const systemConstellation = useMemo(() => {
         const lookup = {}
-        if (config.constellations) {
+        if (config?.constellations) {
             Object.values(config.constellations).forEach(c => {
                 Object.values(c.systems || {}).forEach(s => {
                     lookup[s.name] = c.name
@@ -25,6 +23,11 @@ export default function UpgradesOverview({ config }) {
         }
         return lookup
     }, [config])
+
+    if (!config || !config.system_upgrades || !config.upgrade_types) return null
+
+    const upgradeTypes = config.upgrade_types
+    const systemUpgrades = config.system_upgrades
 
     let totalUpgrades = 0
     let systemsWithUpgrades = 0

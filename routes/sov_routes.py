@@ -1,8 +1,13 @@
+import logging
+
 from flask import Blueprint, jsonify
-from config import FRIENDLY_ALLIANCES, FRIENDLY_ALLIANCE_IDS, PRIMARY_ALLIANCE_ID
+
 import esi_client
-import db
+from config import FRIENDLY_ALLIANCE_IDS, FRIENDLY_ALLIANCES, PRIMARY_ALLIANCE_ID
+from eve_constants import SOV_HUB_TYPE_IDS
 from routes.system_state import state
+
+log = logging.getLogger(__name__)
 
 sov_bp = Blueprint("sov", __name__)
 
@@ -12,7 +17,7 @@ def api_sovereignty():
     try:
         sov_map = esi_client.get_sovereignty_map()
     except Exception as e:
-        print(f"[!] ESI sovereignty map unavailable: {e}")
+        log.warning("ESI sovereignty map unavailable: %s", e)
         return jsonify({"error": "ESI unavailable"}), 503
 
     adm_by_system = {}
@@ -20,7 +25,7 @@ def api_sovereignty():
     try:
         sov_structures = esi_client.get_sovereignty_structures()
         for struct in sov_structures:
-            if struct.get("structure_type_id") in [32458, 32876]:
+            if struct.get("structure_type_id") in SOV_HUB_TYPE_IDS:
                 sys_id = struct.get("solar_system_id")
                 adm = struct.get("vulnerability_occupancy_level", 0)
                 adm_by_system[sys_id] = adm
@@ -32,7 +37,7 @@ def api_sovereignty():
                         "vulnerable_end_time": vuln_end,
                     }
     except Exception as e:
-        print(f"[!] Failed to fetch sovereignty structures: {e}")
+        log.warning("Failed to fetch sovereignty structures: %s", e)
 
     result = {}
     alliance_cache = {}
@@ -85,12 +90,8 @@ def api_sovereignty():
             if sys_id in vuln_by_system:
                 result[sys_id].update(vuln_by_system[sys_id])
 
-    adm_batch = []
-    for sys_id, sys_data in result.items():
-        sys_name = state.lookup_system_name(sys_id)
-        adm_batch.append((sys_id, sys_name, sys_data["adm"], sys_data.get("alliance_name")))
-    db.snapshot_adm_batch(adm_batch)
-
+    # ADM history is written by routes/poller.py on a fixed interval, not here —
+    # snapshotting from a read handler made the record depend on page views.
     return jsonify(result)
 
 
@@ -109,7 +110,7 @@ def api_campaigns():
         campaigns = esi_client.get_sovereignty_campaigns()
         structures = esi_client.get_sovereignty_structures()
     except Exception as e:
-        print(f"[!] ESI campaign data unavailable: {e}")
+        log.warning("ESI campaign data unavailable: %s", e)
         return jsonify({"error": "ESI unavailable"}), 503
 
     structure_by_id = {s["structure_id"]: s for s in structures}

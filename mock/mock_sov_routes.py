@@ -1,4 +1,5 @@
 from flask import Blueprint, jsonify
+
 from mock.mock_data import build_enriched_sovereignty, get_mock_campaigns
 
 mock_sov_bp = Blueprint("mock_sov", __name__)

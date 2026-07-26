@@ -1,6 +1,7 @@
 from flask import Blueprint, jsonify, request
-from routes.auth_sso import require_write_auth
+
 import db
+from routes.auth_sso import require_write_auth
 
 annotation_bp = Blueprint("annotation", __name__)
 
