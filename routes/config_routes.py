@@ -1,13 +1,21 @@
 from flask import Blueprint, jsonify
+
 from config import (
-    ALLIANCE, REGION, DEPLOYMENT_ID,
-    FRIENDLY_ALLIANCES, FRIENDLY_CORPORATIONS,
-    UPGRADE_TYPES, SYSTEM_UPGRADES, PI_DATA,
-    MAP_LAYOUT, MAP_LAYOUT_SUBWAY, MAP_CONNECTIONS,
-    PRIMARY_SYSTEMS, BORDER_SYSTEMS,
+    ALLIANCE,
+    BORDER_SYSTEMS,
+    DEPLOYMENT_ID,
+    FRIENDLY_ALLIANCES,
+    FRIENDLY_CORPORATIONS,
+    MAP_CONNECTIONS,
+    MAP_LAYOUT,
+    MAP_LAYOUT_SUBWAY,
+    PI_DATA,
+    PRIMARY_SYSTEMS,
+    REGION,
+    SYSTEM_UPGRADES,
+    UPGRADE_TYPES,
 )
 from routes.system_state import state
-
 
 config_bp = Blueprint("config", __name__)
 

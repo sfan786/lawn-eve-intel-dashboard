@@ -1,4 +1,5 @@
 from flask import Blueprint, jsonify, request
+
 from config import TIMER_PASSWORD
 
 mock_jb_bp = Blueprint("mock_jumpbridge", __name__)

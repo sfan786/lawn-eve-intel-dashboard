@@ -1,9 +1,10 @@
 import sqlite3
 
+
 def migrate(db_path):
     conn = sqlite3.connect(db_path)
     conn.row_factory = sqlite3.Row
-    
+
     # 1. Add deployment_id if missing
     for table in ["adm_snapshots", "activity_snapshots", "custom_timers", "system_annotations", "jump_bridges"]:
         cols = {row["name"] for row in conn.execute(f"PRAGMA table_info({table})")}
@@ -50,7 +51,7 @@ def migrate(db_path):
             DROP TABLE jump_bridges;
             ALTER TABLE jump_bridges_new RENAME TO jump_bridges;
         """)
-        
+
     conn.commit()
     conn.close()
 

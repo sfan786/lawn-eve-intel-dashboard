@@ -1,5 +1,7 @@
 import time
+
 from flask import Blueprint, jsonify, request
+
 from mock.mock_data import MOCK_NEIGHBOR_INTEL, MOCK_REGIONAL_INTEL
 
 mock_intel_bp = Blueprint("mock_intel", __name__)

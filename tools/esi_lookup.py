@@ -18,6 +18,7 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import requests
+
 import esi_client
 
 ZKILL_AUTOCOMPLETE = "https://zkillboard.com/autocomplete/"
@@ -63,7 +64,7 @@ def cmd_alliance(args):
 
     if not matches:
         # Fall back to zKill autocomplete for fuzzy/partial matches
-        print(f"No exact ESI match — trying zKill autocomplete...", file=sys.stderr)
+        print("No exact ESI match — trying zKill autocomplete...", file=sys.stderr)
         zkill_results = search_zkill(args.term, entity_type="alliance")
         if not zkill_results:
             print(f"No alliances found for '{args.term}'")
@@ -99,7 +100,7 @@ def cmd_corporation(args):
     matches = data.get("corporations", [])
 
     if not matches:
-        print(f"No exact ESI match — trying zKill autocomplete...", file=sys.stderr)
+        print("No exact ESI match — trying zKill autocomplete...", file=sys.stderr)
         zkill_results = search_zkill(args.term, entity_type="corporation")
         if not zkill_results:
             print(f"No corporations found for '{args.term}'")

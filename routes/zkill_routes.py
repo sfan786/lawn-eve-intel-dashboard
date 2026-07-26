@@ -1,7 +1,9 @@
 from concurrent.futures import ThreadPoolExecutor, wait
+
 from flask import Blueprint, jsonify
-from config import REGION_ID
+
 import esi_client
+from config import REGION_ID
 from routes.system_state import state
 
 zkill_bp = Blueprint("zkill", __name__)

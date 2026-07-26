@@ -1,4 +1,5 @@
 from flask import Blueprint, jsonify, request
+
 from config import TIMER_PASSWORD
 
 mock_entosis_bp = Blueprint("mock_entosis", __name__)
@@ -19,7 +20,7 @@ def _seed_nodes():
         return
     _seeded = True
 
-    from mock.mock_data import get_mock_campaigns, _systems_by_name
+    from mock.mock_data import _systems_by_name, get_mock_campaigns
 
     campaigns = get_mock_campaigns()
     active = next(

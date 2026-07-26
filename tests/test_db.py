@@ -1,11 +1,9 @@
 # Tests for db.py — SQLite persistence layer (uses tmp_db fixture from conftest.py).
 
 import sqlite3
-from datetime import datetime, timezone, timedelta
+from datetime import UTC, datetime, timedelta
 
-import pytest
 import db
-
 
 # ---------------------------------------------------------------------------
 # Helper
@@ -25,12 +23,12 @@ def _count(tmp_db, table, where="1=1"):
 
 def _future_ts(days=1):
     """ISO timestamp N days in the future (so active-timer queries include it)."""
-    return (datetime.now(timezone.utc) + timedelta(days=days)).strftime("%Y-%m-%dT%H:%M:%SZ")
+    return (datetime.now(UTC) + timedelta(days=days)).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
 def _old_ts(hours=2):
     """ISO timestamp N hours in the past."""
-    return (datetime.now(timezone.utc) - timedelta(hours=hours)).strftime("%Y-%m-%dT%H:%M:%SZ")
+    return (datetime.now(UTC) - timedelta(hours=hours)).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
 # ---------------------------------------------------------------------------
@@ -437,7 +435,7 @@ class TestSovChanges:
         # Seed 60 systems, then flip every alliance in one call → 60 change
         # events at once, exceeding SOV_CHANGES_MAX (50).
         names = {i: f"Sys{i}" for i in range(60)}
-        db.record_sov_changes({i: 1000 for i in range(60)}, names)
-        db.record_sov_changes({i: 2000 for i in range(60)}, names)
+        db.record_sov_changes(dict.fromkeys(range(60), 1000), names)
+        db.record_sov_changes(dict.fromkeys(range(60), 2000), names)
         # The table is capped at SOV_CHANGES_MAX rows regardless of limit asked.
         assert _count(tmp_db, "sov_changes") == db.SOV_CHANGES_MAX

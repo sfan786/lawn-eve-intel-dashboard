@@ -1,8 +1,10 @@
 import hmac
+
 from flask import Blueprint, jsonify, request
+
+import db
 from config import TIMER_PASSWORD
 from routes.auth_sso import require_write_auth
-import db
 
 timer_bp = Blueprint("timer", __name__)
 

@@ -1,6 +1,7 @@
 from flask import Blueprint, jsonify
+
+from config import ALLIANCE, DEPLOYMENT_ID, PI_DATA, REGION
 from mock.mock_data import MOCK_CONFIG
-from config import PI_DATA, ALLIANCE, REGION, DEPLOYMENT_ID
 
 mock_config_bp = Blueprint("mock_config", __name__)
 

@@ -32,5 +32,7 @@ USER appuser
 
 EXPOSE 5000
 
-# Gunicorn: 2 workers, 120s timeout for slow ESI startup
-CMD ["gunicorn", "--bind", "0.0.0.0:5000", "--workers", "2", "--timeout", "120", "app:app"]
+# Settings live in gunicorn.conf.py — notably preload_app (resolve the region
+# once in the master, share the warm ESI cache via fork) and the post_fork hook
+# that starts the background poller in each worker.
+CMD ["gunicorn", "-c", "gunicorn.conf.py", "app:app"]

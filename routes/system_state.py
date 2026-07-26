@@ -4,9 +4,13 @@ SystemState is populated once at startup by resolve_all_systems() and then
 shared (read-only) across all request handlers.
 """
 
+import logging
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from config import PRIMARY_CONSTELLATION_IDS, REGION, REGION_ID, NEIGHBOR_SYSTEM_NAMES
+
 import esi_client
+from config import NEIGHBOR_SYSTEM_NAMES, PRIMARY_CONSTELLATION_IDS, REGION, REGION_ID
+
+log = logging.getLogger(__name__)
 
 
 class SystemState:
@@ -39,17 +43,17 @@ def resolve_all_systems(s: SystemState):
     s.primary_constellation_ids_set = set(PRIMARY_CONSTELLATION_IDS)
 
     region_label = REGION.get("name", str(REGION_ID))
-    print(f"[*] Loading region {REGION_ID} ({region_label})...")
+    log.info("Loading region %s (%s)...", REGION_ID, region_label)
     try:
         region_info = esi_client.get_region_info(REGION_ID)
         region_constellation_ids = region_info.get("constellations", [])
-        print(f"  [+] Region has {len(region_constellation_ids)} constellations")
+        log.info("  Region has %d constellations", len(region_constellation_ids))
     except Exception as e:
-        print(f"  [!] Failed to load region info: {e}")
-        print(f"  [*] Falling back to primary constellations only")
+        log.warning("  Failed to load region info: %s", e)
+        log.warning("  Falling back to primary constellations only")
         region_constellation_ids = PRIMARY_CONSTELLATION_IDS
 
-    print(f"[*] Resolving {len(region_constellation_ids)} {region_label} constellations...")
+    log.info("Resolving %d %s constellations...", len(region_constellation_ids), region_label)
     constellation_infos = {}
     with ThreadPoolExecutor(max_workers=10) as pool:
         future_to_cid = {
@@ -61,14 +65,14 @@ def resolve_all_systems(s: SystemState):
             try:
                 constellation_infos[cid] = future.result()
             except Exception as e:
-                print(f"  [!] Error loading constellation {cid}: {e}")
+                log.warning("  Error loading constellation %s: %s", cid, e)
 
     all_system_ids = []
     for cid, info in constellation_infos.items():
         for sys_id in info.get("systems", []):
             all_system_ids.append((cid, sys_id))
 
-    print(f"[*] Resolving {len(all_system_ids)} {region_label} systems...")
+    log.info("Resolving %d %s systems...", len(all_system_ids), region_label)
     system_infos = {}
     with ThreadPoolExecutor(max_workers=20) as pool:
         future_to_sid = {
@@ -80,7 +84,7 @@ def resolve_all_systems(s: SystemState):
             try:
                 system_infos[sys_id] = future.result()
             except Exception as e:
-                print(f"  [!] Error loading system {sys_id}: {e}")
+                log.warning("  Error loading system %s: %s", sys_id, e)
 
     for cid, info in constellation_infos.items():
         systems = {}
@@ -103,18 +107,18 @@ def resolve_all_systems(s: SystemState):
             "is_lawn": is_primary,  # backwards-compat for any frontend still reading is_lawn
         }
         tag = "PRIMARY" if is_primary else "REGION"
-        print(f"  [+] {info.get('name')} (ID: {cid}) -> {len(systems)} systems [{tag}]")
+        log.info("  %s (ID: %s) -> %d systems [%s]", info.get("name"), cid, len(systems), tag)
 
-    for cid, cdata in s.constellation_data.items():
+    for cdata in s.constellation_data.values():
         if cdata.get("is_primary"):
             s.primary_system_ids.update(cdata["systems"].keys())
 
-    print(f"[*] Resolving {len(NEIGHBOR_SYSTEM_NAMES)} neighbor systems...")
+    log.info("Resolving %d neighbor systems...", len(NEIGHBOR_SYSTEM_NAMES))
     if NEIGHBOR_SYSTEM_NAMES:
         try:
             id_result = esi_client.post_universe_ids(NEIGHBOR_SYSTEM_NAMES)
             resolved_systems = id_result.get("systems", [])
-            print(f"  [+] Resolved {len(resolved_systems)} / {len(NEIGHBOR_SYSTEM_NAMES)} names")
+            log.info("  Resolved %d / %d names", len(resolved_systems), len(NEIGHBOR_SYSTEM_NAMES))
 
             neighbor_entries = {entry["id"]: entry["name"] for entry in resolved_systems}
             neighbor_sys_infos = {}
@@ -128,7 +132,7 @@ def resolve_all_systems(s: SystemState):
                     try:
                         neighbor_sys_infos[sid] = future.result()
                     except Exception as e:
-                        print(f"  [!] Error loading neighbor {neighbor_entries[sid]}: {e}")
+                        log.warning("  Error loading neighbor %s: %s", neighbor_entries[sid], e)
 
             neighbor_const_ids = set()
             for si in neighbor_sys_infos.values():
@@ -186,7 +190,7 @@ def resolve_all_systems(s: SystemState):
                     "region_name": region_name,
                 }
         except Exception as e:
-            print(f"  [!] Failed to resolve neighbor names: {e}")
+            log.warning("  Failed to resolve neighbor names: %s", e)
 
     for cdata in s.constellation_data.values():
         s.all_monitored_ids.update(cdata["systems"].keys())
@@ -196,6 +200,8 @@ def resolve_all_systems(s: SystemState):
     primary_count = len(s.primary_system_ids)
     neighbor_count = len(s.neighbor_systems)
     elapsed = _time.monotonic() - t_start
-    print(f"[*] Total: {len(s.constellation_data)} constellations, "
-          f"{primary_count} primary + {region_count - primary_count} region + {neighbor_count} neighbor "
-          f"= {len(s.all_monitored_ids)} systems ({elapsed:.1f}s)")
+    log.info(
+        "Total: %d constellations, %d primary + %d region + %d neighbor = %d systems (%.1fs)",
+        len(s.constellation_data), primary_count, region_count - primary_count,
+        neighbor_count, len(s.all_monitored_ids), elapsed,
+    )

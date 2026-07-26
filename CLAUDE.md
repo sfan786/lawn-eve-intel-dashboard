@@ -38,7 +38,8 @@ The bootstrap resolves ESI IDs, walks the gate graph for the whole region, fetch
 - **Frontend:** React 19 + Vite 8 — source in `frontend/src/`, built to `static/dist/` (build needs Node ≥20.19 / ≥22.12; CI + Docker use Node 22)
 - **Data source:** EVE ESI public endpoints (esi.evetech.net) — no auth needed
 - **Production:** Docker multi-stage build (Node 20 Vite build → Python 3.11 + Gunicorn)
-- **Legacy fallback:** `static/index.html` (CDN Babel/React, no build step) — kept for reference
+- **Background poller:** `routes/poller.py` samples ESI on an interval so history doesn't depend on page views
+- **Lint:** ruff (`pyproject.toml`) for Python, eslint (`frontend/eslint.config.js`) for JS — both run in CI
 - User's OS is **CachyOS (Arch Linux)** with **fish shell**
 
 ## Project Structure
@@ -58,13 +59,15 @@ lawn-eve-intel-dashboard/
 │   ├── zkill_routes.py      # /api/zkill/feed, /api/zkill/<id>
 │   ├── history_routes.py    # /api/history/adm, /api/history/activity/heatmap
 │   ├── intel_routes.py      # /api/intel/neighbors, /api/intel/regional, /api/intel/sov_changes, /api/local/scan, /api/chars/analyze, /api/fleet/analyze
-│   ├── hostile_routes.py    # /api/hostile/feed (hostile kill feed)
+│   ├── hostile_routes.py    # /api/intel/active_hostiles (hostile kill feed)
 │   ├── entosis_routes.py    # /api/entosis/nodes (command node board)
 │   ├── timer_routes.py      # /api/timers, /api/auth/check
 │   ├── annotation_routes.py # /api/annotations (per-system sticky notes)
-│   ├── jb_routes.py         # /api/jump_bridges (manual JB overlay config)
+│   ├── jb_routes.py         # /api/jumpbridges (manual JB overlay config)
 │   ├── ai_routes.py         # /api/ai/threat_summary (Gemini, write-auth gated)
 │   ├── auth_sso.py          # EVE SSO login + require_write_auth decorator (/api/auth/*)
+│   ├── limiter.py           # flask-limiter instance + per-IP caps for intel/AI endpoints
+│   ├── poller.py            # Background ESI poller — writes ADM/activity history on an interval
 │   └── static_routes.py     # / and /entosis (serves Vite SPA)
 │
 ├── mock/                    # Demo mock blueprints (no ESI calls)
@@ -89,16 +92,18 @@ lawn-eve-intel-dashboard/
 │       └── components/      # feature components + common/ (CornerBrackets, AiSummary, EveLoginButton, …)
 │
 ├── static/
-│   ├── index.html           # Legacy CDN-React fallback (no build step required)
 │   └── dist/                # Vite build output (gitignored, served by Flask in prod)
 │
 ├── tools/
 │   ├── esi_lookup.py        # CLI: resolve system/alliance/corp names to IDs
+│   ├── migrate_deployment_ids.py # One-off: backfill deployment_id on pre-migration DBs
 │   └── bootstrap_deployment.py  # CLI: scaffold a new deployment from ESI
 │
 ├── Dockerfile               # Multi-stage: Node (Vite build) → Python (gunicorn)
+├── gunicorn.conf.py         # preload_app + post_fork poller start (production entry)
 ├── docker-compose.yml
-├── setup.sh / setup.fish    # Local first-time setup (venv + npm install) — .sh default, .fish for fish users
+├── pyproject.toml           # ruff lint config
+├── setup.sh / setup.fish    # Local first-time setup (venv + npm install; --dev adds test/lint tooling)
 ├── run_dev.sh / run_dev.fish # Local dev launcher (Flask + Vite, accepts 'demo' arg)
 └── requirements.txt
 ```
@@ -106,23 +111,29 @@ lawn-eve-intel-dashboard/
 ## Key Technical Decisions
 1. **Deployment loader** — `deployments/__init__.py` picks the active module from the `DEPLOYMENT` env var (default `lawn_perrigen`). `config.py` is a thin re-export of `deployments.ACTIVE.*` plus game-wide constants from `eve_constants.py`. To switch deployments, set `DEPLOYMENT=other_deployment` and restart — no code changes.
 2. **Flask Blueprints** — Backend is split into `routes/` (live ESI) and `mock/` (demo) Blueprint packages. All blueprints share a `SystemState` singleton from `routes/system_state.py` that is populated at startup by `resolve_all_systems()`.
-3. **Vite build** — Frontend source lives in `frontend/src/`, built to `static/dist/`. `routes/static_routes.py` serves `static/dist/index.html` in production, falling back to `static/index.html` (legacy CDN version) if no build exists. Never use `render_template` — Jinja2's `{{ }}` conflicts with JSX.
+3. **Vite build** — Frontend source lives in `frontend/src/`, built to `static/dist/`. `routes/static_routes.py` serves `static/dist/index.html` and returns a loud 503 ("Frontend build missing") when no build exists. There used to be a fallback to a legacy CDN-React `static/index.html`; it was removed because a failed build silently served a stale UI instead of surfacing the problem. Never use `render_template` — Jinja2's `{{ }}` conflicts with JSX.
 4. **Map layout is API-served** — `MAP_LAYOUT` (traditional Dotlan-style) and `MAP_LAYOUT_SUBWAY` (abstract metro-style) live in the active deployment module and are served to the frontend via `/api/config`. Gate connections (`MAP_CONNECTIONS`) have four types: `internal` (same constellation), `cross` (different constellations same region), `regional` (to other regions), `neighbor` (between two neighbor-region systems). Subway mode prioritizes readability over geometric accuracy.
 5. **Demo mode** — `demo.py` registers mock blueprints from `mock/`. `mock/mock_data.py` derives system list, sov, and activity from the active deployment, so demo and live always reflect the same alliance/region. Reads `FLASK_PORT` from env so it can run on :5001 alongside live mode.
-6. **In-memory caching** — `esi_client.py` caches ESI responses in a dict with per-category TTLs from `eve_constants.CACHE_TTL`.
+6. **ESI transport + caching** — `esi_client.py` caches responses in a dict with per-category TTLs from `eve_constants.CACHE_TTL`, and sends everything through one pooled `requests.Session` (`_session`) with retry/backoff on 5xx. The killmail prefetch paths fan out to 20 threads, so without pooling each would pay a fresh TLS handshake. It also reads ESI's rolling error budget (`X-Esi-Error-Limit-Remain`) off every response and arms a process-wide cooperative pause when it runs low — exhausting the budget gets the deployment's IP temporarily banned by CCP.
 7. **SQLite persistence** — `db.py` snapshots ADM and activity data hourly (deduplicated). All rows tagged with `deployment_id`; reads filter to the active deployment so history doesn't bleed between deployments. WAL mode for concurrent reads.
+7b. **Background poller** — `routes/poller.py` writes those snapshots on a fixed interval (`POLL_INTERVAL_SECONDS`, default 900). Snapshotting used to happen as a side effect of serving `GET /api/sovereignty` and `GET /api/activity`, which made the historical record depend on somebody having a browser open — leaving gaps overnight and skewing the 7-day baselines behind spike detection. Under gunicorn the poller starts from the `post_fork` hook, because threads do not survive the fork that `preload_app` relies on. Running one per worker is safe: `db`'s NOT EXISTS dedup guard means a duplicate cycle costs an ESI fetch, not a duplicate row.
 8. **Sov upgrades are manual** — ESI doesn't expose iHub upgrade fittings without SSO auth. The active deployment's `SYSTEM_UPGRADES` dict (initially empty after bootstrap) is updated by hand as upgrades come online. `UPGRADE_TYPES` lives in `eve_constants.py` since it's universal across EVE.
 9. **Docker volume gotcha** — The `./intel.db:/app/intel.db` volume mount requires `intel.db` to exist as a file on the host before `docker-compose up`. If it doesn't exist, Docker creates it as a directory and SQLite fails. The update scripts run `touch intel.db` to prevent this.
 10. **Write auth (SSO + password)** — Write actions (timers, entosis claims, annotations, jump bridges, AI summaries) are gated by `require_write_auth` in `routes/auth_sso.py`, which accepts EITHER a valid EVE SSO session cookie OR the legacy `X-Timer-Auth` password header. SSO ("Log in with EVE", identity-only — no ESI scopes) authorizes by alliance membership (`AUTH_ALLOWED_ALLIANCE_IDS`, primary alliance always allowed) or character allowlist (`AUTH_ALLOWED_CHARACTER_IDS`); the access-token JWT is verified against EVE's JWKS, issuer (`SSO_ISSUERS` — accepts both scheme and bare-host forms), and `aud`/`azp` = our client_id. When the three `EVE_*` vars are unset, `SSO_ENABLED` is false and only the password path applies. Frontend reads `/api/auth/me` via the `useAuth` hook.
-11. **AI threat summaries** — `routes/ai_routes.py` calls the Gemini API (`google-genai`, model `gemini-2.5-flash`) to summarize parsed D-scan/Local intel. Gated by `require_write_auth` so the paid API can't be driven anonymously; bounded by `max_output_tokens` + a client timeout; user-pasted data is wrapped in a delimited "untrusted data" block as a prompt-injection guard. The prompt is given the active deployment's alliance name (`config.ALLIANCE`) and, for Local intel, the standings taxonomy (`lawn`/`friendly` = not a threat, `unknown`/`unresolved` = potential hostile) so the model never flags our own/blue pilots as hostile. Needs `GEMINI_API_KEY`; absent that the endpoint returns 501 and the frontend hides the button. Frontend logic is shared via the `useAiSummary` hook + `common/AiSummary.jsx`.
+11. **AI threat summaries** — `routes/ai_routes.py` calls the Gemini API (`google-genai`, model `gemini-2.5-flash`) to summarize parsed D-scan/Local intel. Gated by `require_write_auth` so the paid API can't be driven anonymously; bounded by `max_output_tokens`, a 20k-char input cap, a per-IP rate limit, and a client timeout; user-pasted data is wrapped in a delimited "untrusted data" block as a prompt-injection guard. The prompt is given the active deployment's alliance name (`config.ALLIANCE`) and, for Local intel, the standings taxonomy (`lawn`/`friendly` = not a threat, `unknown`/`unresolved` = potential hostile) so the model never flags our own/blue pilots as hostile. Needs `GEMINI_API_KEY`; absent that the endpoint returns 501 and the frontend hides the button. Frontend logic is shared via the `useAiSummary` hook + `common/AiSummary.jsx`.
+12. **Rate limiting** — `routes/limiter.py` holds a `flask-limiter` instance applied per-endpoint (no global default, so ordinary dashboard polling is never throttled). It caps the unauthenticated intel endpoints (`/api/local/scan`, `/api/chars/analyze`, `/api/fleet/analyze`), which each fan out to zKillboard — up to 25 parallel stats requests per call — plus the Gemini endpoint. Storage is per-worker in memory, so the effective ceiling is workers × limit; set `RATELIMIT_STORAGE_URI` to Redis if you need it exact.
+13. **Gunicorn preload** — `gunicorn.conf.py` sets `preload_app`, so `resolve_all_systems()` (a full ESI walk of the region) runs once in the master and every worker inherits the warm ESI cache through fork, instead of each worker repeating the walk and maintaining a private cache.
 
 ## Development
 
 ### First-Time Setup
 ```bash
-./setup.sh      # creates .venv, pip install, npm install in frontend/  (fish: ./setup.fish)
-.venv/bin/pip install -r requirements-dev.txt  # pytest + pytest-flask + pytest-mock (dev-only)
+./setup.sh --dev      # .venv + pip install + npm install + test/lint tooling  (fish: ./setup.fish --dev)
 ```
+
+`.venv/` and `frontend/node_modules/` are gitignored, so a fresh `git worktree add`
+has neither — re-run `./setup.sh --dev` inside the worktree to make it testable.
+The script is idempotent and reuses whatever already exists.
 
 ### Running Tests
 ```bash
@@ -132,6 +143,17 @@ pytest tests/ -v
 # Frontend
 cd frontend && npm test
 ```
+
+### Linting
+```bash
+ruff check .                    # Python  (ruff config in pyproject.toml)
+ruff check . --fix              # autofix
+cd frontend && npm run lint     # JS/JSX  (eslint config in frontend/eslint.config.js)
+```
+
+Both run in CI (`.github/workflows/smoke-test.yml`). Note that `config.py` re-exports
+constants purely for backwards compatibility — its import block is marked `noqa: F401`
+so the linter doesn't strip a module whose entire job is re-export.
 
 ### Running Locally
 ```bash
@@ -181,9 +203,9 @@ Resolves names to numeric IDs for `config.py`. Uses ESI `POST /universe/ids/` fo
 - `GET /api/intel/neighbors` — neighbor threat profiles (ship doctrines, TZ activity, threat scores)
 - `GET /api/intel/regional` — neighbor system kills/jumps grouped by region with spike detection vs 7-day baseline
 - `GET /api/intel/sov_changes` — recent sov changes in neighbor systems (SQLite-backed, last 50 events)
-- `POST /api/local/scan` — resolve pilot names from local chat → corp/alliance lookup → classify lawn/friendly/unknown/unresolved
-- `POST /api/chars/analyze` — risk-rate up to 25 pilot IDs (VERY DANGEROUS / DANGEROUS / MODERATE / SNUGGLY / NEWBIE) with capital/covert role detection
-- `POST /api/fleet/analyze` — bulk fleet composition analysis: per-pilot standings, risk tier, role badges, and aggregate summary
+- `POST /api/local/scan` — resolve pilot names from local chat → corp/alliance lookup → classify lawn/friendly/unknown/unresolved (rate limited, `RATELIMIT_INTEL_SCAN`)
+- `POST /api/chars/analyze` — risk-rate up to 25 pilot IDs (VERY DANGEROUS / DANGEROUS / MODERATE / SNUGGLY / NEWBIE) with capital/covert role detection (rate limited)
+- `POST /api/fleet/analyze` — bulk fleet composition analysis: per-pilot standings, risk tier, role badges, and aggregate summary (rate limited)
 - `GET /api/entosis/nodes` — list active entosis command node assignments (includes `campaign_id` linking a node to an ESI sov campaign, null for manual nodes)
 - `POST /api/entosis/nodes` — add node (requires `X-Timer-Auth` header); optional integer `campaign_id` links it to a campaign from `/api/campaigns`
 - `PATCH /api/entosis/nodes/<id>` — update node status or claimed_by pilot
@@ -197,13 +219,15 @@ Resolves names to numeric IDs for `config.py`. Uses ESI `POST /universe/ids/` fo
 - `GET /api/auth/sso/login` — begin EVE SSO OAuth2 flow (redirects to login.eveonline.com)
 - `GET /api/auth/sso/callback` — SSO redirect target; exchanges code, validates JWT, sets session
 - `POST /api/auth/logout` — clear the SSO session
-- `POST /api/ai/threat_summary` — Gemini threat summary from D-scan/Local data (`{type, data}`); write-auth gated (SSO session or `X-Timer-Auth`); needs `GEMINI_API_KEY` or returns 501
+- `POST /api/ai/threat_summary` — Gemini threat summary from D-scan/Local data (`{type, data}`); write-auth gated (SSO session or `X-Timer-Auth`); input capped at 20k chars and rate limited; needs `GEMINI_API_KEY` or returns 501
+- `GET /api/intel/active_hostiles` — hostile entities aggregated from recent regional kills (top 15 by primary-space activity)
+- `GET|POST /api/jumpbridges`, `DELETE /api/jumpbridges/<id>` — manual jump bridge overlay config (writes gated)
 - `GET /api/pi_data` — planetary interaction data (per-planet `type_id`/`type` for every planet in the active deployment's primary systems)
 - `GET /api/status` — health check
 
 ### Map Implementation Details
 
-**Key Functions** (in `frontend/src/utils/admHelpers.js` and `frontend/src/components/ConstellationMap.jsx`; mirrored in legacy `static/index.html`):
+**Key Functions** (in `frontend/src/utils/admHelpers.js` and `frontend/src/components/ConstellationMap.jsx`):
 - `isReffed(name)` — checks if system has active sov campaign
 - `needsCriticalGrinding(name)` — checks if ADM < 2 (red treatment)
 - `needsCautionGrinding(name)` — checks if ADM 2-4 (amber treatment)
@@ -334,8 +358,12 @@ See [ROADMAP.md](ROADMAP.md) for full details and backlog.
 - [x] Planetary Interaction Industry tab — per-system planet-type badges; interactive product filter (Fuel Blocks / BSC / P4 Advanced); ◆ priority indicators (amber=critical chain, cyan=high chain); strategic coverage check per product
 - [x] **Alliance/region-agnostic deployment system** — `deployments/` directory + `tools/bootstrap_deployment.py` bootstrap; `DEPLOYMENT` env var picks active deployment; per-deployment scoping in `intel.db` via `deployment_id` column
 - [x] **Perrigen Falls migration** — LAWN relocated from Kalevala to Perrigen Falls (constellations 9BGY-6, WXB-RY); old Kalevala history preserved but inert
+- [x] **Reliability & operations pass** — background ESI poller (`routes/poller.py`) writes ADM/activity history on an interval instead of as a side effect of read endpoints; pooled `requests.Session` with retry/backoff + ESI error-budget backoff; `gunicorn.conf.py` with `preload_app` and a `post_fork` poller start; per-IP rate limits on the zKill-fanout and Gemini endpoints; 20k-char AI input cap; `logging` replaces `print()` backend-wide; legacy `static/index.html` fallback removed (missing build now 503s loudly); ruff + eslint in CI; route-level test suite (`tests/test_routes.py`)
 
 **Priority 1 — Immediate tactical value:**
+- [ ] ISK war ledger — persist kills/losses the feed already parses; daily kills-vs-losses trend
+- [ ] Battle report aggregation — cluster kills into engagements with ISK in/out
+- [ ] ADM forecast — project "days to ADM 5" from the observed grinding rate
 - [x] zKillboard feed panel enhancements (filtering, ship class breakdowns)
 - [x] ADM grinding planner (priority ranking, rate estimation, daily targets)
 - [x] DScan parser — paste D-scan output → ship categories, threat tier banner, structures section (`DscanParser.jsx`, pure frontend)
@@ -353,12 +381,16 @@ See [ROADMAP.md](ROADMAP.md) for full details and backlog.
 - [x] **UX polish** — SystemTable live name-filter input (count badge + ✕ clear); LocalScanner COPY button (formats as `NAME (Corp/Alliance) [STANDING] RISK [ROLES]`); FleetCompAnalyzer COPY button (fleet summary); DscanParser COPY button (threat tier + ship counts); CampaignAlerts COPY button (fleet-ping-ready sov campaign summary, `buildCampaignCopyText` in `campaignHelpers.js`)
 
 **Priority 2 — Operational:**
+- [ ] PWA / service worker — alerts that fire with the app closed (highest-leverage follow-up to the poller)
+- [ ] Hostile pilot watchlist — auto-flag known droppers using the existing role detection
+- [ ] zKillboard RedisQ stream — near-real-time kills, replaces polling
 - [x] Browser push notifications (PVP alerts, sov campaigns, ADM drops) — ALERTS button in header, `useNotifications` hook + `NotificationBell.jsx`
 - [x] Regional intel aggregation — `/api/intel/regional` + `/api/intel/sov_changes` + `RegionalIntel.jsx` with spike detection vs 7-day baseline
 - [ ] Structure tracking (requires SSO)
 - [ ] Jump bridge route overlay on map
 
 **Priority 3 — Long-term:**
+- [ ] Sov campaign history — persist campaign outcomes into a per-system defense record
 - [ ] Discord webhook alerts (ADM drops, hostile activity spikes, new sov campaigns)
 - [x] **EVE SSO auth (identity-only)** — "Log in with EVE" gates write actions by alliance/character; `routes/auth_sso.py` + `useAuth` hook; no ESI scopes yet (character/corp-specific data still future work)
 - [~] **Fleet composition analyzer** — live fleet-paste analyzer shipped (`POST /api/fleet/analyze`, `FleetCompAnalyzer.jsx`): per-pilot standing/risk/role classification + aggregate summary. Doctrine profiling and LAWN-vs-neighbor comparison still future work

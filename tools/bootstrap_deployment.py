@@ -26,13 +26,12 @@ import math
 import os
 import sys
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import esi_client
 from eve_constants import PLANET_TYPE_NAMES
-
 
 # ---------------------------------------------------------------------------
 # Resolution
@@ -412,7 +411,7 @@ def render_module(args, alliance, region, primary_constellations,
 
     rendered = MODULE_TEMPLATE.format(
         deployment_id=args.name,
-        timestamp=datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        timestamp=datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ"),
         region_name=region["name"],
         region_id=region["id"],
         primary_const_names=", ".join(primary_const_names),
@@ -484,7 +483,7 @@ def main():
 
     const_names = [s.strip() for s in args.constellations.split(",")]
     primary_constellations = resolve_constellations(const_names)
-    print(f"[*] Primary constellations:")
+    print("[*] Primary constellations:")
     for cid, cname in primary_constellations:
         print(f"    {cid}  {cname}")
 
@@ -492,12 +491,12 @@ def main():
     constellations, systems = fetch_region(region["id"])
     print(f"    {len(constellations)} constellations, {len(systems)} systems")
 
-    print(f"[*] Walking gate graph...")
+    print("[*] Walking gate graph...")
     edges = fetch_gate_destinations(systems)
 
     in_region = set(systems.keys())
     neighbour_sids = set()
-    for sid, dests in edges.items():
+    for dests in edges.values():
         for dest in dests:
             if dest not in in_region:
                 neighbour_sids.add(dest)
@@ -505,7 +504,7 @@ def main():
 
     neighbour_sys = fetch_neighbour_systems(neighbour_sids)
 
-    print(f"[*] Building connection list...")
+    print("[*] Building connection list...")
     map_connections = build_connections(systems, neighbour_sys, edges)
 
     primary_cids = [c[0] for c in primary_constellations]
@@ -523,7 +522,7 @@ def main():
 
     neighbour_names = sorted(s["name"] for s in neighbour_sys.values())
 
-    print(f"[*] Generating auto-layout (hand-tune the output before shipping)...")
+    print("[*] Generating auto-layout (hand-tune the output before shipping)...")
     map_layout = auto_layout(constellations, systems, primary_cids, neighbour_sys)
     map_layout_subway = {k: dict(v) for k, v in map_layout.items()}
 
@@ -550,7 +549,7 @@ def main():
     with open(output, "w") as f:
         f.write(rendered)
     print(f"[*] Wrote {output} ({os.path.getsize(output)} bytes)")
-    print(f"[*] Done. Hand-tune MAP_LAYOUT before deploying.")
+    print("[*] Done. Hand-tune MAP_LAYOUT before deploying.")
 
 
 if __name__ == "__main__":
