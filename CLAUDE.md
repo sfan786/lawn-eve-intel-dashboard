@@ -65,7 +65,7 @@ lawn-eve-intel-dashboard/
 │   ├── annotation_routes.py # /api/annotations (per-system sticky notes)
 │   ├── jb_routes.py         # /api/jumpbridges (manual JB overlay config)
 │   ├── ai_routes.py         # /api/ai/threat_summary (Gemini, write-auth gated)
-│   ├── analytics_routes.py  # Traffic recording hook + /api/analytics/summary (write-auth gated)
+│   ├── analytics_routes.py  # Traffic recording hook + /api/analytics/summary (operator-only gate)
 │   ├── auth_sso.py          # EVE SSO login + require_write_auth decorator (/api/auth/*)
 │   ├── limiter.py           # flask-limiter instance + per-IP caps for intel/AI endpoints
 │   ├── poller.py            # Background ESI poller — writes ADM/activity history on an interval
