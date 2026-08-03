@@ -6,6 +6,8 @@ rather than importing app.py, which would call resolve_all_systems() and walk
 the whole region via ESI at import time.
 """
 
+from datetime import UTC, datetime, timedelta
+
 import pytest
 from flask import Flask
 
@@ -19,6 +21,11 @@ from routes.static_routes import static_bp
 from routes.timer_routes import timer_bp
 
 AUTH = {"X-Timer-Auth": "test-password"}
+
+
+def _future_ts(hours=6):
+    """ISO timestamp N hours ahead — get_active_timers() drops anything older than now-24h."""
+    return (datetime.now(UTC) + timedelta(hours=hours)).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
 @pytest.fixture
@@ -91,7 +98,7 @@ class TestTimerValidation:
     def test_complete_timer_accepted(self, client):
         resp = client.post("/api/timers", json={
             "system_name": "9BGY-6", "structure_type": "IHUB", "owner": "LAWN",
-            "event_type": "armor", "timestamp": "2026-08-01T12:00:00Z",
+            "event_type": "armor", "timestamp": _future_ts(),
         }, headers=AUTH)
         assert resp.status_code == 200
         assert len(client.get("/api/timers").get_json()) == 1
@@ -99,7 +106,7 @@ class TestTimerValidation:
     def test_non_string_notes_rejected(self, client):
         resp = client.post("/api/timers", json={
             "system_name": "X", "structure_type": "IHUB", "owner": "L",
-            "event_type": "armor", "timestamp": "2026-08-01T12:00:00Z", "notes": 42,
+            "event_type": "armor", "timestamp": _future_ts(), "notes": 42,
         }, headers=AUTH)
         assert resp.status_code == 400
 
