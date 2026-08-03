@@ -22,6 +22,7 @@ import db
 from config import ALLIANCE, FLASK_DEBUG, FLASK_HOST, FLASK_PORT, REGION
 from routes.activity_routes import activity_bp
 from routes.ai_routes import ai_bp
+from routes.analytics_routes import analytics_bp
 from routes.annotation_routes import annotation_bp
 from routes.auth_sso import auth_sso_bp
 from routes.config_routes import config_bp
@@ -60,7 +61,7 @@ def create_app():
         SESSION_COOKIE_SECURE=not FLASK_DEBUG,
     )
     limiter.init_app(app)
-    for bp in [config_bp, sov_bp, activity_bp, zkill_bp, history_bp, intel_bp, hostile_bp, timer_bp, annotation_bp, jb_bp, entosis_bp, auth_sso_bp, static_bp, ai_bp]:
+    for bp in [config_bp, sov_bp, activity_bp, zkill_bp, history_bp, intel_bp, hostile_bp, timer_bp, annotation_bp, jb_bp, entosis_bp, auth_sso_bp, static_bp, ai_bp, analytics_bp]:
         app.register_blueprint(bp)
     return app
 

@@ -26,6 +26,7 @@ import time
 import db
 import esi_client
 from eve_constants import SOV_HUB_TYPE_IDS
+from routes import analytics_routes
 from routes.system_state import state
 
 log = logging.getLogger(__name__)
@@ -109,6 +110,13 @@ def _loop():
     time.sleep(5)
     while True:
         poll_once()
+        # Buffered traffic counts are otherwise only written when the next
+        # request comes in — flush here so a quiet night still persists the
+        # visits that happened before it went quiet.
+        try:
+            analytics_routes.flush(force=True)
+        except Exception:
+            log.exception("Poller: traffic analytics flush failed")
         time.sleep(POLL_INTERVAL_SECONDS)
 
 

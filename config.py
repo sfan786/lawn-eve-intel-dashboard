@@ -99,6 +99,17 @@ def _parse_int_set(raw):
 AUTH_ALLOWED_ALLIANCE_IDS = {PRIMARY_ALLIANCE_ID} | _parse_int_set(os.environ.get("AUTH_ALLOWED_ALLIANCE_IDS"))
 AUTH_ALLOWED_CHARACTER_IDS = _parse_int_set(os.environ.get("AUTH_ALLOWED_CHARACTER_IDS"))
 
+# ===== Analytics (operator-only) =====
+# Deliberately NOT the write-auth credential. TIMER_PASSWORD is shared with the
+# whole fleet for timers/entosis, and AUTH_ALLOWED_ALLIANCE_IDS covers every
+# alliance member — either would let anyone in the alliance read usage stats.
+# Access is an explicit character allowlist and/or a separate password.
+ANALYTICS_PASSWORD = (os.environ.get("ANALYTICS_PASSWORD") or "").strip()
+ANALYTICS_ALLOWED_CHARACTER_IDS = _parse_int_set(os.environ.get("ANALYTICS_ALLOWED_CHARACTER_IDS"))
+# Closed by default: with neither set, traffic is still recorded but nobody can
+# read it until an operator opts in. Never fall back to a fleet-wide credential.
+ANALYTICS_AUTH_CONFIGURED = bool(ANALYTICS_PASSWORD or ANALYTICS_ALLOWED_CHARACTER_IDS)
+
 # ===== Backwards-compat aliases =====
 # Older code imports `LAWN_*` and `MONITORED_CONSTELLATION_IDS`. Keep these
 # working while we incrementally rename downstream callers.
