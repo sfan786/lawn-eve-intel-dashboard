@@ -25,6 +25,7 @@ import ActiveHostileTracker from './components/ActiveHostileTracker'
 import JumpBridgeManager from './components/JumpBridgeManager'
 import NotificationBell from './components/NotificationBell'
 import { useNotifications } from './hooks/useNotifications'
+import { ANALYTICS_SEEN_KEY } from './utils/analyticsAuth'
 
 const checkedFetch = (url) => fetch(url).then(r => {
     if (!r.ok) throw new Error(`${url}: ${r.status}`)
@@ -50,6 +51,10 @@ export default function App() {
     const [selectedSystem, setSelectedSystem] = useState(null)
     const [mapMode, setMapMode] = useState("subway")
     const [isMobile, setIsMobile] = useState(() => window.innerWidth < 640)
+    // The /analytics page is operator-only and unadvertised: the link appears
+    // only on a browser that has already unlocked it, so it isn't a signpost
+    // for the rest of the alliance. The page enforces access server-side.
+    const [showUsageLink] = useState(() => localStorage.getItem(ANALYTICS_SEEN_KEY) === '1')
     const [mobileTab, setMobileTab] = useState(0)
     const [intelAlerts, setIntelAlerts] = useState([])
     const timer = useRef(null)
@@ -294,6 +299,11 @@ export default function App() {
                     <Link to="/entosis" style={{ fontFamily: 'Orbitron', fontSize: 10, color: 'var(--cyan)', textDecoration: 'none', letterSpacing: 1, border: '1px solid var(--cyan-dim)', padding: '3px 8px', whiteSpace: 'nowrap' }}>
                         ENTOSIS OP
                     </Link>
+                    {!isMobile && showUsageLink && (
+                        <Link to="/analytics" title="Dashboard usage stats (operator only)" style={{ fontFamily: 'Orbitron', fontSize: 10, color: 'var(--text-muted)', textDecoration: 'none', letterSpacing: 1, border: '1px solid var(--border-dim)', padding: '3px 8px', whiteSpace: 'nowrap' }}>
+                            USAGE
+                        </Link>
+                    )}
                     <Clock />
                     {!isMobile && <div style={{ width: 1, height: 16, background: 'var(--border-dim)' }}></div>}
                     <span><span className="status-dot" />ONLINE</span>

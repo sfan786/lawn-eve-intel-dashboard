@@ -30,3 +30,6 @@ limiter = Limiter(
 INTEL_SCAN_LIMIT = os.environ.get("RATELIMIT_INTEL_SCAN", "20 per minute")
 # The Gemini-backed summary endpoint — write-auth gated already, this bounds cost.
 AI_LIMIT = os.environ.get("RATELIMIT_AI", "10 per minute")
+# The analytics endpoints. These accept a password header, so the cap is here to
+# make guessing it over the network impractical rather than to bound cost.
+ANALYTICS_LIMIT = os.environ.get("RATELIMIT_ANALYTICS", "10 per minute")

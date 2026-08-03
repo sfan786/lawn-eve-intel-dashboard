@@ -120,6 +120,27 @@ def init():
             detected_at   REAL NOT NULL
         );
 
+        CREATE TABLE IF NOT EXISTS traffic_hourly (
+            deployment_id TEXT NOT NULL,
+            hour          TEXT NOT NULL,
+            kind          TEXT NOT NULL,
+            path          TEXT NOT NULL,
+            views         INTEGER NOT NULL DEFAULT 0,
+            PRIMARY KEY (deployment_id, hour, kind, path)
+        );
+
+        CREATE TABLE IF NOT EXISTS traffic_visitors (
+            deployment_id  TEXT NOT NULL,
+            day            TEXT NOT NULL,
+            visitor_hash   TEXT NOT NULL,
+            character_name TEXT,
+            page_views     INTEGER NOT NULL DEFAULT 0,
+            api_calls      INTEGER NOT NULL DEFAULT 0,
+            first_seen     TEXT NOT NULL,
+            last_seen      TEXT NOT NULL,
+            PRIMARY KEY (deployment_id, day, visitor_hash)
+        );
+
         CREATE TABLE IF NOT EXISTS entosis_nodes (
             id           INTEGER PRIMARY KEY AUTOINCREMENT,
             deployment_id TEXT NOT NULL DEFAULT '{LEGACY_DEPLOYMENT_ID}',
@@ -196,6 +217,8 @@ def init():
         CREATE INDEX IF NOT EXISTS idx_activity_deploy_system_time ON activity_snapshots(deployment_id, system_id, timestamp);
         CREATE INDEX IF NOT EXISTS idx_timer_deployment_time ON custom_timers(deployment_id, timestamp);
         CREATE INDEX IF NOT EXISTS idx_entosis_deployment ON entosis_nodes(deployment_id);
+        CREATE INDEX IF NOT EXISTS idx_traffic_hourly_deploy_hour ON traffic_hourly(deployment_id, hour);
+        CREATE INDEX IF NOT EXISTS idx_traffic_visitors_deploy_day ON traffic_visitors(deployment_id, day);
     """)
 
     conn.commit()
@@ -601,6 +624,181 @@ def get_recent_sov_changes(limit=20):
         }
         for r in rows
     ]
+
+
+# --- Traffic analytics ---
+#
+# Two rollup tables, no per-request rows: `traffic_hourly` counts hits per
+# (hour, kind, path) and `traffic_visitors` counts one row per (day, visitor).
+# That keeps the table bounded — a busy day is a few hundred rows, not tens of
+# thousands — while still answering the only question this feature exists for:
+# is anybody actually using the dashboard?
+
+TRAFFIC_RETENTION_DAYS = int(os.environ.get("ANALYTICS_RETENTION_DAYS", "180"))
+
+
+def record_traffic(hourly, visitors):
+    """Merge a batch of buffered counts into the rollup tables.
+
+    hourly:   {(hour, kind, path): views}, hour as 'YYYY-MM-DDTHH'.
+    visitors: {(day, visitor_hash): {character_name, page_views, api_calls,
+              first_seen, last_seen}}, day as 'YYYY-MM-DD'.
+
+    Counts are added to whatever is already stored, so callers may flush
+    partial batches as often as they like and concurrent gunicorn workers
+    accumulate into the same rows.
+    """
+    if not hourly and not visitors:
+        return
+    conn = get_connection()
+    try:
+        if hourly:
+            conn.executemany(
+                "INSERT INTO traffic_hourly (deployment_id, hour, kind, path, views) VALUES (?, ?, ?, ?, ?) "
+                "ON CONFLICT(deployment_id, hour, kind, path) DO UPDATE SET views = views + excluded.views",
+                [(DEPLOYMENT_ID, hour, kind, path, views) for (hour, kind, path), views in hourly.items()],
+            )
+        if visitors:
+            conn.executemany(
+                "INSERT INTO traffic_visitors "
+                "(deployment_id, day, visitor_hash, character_name, page_views, api_calls, first_seen, last_seen) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?) "
+                "ON CONFLICT(deployment_id, day, visitor_hash) DO UPDATE SET "
+                "page_views = page_views + excluded.page_views, "
+                "api_calls = api_calls + excluded.api_calls, "
+                "last_seen = MAX(last_seen, excluded.last_seen), "
+                # A visitor may browse anonymously before logging in; keep the
+                # name once we learn it rather than reverting to NULL.
+                "character_name = COALESCE(excluded.character_name, character_name)",
+                [
+                    (DEPLOYMENT_ID, day, vhash, v.get("character_name"),
+                     v.get("page_views", 0), v.get("api_calls", 0),
+                     v["first_seen"], v["last_seen"])
+                    for (day, vhash), v in visitors.items()
+                ],
+            )
+        conn.commit()
+    finally:
+        conn.close()
+
+
+def prune_traffic(days=TRAFFIC_RETENTION_DAYS):
+    """Drop traffic rollups older than N days (all deployments)."""
+    cutoff_day = (datetime.now(UTC) - timedelta(days=days)).strftime("%Y-%m-%d")
+    conn = get_connection()
+    conn.execute("DELETE FROM traffic_hourly WHERE hour < ?", (cutoff_day,))
+    conn.execute("DELETE FROM traffic_visitors WHERE day < ?", (cutoff_day,))
+    conn.commit()
+    conn.close()
+
+
+def get_traffic_summary(days=30):
+    """Traffic rollup for the active deployment over the last N days.
+
+    Returns daily page views / API calls / unique visitors, hour-of-day
+    distribution (UTC = EVE time), the busiest paths, how many visitors came
+    back on more than one day, and which logged-in pilots were seen.
+    """
+    now = datetime.now(UTC)
+    cutoff_day = (now - timedelta(days=days)).strftime("%Y-%m-%d")
+    conn = get_connection()
+
+    day_rows = conn.execute(
+        "SELECT day, "
+        "SUM(page_views) AS page_views, SUM(api_calls) AS api_calls, "
+        "COUNT(*) AS visitors "
+        "FROM traffic_visitors WHERE deployment_id = ? AND day >= ? "
+        "GROUP BY day ORDER BY day ASC",
+        (DEPLOYMENT_ID, cutoff_day),
+    ).fetchall()
+
+    hour_rows = conn.execute(
+        "SELECT CAST(substr(hour, 12, 2) AS INTEGER) AS hod, SUM(views) AS views "
+        "FROM traffic_hourly WHERE deployment_id = ? AND hour >= ? AND kind = 'page' "
+        "GROUP BY hod",
+        (DEPLOYMENT_ID, cutoff_day),
+    ).fetchall()
+
+    path_rows = conn.execute(
+        "SELECT kind, path, SUM(views) AS views FROM traffic_hourly "
+        "WHERE deployment_id = ? AND hour >= ? GROUP BY kind, path ORDER BY views DESC",
+        (DEPLOYMENT_ID, cutoff_day),
+    ).fetchall()
+
+    # How many distinct days each visitor showed up on — one-off visitors vs regulars.
+    freq_rows = conn.execute(
+        "SELECT days_seen, COUNT(*) AS visitors FROM ("
+        "  SELECT visitor_hash, COUNT(DISTINCT day) AS days_seen FROM traffic_visitors "
+        "  WHERE deployment_id = ? AND day >= ? GROUP BY visitor_hash"
+        ") GROUP BY days_seen ORDER BY days_seen ASC",
+        (DEPLOYMENT_ID, cutoff_day),
+    ).fetchall()
+
+    pilot_rows = conn.execute(
+        "SELECT character_name, COUNT(DISTINCT day) AS days_seen, MAX(last_seen) AS last_seen "
+        "FROM traffic_visitors WHERE deployment_id = ? AND day >= ? AND character_name IS NOT NULL "
+        "GROUP BY character_name ORDER BY days_seen DESC, last_seen DESC",
+        (DEPLOYMENT_ID, cutoff_day),
+    ).fetchall()
+
+    total_visitors = conn.execute(
+        "SELECT COUNT(DISTINCT visitor_hash) FROM traffic_visitors "
+        "WHERE deployment_id = ? AND day >= ?",
+        (DEPLOYMENT_ID, cutoff_day),
+    ).fetchone()[0]
+
+    bot_hits = conn.execute(
+        "SELECT COALESCE(SUM(views), 0) FROM traffic_hourly "
+        "WHERE deployment_id = ? AND hour >= ? AND kind = 'bot'",
+        (DEPLOYMENT_ID, cutoff_day),
+    ).fetchone()[0]
+
+    conn.close()
+
+    daily = [
+        {
+            "day": r["day"],
+            "page_views": r["page_views"] or 0,
+            "api_calls": r["api_calls"] or 0,
+            "visitors": r["visitors"] or 0,
+        }
+        for r in day_rows
+    ]
+    hourly = {r["hod"]: r["views"] for r in hour_rows}
+    freq = {r["days_seen"]: r["visitors"] for r in freq_rows}
+
+    return {
+        "days": days,
+        "generated_at": now.strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "totals": {
+            "page_views": sum(d["page_views"] for d in daily),
+            "api_calls": sum(d["api_calls"] for d in daily),
+            "unique_visitors": total_visitors,
+            "returning_visitors": sum(n for seen, n in freq.items() if seen > 1),
+            "active_days": len(daily),
+            "bot_hits": bot_hits,
+            "peak_daily_visitors": max((d["visitors"] for d in daily), default=0),
+        },
+        "daily": daily,
+        "hourly": [{"hour": h, "views": hourly.get(h, 0)} for h in range(24)],
+        "top_pages": [
+            {"path": r["path"], "views": r["views"]} for r in path_rows if r["kind"] == "page"
+        ][:10],
+        "top_api": [
+            {"path": r["path"], "views": r["views"]} for r in path_rows if r["kind"] == "api"
+        ][:15],
+        "visitor_frequency": [
+            {"days_seen": seen, "visitors": n} for seen, n in sorted(freq.items())
+        ],
+        "pilots": [
+            {
+                "character_name": r["character_name"],
+                "days_seen": r["days_seen"],
+                "last_seen": r["last_seen"],
+            }
+            for r in pilot_rows
+        ],
+    }
 
 
 # --- Entosis node board ---
