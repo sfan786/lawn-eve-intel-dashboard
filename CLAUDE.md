@@ -144,6 +144,13 @@ pytest tests/ -v
 cd frontend && npm test
 ```
 
+**Never hardcode absolute dates in tests.** Timer, entosis, and history rows are
+read back through time-windowed queries (`db.get_active_timers()` drops anything
+older than `now - 24h`; ADM/activity history filters on a rolling window), so a
+literal timestamp turns green today and fails permanently once the wall clock
+passes it. Build timestamps relative to `datetime.now(UTC)` — `tests/test_db.py`
+and `tests/test_routes.py` each have a `_future_ts()` / `_old_ts()` helper to use.
+
 ### Linting
 ```bash
 ruff check .                    # Python  (ruff config in pyproject.toml)
