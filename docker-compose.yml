@@ -23,6 +23,9 @@ services:
       - EVE_CALLBACK_URL=${EVE_CALLBACK_URL:-}
       - AUTH_ALLOWED_ALLIANCE_IDS=${AUTH_ALLOWED_ALLIANCE_IDS:-}
       - AUTH_ALLOWED_CHARACTER_IDS=${AUTH_ALLOWED_CHARACTER_IDS:-}
+      # Set to 1 when this container sits behind nginx (see nginx.conf), so
+      # per-IP rate limits key on the real client instead of the proxy.
+      - TRUSTED_PROXY_HOPS=${TRUSTED_PROXY_HOPS:-0}
       # Background ESI poller — keeps ADM/activity history advancing whether or
       # not anyone has the dashboard open.
       - POLL_INTERVAL_SECONDS=${POLL_INTERVAL_SECONDS:-900}

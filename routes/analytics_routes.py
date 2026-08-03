@@ -74,7 +74,16 @@ _SALT = (os.environ.get("ANALYTICS_SALT") or config.FLASK_SECRET_KEY).encode()
 
 
 def _client_ip():
-    """Client IP, honouring the first X-Forwarded-For hop set by nginx."""
+    """Client IP for visitor hashing only — never stored, only hashed.
+
+    With TRUSTED_PROXY_HOPS set, ProxyFix has already rewritten remote_addr
+    from the trusted hop, so it is both correct and unforgeable — prefer it.
+    Without it we read the forwarding headers directly: a client can spoof
+    those, but for a usage metric a forgeable identity beats a shared one
+    (every visitor behind nginx collapsing into a single "visitor").
+    """
+    if config.TRUSTED_PROXY_HOPS > 0:
+        return request.remote_addr or "?"
     fwd = request.headers.get("X-Forwarded-For", "")
     if fwd:
         return fwd.split(",")[0].strip()
