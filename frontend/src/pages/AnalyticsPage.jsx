@@ -104,26 +104,37 @@ export default function AnalyticsPage() {
     const [needsAuth, setNeedsAuth] = useState(false)
     const [unconfigured, setUnconfigured] = useState(null)
     const [gate, setGate] = useState(null)
-    // Deliberately its own key: the analytics credential is not the fleet-wide
-    // timer password, and reusing that storage slot would conflate them.
-    const [password, setPassword] = useState(localStorage.getItem(ANALYTICS_AUTH_KEY) || '')
-    const [authError, setAuthError] = useState(false)
+    // Two separate values on purpose. `draft` is what the input holds while you
+    // type; `credential` is what actually gets sent. Fetching keys off
+    // `credential` only, so typing a password does not fire a request per
+    // keystroke — that burned the whole rate-limit budget before the user ever
+    // clicked UNLOCK, and put partial passwords on the wire.
+    // The storage key is its own: the analytics credential is not the
+    // fleet-wide timer password, and sharing that slot would conflate them.
+    const [draft, setDraft] = useState(() => localStorage.getItem(ANALYTICS_AUTH_KEY) || '')
+    const [credential, setCredential] = useState(() => localStorage.getItem(ANALYTICS_AUTH_KEY) || '')
+    const [authError, setAuthError] = useState(null)
 
     const load = useCallback(async () => {
         setLoading(true)
-        setAuthError(false)
+        setAuthError(null)
         try {
             const res = await fetch(`/api/analytics/summary?days=${days}`, {
-                headers: password ? { 'X-Analytics-Auth': password } : {},
+                headers: credential ? { 'X-Analytics-Auth': credential } : {},
             })
             if (res.status === 401 || res.status === 503 || res.status === 429) {
                 setData(null)
                 setNeedsAuth(res.status !== 503)
                 setUnconfigured(res.status === 503 ? (await res.json()).detail : null)
-                if (res.status === 429) setAuthError('Too many attempts — wait a minute.')
                 // Stop advertising the page in the header once access is gone.
                 localStorage.removeItem(ANALYTICS_SEEN_KEY)
-                setGate(await fetch('/api/analytics/auth').then(r => r.json()).catch(() => null))
+                if (res.status === 429) {
+                    // Already throttled — don't spend the other endpoint's budget
+                    // on a probe that can't help.
+                    setAuthError('Too many attempts. Wait a minute, then try again.')
+                } else {
+                    setGate(await fetch('/api/analytics/auth').then(r => r.json()).catch(() => null))
+                }
             } else if (res.ok) {
                 setNeedsAuth(false)
                 setUnconfigured(null)
@@ -137,20 +148,27 @@ export default function AnalyticsPage() {
         } finally {
             setLoading(false)
         }
-    }, [days, password])
+    }, [days, credential])
 
     useEffect(() => { if (auth.loaded) load() }, [auth.loaded, load])
 
     const submitPassword = (e) => {
         e.preventDefault()
-        localStorage.setItem(ANALYTICS_AUTH_KEY, password)
-        load()
+        const value = draft.trim()
+        if (!value) return
+        localStorage.setItem(ANALYTICS_AUTH_KEY, value)
+        // Setting the credential re-runs load() through the effect. When the
+        // value is unchanged (retrying after a throttle) that dependency does
+        // not change, so ask for the reload explicitly.
+        if (value === credential) load()
+        else setCredential(value)
     }
 
     const lock = () => {
         localStorage.removeItem(ANALYTICS_AUTH_KEY)
         localStorage.removeItem(ANALYTICS_SEEN_KEY)
-        setPassword('')
+        setDraft('')
+        setCredential('')
         setData(null)
         setNeedsAuth(true)
     }
@@ -192,7 +210,7 @@ export default function AnalyticsPage() {
                         ))}
                     </div>
                     <button style={btn('#00d4ff')} onClick={load} disabled={loading}>↻</button>
-                    {data && password && (
+                    {data && credential && (
                         <button style={btn('#6a8090')} onClick={lock} title="Forget the analytics password on this browser">
                             LOCK
                         </button>
@@ -241,13 +259,17 @@ export default function AnalyticsPage() {
                                     )}
                                 </div>
                             )}
-                            {gate?.password && (
+                            {/* Default to showing the form when the probe hasn't
+                                answered (e.g. we're throttled) — otherwise a
+                                rate-limited user sees an error with no way to
+                                retry once the window clears. */}
+                            {(gate?.password ?? true) && (
                                 <form onSubmit={submitPassword} style={{ display: 'flex', gap: 8, maxWidth: 340 }}>
                                     <input
                                         type="password"
                                         placeholder="Analytics password"
-                                        value={password}
-                                        onChange={e => setPassword(e.target.value)}
+                                        value={draft}
+                                        onChange={e => setDraft(e.target.value)}
                                         style={{ ...inputStyle, flex: 1 }}
                                     />
                                     <button type="submit" style={btn('#00d4ff')}>UNLOCK</button>
