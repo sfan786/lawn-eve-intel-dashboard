@@ -32,6 +32,7 @@ from routes.hostile_routes import hostile_bp
 from routes.intel_routes import intel_bp
 from routes.jb_routes import jb_bp
 from routes.limiter import limiter
+from routes.proxy import apply_proxy_fix, warn_on_untrusted_proxy
 from routes.sov_routes import sov_bp
 from routes.static_routes import static_bp
 from routes.system_state import resolve_all_systems, state
@@ -60,6 +61,9 @@ def create_app():
         SESSION_COOKIE_SAMESITE="Lax",
         SESSION_COOKIE_SECURE=not FLASK_DEBUG,
     )
+    # Must wrap wsgi_app before the limiter reads remote_addr per request.
+    apply_proxy_fix(app)
+    warn_on_untrusted_proxy(app)
     limiter.init_app(app)
     for bp in [config_bp, sov_bp, activity_bp, zkill_bp, history_bp, intel_bp, hostile_bp, timer_bp, annotation_bp, jb_bp, entosis_bp, auth_sso_bp, static_bp, ai_bp, analytics_bp]:
         app.register_blueprint(bp)

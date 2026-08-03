@@ -99,6 +99,28 @@ def _parse_int_set(raw):
 AUTH_ALLOWED_ALLIANCE_IDS = {PRIMARY_ALLIANCE_ID} | _parse_int_set(os.environ.get("AUTH_ALLOWED_ALLIANCE_IDS"))
 AUTH_ALLOWED_CHARACTER_IDS = _parse_int_set(os.environ.get("AUTH_ALLOWED_CHARACTER_IDS"))
 
+# ===== Reverse proxy =====
+# How many proxy hops in front of the app may be trusted to have set
+# X-Forwarded-For. 1 for the single nginx in nginx.conf; 0 when the app is
+# exposed directly.
+#
+# This matters for rate limiting. With 0 hops Flask sees the proxy's own
+# address as the client, so every user behind nginx shares ONE per-IP bucket:
+# one noisy visitor throttles the intel endpoints for the whole alliance.
+# With a non-zero value, ProxyFix rewrites remote_addr from the right-most
+# trusted hop and the limits become genuinely per-user.
+#
+# Never set this higher than the number of proxies you actually control —
+# every extra hop is one a client can forge to impersonate someone else.
+def _parse_int(raw, default):
+    try:
+        return max(0, int(str(raw).strip()))
+    except (TypeError, ValueError):
+        return default
+
+
+TRUSTED_PROXY_HOPS = _parse_int(os.environ.get("TRUSTED_PROXY_HOPS"), 0)
+
 # ===== Analytics (operator-only) =====
 # Deliberately NOT the write-auth credential. TIMER_PASSWORD is shared with the
 # whole fleet for timers/entosis, and AUTH_ALLOWED_ALLIANCE_IDS covers every

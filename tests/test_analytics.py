@@ -172,6 +172,22 @@ class TestRecording:
         client.get("/", headers={"X-Forwarded-For": "10.0.0.1", "User-Agent": "Firefox"})
         assert summary(client)["totals"]["unique_visitors"] == 2
 
+    def test_forwarded_clients_are_distinguished_without_proxy_trust(self, client, monkeypatch):
+        """Untrusted mode reads X-Forwarded-For so visitors don't all collapse to nginx."""
+        monkeypatch.setattr(config, "TRUSTED_PROXY_HOPS", 0)
+        client.get("/", headers={"X-Forwarded-For": "203.0.113.7", "User-Agent": "Firefox"})
+        client.get("/", headers={"X-Forwarded-For": "203.0.113.8", "User-Agent": "Firefox"})
+        assert summary(client)["totals"]["unique_visitors"] == 2
+
+    def test_proxy_trust_makes_remote_addr_authoritative(self, client, monkeypatch):
+        """With hops trusted, ProxyFix owns remote_addr and a spoofed header can't split identity."""
+        monkeypatch.setattr(config, "TRUSTED_PROXY_HOPS", 1)
+        # No ProxyFix on this bare test app, so remote_addr stays constant —
+        # which is exactly what proves the forwarded header is being ignored.
+        client.get("/", headers={"X-Forwarded-For": "203.0.113.7", "User-Agent": "Firefox"})
+        client.get("/", headers={"X-Forwarded-For": "203.0.113.8", "User-Agent": "Firefox"})
+        assert summary(client)["totals"]["unique_visitors"] == 1
+
     def test_logged_in_character_is_attributed(self, client):
         with client.session_transaction() as sess:
             sess["character_name"] = "Kaelen Voss"
