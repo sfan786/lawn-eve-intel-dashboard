@@ -5,6 +5,23 @@
 
 set -e
 
+# Prefer Compose v2 (`docker compose`). The v1 Python client is EOL since
+# July 2023 and breaks against images built by a modern engine — v1 reads a
+# `ContainerConfig` field that current image formats no longer emit, so
+# `up --force-recreate` dies with KeyError: 'ContainerConfig' and leaves the
+# container stopped. Fall back to v1 only if v2 is genuinely absent.
+if docker compose version >/dev/null 2>&1; then
+    DC="docker compose"
+elif command -v docker-compose >/dev/null 2>&1; then
+    DC="docker-compose"
+    echo "⚠️  Using Compose v1 (EOL). Install the v2 plugin when you can:"
+    echo "     sudo apt-get install docker-compose-plugin"
+    echo ""
+else
+    echo "❌ Neither 'docker compose' nor 'docker-compose' is available."
+    exit 1
+fi
+
 echo "🔄 Full update (no-cache rebuild)..."
 echo ""
 
@@ -19,16 +36,21 @@ fi
 touch intel.db
 touch .env
 
+# Same bind-mount gotcha as intel.db: if ./private does not exist when
+# docker-compose starts, Docker creates it as a ROOT-OWNED directory, and
+# pushing a deployment into it then fails with "Permission denied".
+mkdir -p private
+
 echo "🛑 Stopping containers..."
-docker-compose down
+$DC down
 
 echo "🏗️  Building fresh image (no cache)..."
 echo "   This builds the Vite frontend + Python app from scratch."
 echo "   Takes ~2-3 minutes on first run, faster after..."
-docker-compose build --no-cache
+$DC build --no-cache
 
 echo "🚀 Starting containers..."
-docker-compose up -d
+$DC up -d
 
 echo "⏳ Waiting for startup (ESI resolution takes ~20-30s)..."
 sleep 5
@@ -39,9 +61,9 @@ echo "🧪 Testing API..."
 for i in $(seq 1 12); do
     if curl -sf http://localhost:5000/api/status | grep -q '"status"'; then
         echo "✅ Full update complete! Dashboard is live at https://lawn.sfan.xyz"
-        echo "   View logs: docker-compose logs -f"
+        echo "   View logs: $DC logs -f"
         echo ""
-        docker-compose ps
+        $DC ps
         exit 0
     fi
     echo "   Waiting... ($((i * 5))s)"
@@ -49,6 +71,6 @@ for i in $(seq 1 12); do
 done
 
 echo "⚠️  API still not responding after 60s. Check logs:"
-echo "   docker-compose logs -f"
-docker-compose ps
+echo "   $DC logs -f"
+$DC ps
 exit 1

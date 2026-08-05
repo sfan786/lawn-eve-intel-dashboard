@@ -79,7 +79,49 @@ print('   deployment_id=%s' % config.DEPLOYMENT_ID)
 
 echo ""
 echo "📤 Pushing $NAME.py → $HOST:$REMOTE_PATH/private/"
-ssh "$HOST" "mkdir -p $REMOTE_PATH/private"
+
+# Make sure the destination is writable BEFORE scp, and explain it if not.
+# `mkdir -p` exits 0 on an existing directory, so it happily succeeds on one
+# Docker created — Docker makes a missing bind-mount source as root, exactly
+# like the intel.db gotcha. Without this check scp fails with a bare
+# "Permission denied" that gives no hint the cause is ownership.
+#
+# REMOTE_PATH is deliberately NOT single-quoted inside the remote command: it
+# usually starts with ~, and a quoted tilde is a literal directory name rather
+# than $HOME — which silently creates ~/'~'/... and then tests a path that is
+# not the one scp writes to. Unquoted lets the remote shell expand it, at the
+# cost of not supporting remote paths containing spaces.
+remote_check=$(ssh "$HOST" "mkdir -p $REMOTE_PATH/private 2>/dev/null; \
+    if [ ! -d $REMOTE_PATH/private ]; then echo NODIR; \
+    elif [ ! -w $REMOTE_PATH/private ]; then stat -c 'NOTWRITABLE %U:%G' $REMOTE_PATH/private; \
+    else echo OK; fi")
+
+case "$remote_check" in
+    OK) ;;
+    NODIR)
+        echo "❌ Could not create $REMOTE_PATH/private on $HOST."
+        echo "   Does $REMOTE_PATH exist and is it yours?"
+        exit 1
+        ;;
+    NOTWRITABLE*)
+        owner=$(echo "$remote_check" | awk '{print $2}')
+        echo "❌ $REMOTE_PATH/private exists on $HOST but is not writable by you."
+        echo "   It is owned by: $owner"
+        echo ""
+        echo "   Docker created it. A bind-mount source that doesn't exist yet gets"
+        echo "   made by the daemon as root — the same trap as intel.db. Fix it once:"
+        echo ""
+        echo "     ssh $HOST 'sudo chown -R \$(id -un):\$(id -gn) $REMOTE_PATH/private'"
+        echo ""
+        echo "   update.sh/quick-update.sh now mkdir it first, so this won't recur."
+        exit 1
+        ;;
+    *)
+        echo "❌ Unexpected response checking $REMOTE_PATH/private: $remote_check"
+        exit 1
+        ;;
+esac
+
 scp "$SRC" "$HOST:$REMOTE_PATH/private/$NAME.py"
 
 echo ""
@@ -96,13 +138,21 @@ case "$reply" in
     [yY]*)
         echo "🚀 Activating $NAME on $HOST..."
         # Replace an existing DEPLOYMENT= line if present, otherwise append.
+        # Compose v2 if available; v1 is EOL and its --force-recreate dies with
+        # KeyError: 'ContainerConfig' against images built by a modern engine,
+        # leaving the container stopped. On v1 use down+up, which avoids that
+        # code path — the same thing update.sh does.
         ssh "$HOST" "cd $REMOTE_PATH && touch .env && \
             if grep -q '^DEPLOYMENT=' .env; then \
                 sed -i 's/^DEPLOYMENT=.*/DEPLOYMENT=$NAME/' .env; \
             else \
                 echo 'DEPLOYMENT=$NAME' >> .env; \
             fi && \
-            docker-compose up -d --force-recreate"
+            if docker compose version >/dev/null 2>&1; then \
+                docker compose up -d --force-recreate; \
+            else \
+                docker-compose down && docker-compose up -d; \
+            fi"
         echo "✅ Restarted. Verify with:"
         echo "   ssh $HOST 'cd $REMOTE_PATH && curl -s localhost:5000/api/status'"
         ;;
