@@ -138,13 +138,21 @@ case "$reply" in
     [yY]*)
         echo "🚀 Activating $NAME on $HOST..."
         # Replace an existing DEPLOYMENT= line if present, otherwise append.
+        # Compose v2 if available; v1 is EOL and its --force-recreate dies with
+        # KeyError: 'ContainerConfig' against images built by a modern engine,
+        # leaving the container stopped. On v1 use down+up, which avoids that
+        # code path — the same thing update.sh does.
         ssh "$HOST" "cd $REMOTE_PATH && touch .env && \
             if grep -q '^DEPLOYMENT=' .env; then \
                 sed -i 's/^DEPLOYMENT=.*/DEPLOYMENT=$NAME/' .env; \
             else \
                 echo 'DEPLOYMENT=$NAME' >> .env; \
             fi && \
-            docker-compose up -d --force-recreate"
+            if docker compose version >/dev/null 2>&1; then \
+                docker compose up -d --force-recreate; \
+            else \
+                docker-compose down && docker-compose up -d; \
+            fi"
         echo "✅ Restarted. Verify with:"
         echo "   ssh $HOST 'cd $REMOTE_PATH && curl -s localhost:5000/api/status'"
         ;;
