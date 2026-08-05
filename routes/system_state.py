@@ -8,7 +8,14 @@ import logging
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 import esi_client
-from config import NEIGHBOR_SYSTEM_NAMES, PRIMARY_CONSTELLATION_IDS, REGION, REGION_ID
+from config import (
+    HAS_AO,
+    NEIGHBOR_SYSTEM_NAMES,
+    POSTURE,
+    PRIMARY_CONSTELLATION_IDS,
+    REGION,
+    REGION_ID,
+)
 
 log = logging.getLogger(__name__)
 
@@ -41,6 +48,18 @@ def resolve_all_systems(s: SystemState):
 
     t_start = _time.monotonic()
     s.primary_constellation_ids_set = set(PRIMARY_CONSTELLATION_IDS)
+
+    # A rootless deployment has no home region to resolve. Walking one anyway
+    # would cost a full constellation+system fan-out at every startup to
+    # populate state that nothing reads: the sov, activity, map and ADM
+    # surfaces are all stood down, and the kill feed resolves system names
+    # on demand. Leave every collection empty and return.
+    #
+    # Keyed on HAS_AO, not HOLDS_SOV: a guest doesn't own its space but very
+    # much has a home region to render, defend and watch neighbours of.
+    if not HAS_AO and not PRIMARY_CONSTELLATION_IDS:
+        log.info("Posture is %s with no primary constellations — skipping region resolution", POSTURE)
+        return
 
     region_label = REGION.get("name", str(REGION_ID))
     log.info("Loading region %s (%s)...", REGION_ID, region_label)

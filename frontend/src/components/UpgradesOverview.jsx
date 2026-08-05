@@ -3,7 +3,7 @@ import { UPGRADE_CATEGORY_COLORS } from '../utils/upgradeHelpers'
 import CornerBrackets from './common/CornerBrackets'
 import UpgradeBadges from './common/UpgradeBadges'
 
-export default function UpgradesOverview({ config }) {
+export default function UpgradesOverview({ config, hostName }) {
     // Hooks must run before any early return — React requires the same hook
     // sequence on every render, so bailing out above a useMemo throws
     // "Rendered fewer hooks than expected" the moment config goes absent.
@@ -46,8 +46,15 @@ export default function UpgradesOverview({ config }) {
         <div className="panel panel-wide">
             <CornerBrackets />
             <div className="panel-header">
-                <span className="panel-title">Sovereignty Upgrades</span>
-                <span className="panel-badge">{totalUpgrades} upgrades across {systemsWithUpgrades}/{primarySystems.length} systems</span>
+                {/* Under a guest posture these iHubs belong to the host, not to
+                    us. Still worth tracking — the upgrades decide what anomalies
+                    spawn in the space we're living in — but say whose they are
+                    so nobody reads it as a grinding to-do list. */}
+                <span className="panel-title">{hostName ? 'Installed Upgrades' : 'Sovereignty Upgrades'}</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    {hostName && <span className="panel-badge" style={{ color: 'var(--amber)' }}>{hostName} iHubs</span>}
+                    <span className="panel-badge">{totalUpgrades} upgrades across {systemsWithUpgrades}/{primarySystems.length} systems</span>
+                </div>
             </div>
             <div style={{ display: 'flex', gap: 16, marginBottom: 8, fontSize: 11, fontFamily: 'Share Tech Mono, monospace' }}>
                 <span style={{ color: '#ff6677' }}>Military: {categoryCounts.military}</span>

@@ -13,7 +13,9 @@ function ActivityBar({ value, max, type = "npc" }) {
     )
 }
 
-export default function SystemTable({ systems, sovereignty, activity, selectedSystem, onSelectSystem, lawnSystemIds, config, annotations = {} }) {
+// holdsSov gates the grinding badges: they mean "raise OUR index here", which
+// is meaningless in a host's space even though the host reads as friendly.
+export default function SystemTable({ systems, sovereignty, activity, selectedSystem, onSelectSystem, lawnSystemIds, config, annotations = {}, holdsSov = true }) {
     const [nameFilter, setNameFilter] = useState('')
 
     const sorted = [...systems].sort((a, b) => {
@@ -103,7 +105,7 @@ export default function SystemTable({ systems, sovereignty, activity, selectedSy
                                         ☠ HOSTILE
                                     </span>
                                 )}
-                                {lawnSystemIds && lawnSystemIds.has(String(sys.system_id)) && sov.is_friendly && adm > 0 && adm < 2 && (
+                                {holdsSov && lawnSystemIds && lawnSystemIds.has(String(sys.system_id)) && sov.is_friendly && adm > 0 && adm < 2 && (
                                     <span style={{
                                         background: '#ff335530',
                                         border: '1px solid #ff3355',
@@ -116,7 +118,7 @@ export default function SystemTable({ systems, sovereignty, activity, selectedSy
                                         ⚠ CRITICAL
                                     </span>
                                 )}
-                                {lawnSystemIds && lawnSystemIds.has(String(sys.system_id)) && sov.is_friendly && adm >= 2 && adm < 4 && (
+                                {holdsSov && lawnSystemIds && lawnSystemIds.has(String(sys.system_id)) && sov.is_friendly && adm >= 2 && adm < 4 && (
                                     <span style={{
                                         background: '#ffaa0020',
                                         border: '1px solid #ffaa00',

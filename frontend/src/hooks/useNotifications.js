@@ -74,16 +74,21 @@ export function useNotifications() {
     // Compares new data vs last snapshot and fires notifications for changes.
     // `allianceShort` is the active deployment's alliance ticker — used in the
     // notification copy so alerts read correctly for any alliance.
-    const checkAndNotify = useCallback((campaigns, sovereignty, activity, primarySysIds, sysNames, allianceShort = 'PRIMARY') => {
+    // `holdsSov` false means the ADM in our home belongs to a host alliance.
+    // It reads as friendly, so without this guard the ADM-critical alert would
+    // page the fleet about an index we have no way to grind.
+    const checkAndNotify = useCallback((campaigns, sovereignty, activity, primarySysIds, sysNames, allianceShort = 'PRIMARY', holdsSov = true) => {
         // Build current snapshot
         const campaignIds = new Set(campaigns.map(c => c.campaign_id))
         const campaignPhases = {}
         campaigns.forEach(c => { campaignPhases[c.campaign_id] = getCampaignPhase(c).phase })
         const admBySystem = {}
-        primarySysIds.forEach(id => {
-            const sov = sovereignty[id]
-            if (sov && sov.is_friendly) admBySystem[id] = sov.adm
-        })
+        if (holdsSov) {
+            primarySysIds.forEach(id => {
+                const sov = sovereignty[id]
+                if (sov && sov.is_friendly) admBySystem[id] = sov.adm
+            })
+        }
         let primaryPVP = 0
         primarySysIds.forEach(id => {
             const a = activity[id] || {}

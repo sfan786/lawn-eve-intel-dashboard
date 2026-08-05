@@ -141,7 +141,7 @@ function Toggle({ on, onChange }) {
     )
 }
 
-export default function NotificationBell({ settings, saveSettings, permStatus, requestPermission }) {
+export default function NotificationBell({ settings, saveSettings, permStatus, requestPermission, holdsSov = true, hasAo = true }) {
     const [open, setOpen] = useState(false)
     const ref = useRef(null)
 
@@ -207,7 +207,19 @@ export default function NotificationBell({ settings, saveSettings, permStatus, r
                         />
                     </div>
 
-                    {/* Alert types */}
+                    {/* Alert types split by posture. Campaigns and PVP spikes
+                        need a home region to watch (a guest's home getting
+                        reffed matters just as much as a sov-holder's). The ADM
+                        alert additionally needs the iHub to be ours — a host's
+                        index is not something we can grind. With neither, say
+                        so rather than leaving switches that silently do
+                        nothing. */}
+                    {!hasAo ? (
+                        <div style={S.deniedNote}>
+                            No fixed AO — campaign, PVP-spike and ADM alerts have nothing to
+                            watch. They return when the alliance has a home again.
+                        </div>
+                    ) : (
                     <div style={{ opacity: (settings.enabled && canEnable) ? 1 : 0.4, transition: 'opacity 0.2s' }}>
                         <div style={S.row}>
                             <span style={S.label}>Sov Campaigns</span>
@@ -241,14 +253,17 @@ export default function NotificationBell({ settings, saveSettings, permStatus, r
                             </div>
                         )}
 
-                        <div style={{ ...S.row, marginBottom: 0 }}>
-                            <span style={S.label}>ADM Critical Drop</span>
-                            <Toggle
-                                on={settings.admCritical}
-                                onChange={(v) => saveSettings(p => ({ ...p, admCritical: v }))}
-                            />
-                        </div>
+                        {holdsSov && (
+                            <div style={{ ...S.row, marginBottom: 0 }}>
+                                <span style={S.label}>ADM Critical Drop</span>
+                                <Toggle
+                                    on={settings.admCritical}
+                                    onChange={(v) => saveSettings(p => ({ ...p, admCritical: v }))}
+                                />
+                            </div>
+                        )}
                     </div>
+                    )}
                 </div>
             )}
         </div>

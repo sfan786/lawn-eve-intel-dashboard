@@ -25,6 +25,7 @@ import time
 
 import db
 import esi_client
+from config import HAS_AO, HOLDS_SOV, POSTURE
 from eve_constants import SOV_HUB_TYPE_IDS
 from routes import analytics_routes
 from routes.system_state import state
@@ -96,7 +97,27 @@ def snapshot_activity():
 
 def poll_once():
     """Run one full sampling cycle. Never raises — a bad cycle is skipped."""
-    for name, fn in (("sovereignty", snapshot_sovereignty), ("activity", snapshot_activity)):
+    # The two snapshots answer to different postures.
+    #
+    # ADM is ownership-specific: snapshot_sovereignty records whatever ESI
+    # reports for every monitored system and db only drops rows where ADM is 0,
+    # so without sov of our own this files the *current holder's* ADM under our
+    # deployment_id and AdmTrends/GrindingPlan sparkline someone else's sov as
+    # if it were ours.
+    #
+    # Activity (kills/jumps) is ownership-neutral and a guest still needs it —
+    # the heatmap and the 7-day baselines behind regional spike detection are
+    # both built on activity_snapshots, and both render under a guest posture.
+    jobs = []
+    if HOLDS_SOV:
+        jobs.append(("sovereignty", snapshot_sovereignty))
+    if HAS_AO:
+        jobs.append(("activity", snapshot_activity))
+    if not jobs:
+        log.debug("Poller: posture is %s, nothing to snapshot", POSTURE)
+        return
+
+    for name, fn in jobs:
         try:
             count = fn()
             log.info("Poller: %s snapshot covered %d systems", name, count)

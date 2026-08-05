@@ -6,14 +6,20 @@ from config import (
     DEPLOYMENT_ID,
     FRIENDLY_ALLIANCES,
     FRIENDLY_CORPORATIONS,
+    HAS_AO,
+    HOLDS_SOV,
+    HOST_ALLIANCE_IDS,
     MAP_CONNECTIONS,
     MAP_LAYOUT,
     MAP_LAYOUT_SUBWAY,
     PI_DATA,
+    POSTURE,
+    POSTURE_LABEL,
     PRIMARY_SYSTEMS,
     REGION,
     SYSTEM_UPGRADES,
     UPGRADE_TYPES,
+    WATCHED_REGIONS,
 )
 from routes.system_state import state
 
@@ -26,6 +32,15 @@ def api_config():
         "deployment_id": DEPLOYMENT_ID,
         "alliance": ALLIANCE,
         "region": REGION,
+        # The frontend gates its layout on these two: holds_sov drives the
+        # ADM/grinding/upgrade stack, has_ao drives the map, system table,
+        # campaigns and neighbour intel. A guest is false/true.
+        "posture": POSTURE,
+        "posture_label": POSTURE_LABEL,
+        "holds_sov": HOLDS_SOV,
+        "has_ao": HAS_AO,
+        "host_alliance_ids": sorted(HOST_ALLIANCE_IDS),
+        "watched_regions": WATCHED_REGIONS,
         "constellations": {
             str(cid): {
                 "name": data["name"],
@@ -73,6 +88,9 @@ def api_status():
         "deployment_id": DEPLOYMENT_ID,
         "alliance": ALLIANCE,
         "region": REGION,
+        "posture": POSTURE,
+        "holds_sov": HOLDS_SOV,
+        "has_ao": HAS_AO,
         "constellations_monitored": len(state.constellation_data),
         "systems_monitored": len(state.all_monitored_ids),
         "primary_systems": primary_systems,

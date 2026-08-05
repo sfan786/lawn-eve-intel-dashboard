@@ -9,12 +9,56 @@ The codebase is **alliance/region agnostic** — alliance, region, system list, 
 
 The active deployment is selected by the `DEPLOYMENT` env var (default: `lawn_perrigen`). Bootstrap a new deployment for any alliance/region with `tools/bootstrap_deployment.py`.
 
-## Current Game Situation (May 2026)
-- LAWN holds sov in constellations **9BGY-6** (10 systems) and **WXB-RY** (10 systems) in Perrigen Falls
-- **Sov levels are 0** across the board — brand new claims, ADMs need grinding up
-- 5 border systems (out of 20 primary) have gates leading outside the primary constellations: **5T-A3D, 5ZU-VG, 6-1T6Z, J9A-BH, LW-YEW**
+## Deployment Data Is Not Public
+
+**This repository is public. Current alliance standings, staging locations, and
+where the alliance is going next do not belong in it while they are still
+true.**
+
+Live operational deployments go in **`private/<name>.py`**, which is gitignored
+*and* dockerignored. Activate one the normal way (`DEPLOYMENT=<name>`) — the
+loader (`deployments/__init__.py`) checks `private/` before `deployments/`, so
+an untracked module works exactly like a committed one. `DEPLOYMENT_DIR`
+overrides the directory.
+
+### Getting a private deployment onto a server
+
+Because it is deliberately not in git and not in the image, it reaches the
+container as a **read-only volume mount** (`./private:/app/private:ro` in
+`docker-compose.yml`) from the server's own disk:
+
+```bash
+tools/push-deployment.sh <name> user@host     # validates, scp's, offers to activate
+```
+
+That is a **one-time** copy per deployment. `git pull` leaves untracked files
+alone and `docker-compose build` can't see `private/`, so every later
+`update.sh` / `quick-update.sh` preserves it. Re-run the script only when you
+edit the module.
+
+If the module is missing, startup **fails loudly** with the path it looked in —
+it never silently falls back to a different deployment, which would quietly
+serve the wrong alliance's map.
+
+Keeping it out of the image matters separately from git: image layers get
+pushed, cached, and shared, so a deployment baked into one leaks the same
+information by a different route.
+
+The same applies to this file and to ROADMAP.md: keep them to *engineering*
+facts. The posture machinery below is described in the abstract on purpose. Do
+not write the current situation, the standings list, or the next move into any
+tracked file — no "Current Game Situation" section, no worked examples naming
+real constellations or alliances, no host IDs in tests.
+
+`deployments/lawn_perrigen.py` is committed because it is already public and is
+now historical reference for a sovereign-posture deployment:
+- Constellations **9BGY-6** (10 systems) and **WXB-RY** (10 systems) in Perrigen Falls
+- 5 border systems (out of 20 primary) with gates leading outside the primary constellations: **5T-A3D, 5ZU-VG, 6-1T6Z, J9A-BH, LW-YEW**
 - Neighboring regions (auto-resolved from the gate graph): **Etherium Reach, Malpais, Oasa, Outer Passage, The Spire, Venal**
-- Old Kalevala-era SQLite history is preserved but tagged `lawn-kalevala` and inert under the new deployment
+- Old Kalevala-era SQLite history is preserved but tagged `lawn-kalevala` and inert
+
+History is scoped by `deployment_id`, so switching deployments never destroys
+the previous one's record.
 
 ## Primary Systems
 
@@ -32,6 +76,10 @@ python tools/bootstrap_deployment.py \
 ```
 
 The bootstrap resolves ESI IDs, walks the gate graph for the whole region, fetches PI data per primary system, generates an auto-layout for `MAP_LAYOUT` / `MAP_LAYOUT_SUBWAY`, and writes a complete deployment module to `deployments/<name>.py`. Hand-tune `MAP_LAYOUT` positions afterwards — auto-layout produces something usable but not pretty. Then run with `DEPLOYMENT=some_alliance_region python app.py`. Switching deployments preserves history (rows scoped by `deployment_id`); reads filter to the active one.
+
+**Rootless deployments are hand-written, not bootstrapped.** There is no region geography to walk, so there is nothing for the bootstrap to do — start from `deployments/example.py`, set `POSTURE = "rootless"`, list `WATCHED_REGIONS`, and leave every geography key empty. Standings can be imported from another deployment module rather than duplicated, since standings belong to the alliance, not to the space it is sitting in.
+
+**Bootstrap output for a live deployment goes to `deployments/local_<name>.py`** (gitignored) — pass `--output`, or rename afterwards. Only reference/historical deployments belong in version control.
 
 ## Tech Stack
 - **Backend:** Python 3.11 + Flask, split into Flask Blueprint modules under `routes/` (live) and `mock/` (demo)
@@ -68,6 +116,7 @@ lawn-eve-intel-dashboard/
 │   ├── analytics_routes.py  # Traffic recording hook + /api/analytics/summary (operator-only gate)
 │   ├── auth_sso.py          # EVE SSO login + require_write_auth decorator (/api/auth/*)
 │   ├── limiter.py           # flask-limiter instance + per-IP caps for intel/AI endpoints
+│   ├── regions.py           # ?region_id= resolution against the WATCHED_REGIONS allowlist
 │   ├── poller.py            # Background ESI poller — writes ADM/activity history on an interval
 │   └── static_routes.py     # / and /entosis (serves Vite SPA)
 │
@@ -77,8 +126,12 @@ lawn-eve-intel-dashboard/
 │
 ├── deployments/             # One module per (alliance, region) pair
 │   ├── __init__.py          # Loader: picks ACTIVE from DEPLOYMENT env var
-│   ├── lawn_perrigen.py     # Active deployment (LAWN in Perrigen Falls)
+│   ├── lawn_perrigen.py     # Sovereign-posture reference deployment (public/historical)
 │   └── example.py           # Commented template for new deployments
+│
+├── private/                 # Live deployments — GITIGNORED + DOCKERIGNORED.
+│                            # Reaches a server as a read-only volume mount,
+│                            # never via git or an image layer.
 │
 ├── eve_constants.py         # Game-wide constants (ESI URLs, TTLs, upgrade catalog, planet types)
 │
@@ -96,6 +149,7 @@ lawn-eve-intel-dashboard/
 │   └── dist/                # Vite build output (gitignored, served by Flask in prod)
 │
 ├── tools/
+│   ├── push-deployment.sh   # Copy a private deployment to a server (one-time per deployment)
 │   ├── esi_lookup.py        # CLI: resolve system/alliance/corp names to IDs
 │   ├── migrate_deployment_ids.py # One-off: backfill deployment_id on pre-migration DBs
 │   └── bootstrap_deployment.py  # CLI: scaffold a new deployment from ESI
@@ -111,6 +165,21 @@ lawn-eve-intel-dashboard/
 
 ## Key Technical Decisions
 1. **Deployment loader** — `deployments/__init__.py` picks the active module from the `DEPLOYMENT` env var (default `lawn_perrigen`). `config.py` is a thin re-export of `deployments.ACTIVE.*` plus game-wide constants from `eve_constants.py`. To switch deployments, set `DEPLOYMENT=other_deployment` and restart — no code changes.
+1b. **Deployment posture** — `POSTURE` on the deployment module says what the alliance's relationship to the monitored space actually *is*. This used to be implicit, and wrongly: `PRIMARY_CONSTELLATION_IDS` meant both "space we care about" and "space we own", so an alliance between homes got a dashboard that quietly lied — `/api/sovereignty` returns the *actual* holders, so the map painted the old home hostile-red, "Critical ADM" read 0 (it requires `sov.is_friendly`, and nothing was friendly), and the poller filed the current holder's ADM into `adm_snapshots` under our own `deployment_id`.
+
+    Posture resolves to **two independent booleans**, deliberately not one — collapsing them is what made the app wrong for anything but a sov holder:
+
+    | Posture | `HOLDS_SOV` | `HAS_AO` | Meaning |
+    |---|---|---|---|
+    | `sovereign` | ✅ | ✅ | We own our constellations. Full stack. (default) |
+    | `guest` | ❌ | ✅ | We live in a host's sov. Map/campaigns/activity/intel/**upgrades** live; ADM trends + grinding planner stand down. |
+    | `rootless` | ❌ | ❌ | No home at all. Only the deployment-neutral intel tooling. |
+
+    `HOLDS_SOV` gates anything about raising *our* index (ADM trends, grinding planner, ADM-critical alerts, the "Critical ADM" card, map/table grinding badges). `HAS_AO` gates anything needing a home region (map, system table, campaigns, activity, heatmap, PI, regional/neighbour intel, jump bridges). Upgrades sit under `HAS_AO`, not `HOLDS_SOV`: what's installed decides what anomalies spawn in the space you're living in regardless of whose iHub it is — the panel just relabels to "Installed Upgrades — {host} iHubs".
+
+    `/api/config` publishes `posture`/`posture_label`/`holds_sov`/`has_ao`/`host_alliance_ids`/`watched_regions`. `resolve_all_systems()` skips the region walk only when `not HAS_AO`; `poller.poll_once()` snapshots ADM only when `HOLDS_SOV` but activity whenever `HAS_AO` (the heatmap and the 7-day regional spike baselines are built on `activity_snapshots` and both render for a guest).
+1b-i. **Host sov (`guest` only)** — `HOST_ALLIANCE_IDS` on the deployment names the alliance whose space we live in. `sov_routes` stamps `is_host` on those systems and `is_ours` for our own; `ConstellationMap` renders host sov **blue** (`#4a9eff`, EVE-idiomatic "blue standings") — distinct from ours-green and hostile-red — because a host is on the friendly list and would otherwise paint our own home the same green as sov we hold. `defender_is_host` on campaigns makes a host defending its sov in our constellation read as DEFENSE, not RECONQUEST. Hosts are not implicitly friendly: list them in `FRIENDLY_ALLIANCE_IDS` too if standings say so.
+1c. **Watched regions** — a rootless deployment has no single region to anchor the kill feed to, so `WATCHED_REGIONS` lists everywhere worth watching and `/api/zkill/feed` + `/api/intel/active_hostiles` take `?region_id=`. `routes/regions.py:resolve_region_id()` validates it against `WATCHED_REGION_IDS` and 400s otherwise — these endpoints fan out to zKillboard and then to ESI per killmail, so an unvalidated id would make them an open proxy anyone could drive against arbitrary regions from the deployment's IP and error budget. Sovereign deployments omit the key and default to `[REGION]`, so the picker never renders and behavior is unchanged.
 2. **Flask Blueprints** — Backend is split into `routes/` (live ESI) and `mock/` (demo) Blueprint packages. All blueprints share a `SystemState` singleton from `routes/system_state.py` that is populated at startup by `resolve_all_systems()`.
 3. **Vite build** — Frontend source lives in `frontend/src/`, built to `static/dist/`. `routes/static_routes.py` serves `static/dist/index.html` and returns a loud 503 ("Frontend build missing") when no build exists. There used to be a fallback to a legacy CDN-React `static/index.html`; it was removed because a failed build silently served a stale UI instead of surfacing the problem. Never use `render_template` — Jinja2's `{{ }}` conflicts with JSX.
 4. **Map layout is API-served** — `MAP_LAYOUT` (traditional Dotlan-style) and `MAP_LAYOUT_SUBWAY` (abstract metro-style) live in the active deployment module and are served to the frontend via `/api/config`. Gate connections (`MAP_CONNECTIONS`) have four types: `internal` (same constellation), `cross` (different constellations same region), `regional` (to other regions), `neighbor` (between two neighbor-region systems). Subway mode prioritizes readability over geometric accuracy.
@@ -202,12 +271,12 @@ Resolves names to numeric IDs for `config.py`. Uses ESI `POST /universe/ids/` fo
 - `POST /universe/ids/` — bulk name → ID resolution (replaces deprecated `/search/`)
 
 ### Dashboard API Routes
-- `GET /api/config` — constellation + system metadata
+- `GET /api/config` — constellation + system metadata, plus `posture` / `posture_label` / `holds_sov` / `watched_regions` (the frontend branches its whole layout on `holds_sov`)
 - `GET /api/sovereignty` — sov holder per system with friendly/hostile flag
 - `GET /api/activity` — kills + jumps per system
 - `GET /api/campaigns` — active sov contests
 - `GET /api/zkill/<system_id>` — zKillboard kills for a specific system
-- `GET /api/zkill/feed` — regional kill feed (last 50 kills)
+- `GET /api/zkill/feed[?region_id=]` — regional kill feed (last 50 kills). `region_id` defaults to the deployment's own region and must be in `WATCHED_REGIONS`; anything else 400s (see Key Technical Decision 1c)
 - `GET /api/history/adm?hours=168` — ADM history for sparklines (default 7 days, max 30)
 - `GET /api/history/activity/heatmap?days=7` — per-system hourly activity grid (max 30 days)
 - `GET /api/intel/neighbors` — neighbor threat profiles (ship doctrines, TZ activity, threat scores)
@@ -230,7 +299,7 @@ Resolves names to numeric IDs for `config.py`. Uses ESI `POST /universe/ids/` fo
 - `GET /api/auth/sso/callback` — SSO redirect target; exchanges code, validates JWT, sets session
 - `POST /api/auth/logout` — clear the SSO session
 - `POST /api/ai/threat_summary` — Gemini threat summary from D-scan/Local data (`{type, data}`); write-auth gated (SSO session or `X-Timer-Auth`); input capped at 20k chars and rate limited; needs `GEMINI_API_KEY` or returns 501
-- `GET /api/intel/active_hostiles` — hostile entities aggregated from recent regional kills (top 15 by primary-space activity)
+- `GET /api/intel/active_hostiles[?region_id=]` — hostile entities aggregated from recent regional kills (top 15 by primary-space activity); same `region_id` allowlist as the kill feed
 - `GET|POST /api/jumpbridges`, `DELETE /api/jumpbridges/<id>` — manual jump bridge overlay config (writes gated)
 - `GET /api/analytics/summary?days=30` — dashboard usage rollup (unique/returning visitors, daily series, hour-of-day, top pages + API endpoints, logged-in pilots, bot hits); operator-gated by `ANALYTICS_ALLOWED_CHARACTER_IDS` / `ANALYTICS_PASSWORD` (`X-Analytics-Auth`) — **not** the fleet write auth; 503 when neither is configured, `days` clamped to 1–365
 - `GET /api/analytics/auth` — which unlock methods the analytics page should offer and whether the caller is already in (no data)

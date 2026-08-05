@@ -112,6 +112,13 @@ MOCK_CONFIG = {
     "deployment_id": DEPLOYMENT.DEPLOYMENT_ID + "-demo",
     "alliance": DEPLOYMENT.ALLIANCE,
     "region": DEPLOYMENT.REGION,
+    # Demo mirrors whatever posture the active deployment declares, so a
+    # rootless deployment demos as rootless rather than pretending to sov it
+    # does not hold.
+    "posture": config.POSTURE,
+    "posture_label": config.POSTURE_LABEL,
+    "holds_sov": config.HOLDS_SOV,
+    "watched_regions": config.WATCHED_REGIONS,
     "constellations": _constellation_objs,
     "neighbor_systems": _neighbour_objs,
     "primary_constellation_ids": _primary_const_ids,

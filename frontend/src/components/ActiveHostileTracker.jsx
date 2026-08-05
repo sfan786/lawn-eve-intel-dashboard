@@ -17,18 +17,20 @@ function timeAgo(isoStr) {
     return `${h}h ${m % 60}m ago`
 }
 
-export default function ActiveHostileTracker({ lastUpdate }) {
+export default function ActiveHostileTracker({ lastUpdate, regionId }) {
     const [hostiles, setHostiles] = useState([])
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState(null)
 
     useEffect(() => {
         setLoading(true)
-        fetch('/api/intel/active_hostiles')
+        // Follows the kill feed's region picker — both read the same zKill feed.
+        const qs = regionId ? `?region_id=${regionId}` : ''
+        fetch(`/api/intel/active_hostiles${qs}`)
             .then(r => { if (!r.ok) throw new Error(r.status); return r.json() })
             .then(data => { setHostiles(data); setLoading(false); setError(null) })
             .catch(e => { setError(e.message); setLoading(false) })
-    }, [lastUpdate])
+    }, [lastUpdate, regionId])
 
     if (loading) return null
     if (error) return null

@@ -2,7 +2,7 @@ import React, { useState } from 'react'
 import { formatIsk, timeAgo } from '../utils/formatters'
 import CornerBrackets from './common/CornerBrackets'
 
-export default function KillFeed({ kills, config }) {
+export default function KillFeed({ kills, config, regionId, onRegionChange }) {
     const [filter, setFilter] = useState("all")  // "all" | "primary" | "pvp"
     const [minIsk, setMinIsk] = useState(0)
     const [expandedKillId, setExpandedKillId] = useState(null)
@@ -10,6 +10,12 @@ export default function KillFeed({ kills, config }) {
     const allianceName = config?.alliance?.name || ""
     const allianceShort = config?.alliance?.short_name || config?.alliance?.ticker || "PRIMARY"
     const inPrimary = (k) => k.in_primary ?? k.in_lawn
+    // Without sov there is no "our space", so every in_primary-derived stat
+    // below is uniformly false and would just read as a row of zeroes.
+    const holdsSov = config?.holds_sov !== false
+    // Only worth a picker when there's more than one region to pick.
+    const watchedRegions = config?.watched_regions || []
+    const showRegionPicker = watchedRegions.length > 1
 
     const visible = (kills || []).filter(k => {
         if (minIsk > 0 && (k.total_value || 0) < minIsk) return false
@@ -57,6 +63,9 @@ export default function KillFeed({ kills, config }) {
     const topRoamers = Object.entries(roamers).sort((a, b) => b[1] - a[1]).slice(0, 3)
 
     const primaryKillsCount = visible.filter(k => inPrimary(k)).length
+    // Rootless stand-in for "ISK killed in our space": total destroyed across
+    // the watched region, which is the only frame of reference left.
+    const regionIskDestroyed = allKills.reduce((s, k) => s + (k.is_npc ? 0 : (k.total_value || 0)), 0)
 
     let subcapCount = 0
     let capCount = 0
@@ -77,6 +86,18 @@ export default function KillFeed({ kills, config }) {
             <div className="panel-header">
                 <span className="panel-title">Kill Feed</span>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    {showRegionPicker && (
+                        <select
+                            className="region-picker"
+                            value={regionId ?? ''}
+                            onChange={(e) => onRegionChange && onRegionChange(Number(e.target.value))}
+                            title="Which region to pull kills from"
+                        >
+                            {watchedRegions.map(r => (
+                                <option key={r.id} value={r.id}>{r.name}</option>
+                            ))}
+                        </select>
+                    )}
                     <div className="map-mode-toggle">
                         <button className={`map-mode-btn ${minIsk === 0 ? 'active' : ''}`} onClick={() => setMinIsk(0)}>All ISK</button>
                         <button className={`map-mode-btn ${minIsk === 100000000 ? 'active' : ''}`} onClick={() => setMinIsk(100000000)}>&gt;100M</button>
@@ -84,18 +105,24 @@ export default function KillFeed({ kills, config }) {
                     </div>
                     <div className="map-mode-toggle">
                         <button className={`map-mode-btn ${filter === 'all' ? 'active' : ''}`} onClick={() => setFilter('all')}>All</button>
-                        <button className={`map-mode-btn ${filter === 'primary' ? 'active' : ''}`} onClick={() => setFilter('primary')}>{allianceShort}</button>
+                        {holdsSov && <button className={`map-mode-btn ${filter === 'primary' ? 'active' : ''}`} onClick={() => setFilter('primary')}>{allianceShort}</button>}
                         <button className={`map-mode-btn ${filter === 'pvp' ? 'active' : ''}`} onClick={() => setFilter('pvp')}>PVP</button>
                     </div>
                     <span className="panel-badge">
-                        {visible.length} kills{primaryKillsCount > 0 ? ` — ${primaryKillsCount} in ${allianceShort}` : ''}
+                        {visible.length} kills{holdsSov && primaryKillsCount > 0 ? ` — ${primaryKillsCount} in ${allianceShort}` : ''}
                     </span>
                 </div>
             </div>
             {allKills.length > 0 && (
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '4px 8px', background: 'rgba(0,0,0,0.2)', borderBottom: '1px solid var(--border-dim)', fontSize: 10, fontFamily: 'Share Tech Mono, monospace' }}>
                     <div>
-                        {primaryPvpKills.length > 0 ? (
+                        {!holdsSov ? (
+                            <>
+                                <span style={{ color: 'var(--text-muted)' }}>{formatIsk(regionIskDestroyed)} destroyed in region</span>
+                                <span style={{ color: 'var(--text-muted)' }}> · </span>
+                                <span style={{ color: iskLost > 0 ? 'var(--red)' : 'var(--text-muted)' }}>↓ {formatIsk(iskLost)} lost</span>
+                            </>
+                        ) : primaryPvpKills.length > 0 ? (
                             <>
                                 <span style={{ color: 'var(--green)' }}>↑ {formatIsk(iskKilled)} killed</span>
                                 <span style={{ color: 'var(--text-muted)' }}> · </span>

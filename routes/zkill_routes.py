@@ -1,9 +1,9 @@
 from concurrent.futures import ThreadPoolExecutor, wait
 
-from flask import Blueprint, jsonify
+from flask import Blueprint, jsonify, request
 
 import esi_client
-from config import REGION_ID
+from routes.regions import resolve_region_id
 from routes.system_state import state
 
 zkill_bp = Blueprint("zkill", __name__)
@@ -32,6 +32,10 @@ def api_zkill(system_id):
 
 @zkill_bp.route("/api/zkill/feed")
 def api_zkill_feed():
+    region_id, err = resolve_region_id(request.args)
+    if err:
+        return jsonify(err), 400
+
     system_names = {}
     for cdata in state.constellation_data.values():
         for sys_id, sys_info in cdata["systems"].items():
@@ -39,7 +43,7 @@ def api_zkill_feed():
     for sys_id, info in state.neighbor_systems.items():
         system_names[sys_id] = info["name"]
 
-    raw_kills = esi_client.get_zkill_region(REGION_ID)
+    raw_kills = esi_client.get_zkill_region(region_id)
 
     # Prefetch killmails in parallel — results land in the ESI cache so the
     # sequential enrichment loop below gets instant hits.
