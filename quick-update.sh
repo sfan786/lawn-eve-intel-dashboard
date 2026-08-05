@@ -15,6 +15,11 @@ echo "🗄️  Ensuring intel.db and .env exist as files..."
 touch intel.db
 touch .env
 
+# Same bind-mount gotcha as intel.db: if ./private does not exist when
+# docker-compose starts, Docker creates it as a ROOT-OWNED directory, and
+# pushing a deployment into it then fails with "Permission denied".
+mkdir -p private
+
 echo "🛑 Stopping containers..."
 docker-compose down
 
