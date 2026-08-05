@@ -31,6 +31,50 @@ ALLIANCE = _D.ALLIANCE
 REGION = _D.REGION
 REGION_ID = REGION["id"]
 
+# ===== Posture =====
+# What the alliance's relationship to the monitored space actually is. This
+# used to be implicit: PRIMARY_CONSTELLATION_IDS meant both "space we care
+# about" and "space we own", so every ADM/grinding/upgrade surface assumed
+# ownership. An alliance between homes still cares about intel but owns
+# nothing, and conflating the two makes the dashboard quietly lie — the map
+# paints the old home hostile-red and "Critical ADM" reads 0 precisely because
+# there is no friendly sov left to be critical.
+#
+#   sovereign — we hold sov in PRIMARY_CONSTELLATION_IDS (the default; the
+#               full map/ADM/grinding/upgrade stack is live)
+#   guest     — we live in a host alliance's sov. We have a home to defend and
+#               care about, so the map, campaigns, activity and regional intel
+#               all stay — but the iHubs are not ours, so ADM/grinding/upgrades
+#               stand down. The host's sov renders as host, not hostile.
+#   rootless  — no home, no sov, no map. Only the deployment-neutral intel
+#               tooling (D-scan, local scan, fleet comp, kill feed, timers)
+POSTURE = getattr(_D, "POSTURE", "sovereign")
+# Header subtitle. Deployments in flux can restate their situation here without
+# touching JSX; falls back to the region name when empty.
+POSTURE_LABEL = getattr(_D, "POSTURE_LABEL", "")
+
+# Two independent questions, deliberately not one flag. "Do we own this space?"
+# governs the ADM/grinding/upgrade stack; "do we have a home at all?" governs
+# the map, system table, campaigns, activity and neighbour intel. A guest
+# answers no to the first and yes to the second — collapsing them into a single
+# boolean is what made the dashboard wrong for anything but a sov holder.
+HOLDS_SOV = POSTURE == "sovereign"
+HAS_AO = POSTURE in ("sovereign", "guest")
+
+# Alliances whose sov we live under. Their systems classify as "host" rather
+# than hostile, so a guest deployment's map doesn't paint its own home red.
+# Ignored unless POSTURE == "guest". Hosts are not automatically friendly —
+# list them in FRIENDLY_ALLIANCE_IDS too if standings say so.
+HOST_ALLIANCE_IDS = set(getattr(_D, "HOST_ALLIANCE_IDS", None) or [])
+
+# Regions the kill feed and hostile tracker may be pointed at. A sovereign
+# deployment watches exactly its own region; a rootless one has no home to
+# anchor to, so it watches several and the UI offers a picker. REGION stays
+# populated either way (rootless deployments set it to their default watch
+# region), so REGION_ID is never None and existing callers need no changes.
+WATCHED_REGIONS = getattr(_D, "WATCHED_REGIONS", None) or [REGION]
+WATCHED_REGION_IDS = {r["id"] for r in WATCHED_REGIONS if isinstance(r, dict) and r.get("id")}
+
 # ===== Geography =====
 PRIMARY_CONSTELLATION_IDS = _D.PRIMARY_CONSTELLATION_IDS
 PRIMARY_CONSTELLATION_NAMES = getattr(_D, "PRIMARY_CONSTELLATION_NAMES", [])

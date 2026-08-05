@@ -1,10 +1,11 @@
 # ROADMAP — EVE Alliance Intel Dashboard
 
-**Current situation (May 2026):** LAWN has relocated to **Perrigen Falls** (constellations 9BGY-6 and WXB-RY). The dashboard codebase is now alliance/region agnostic — see `deployments/` and `tools/bootstrap_deployment.py`.
+**Note:** this repository is public. Live deployment modules (current standings, staging location, next move) live in gitignored `deployments/local_*.py` and are never committed — and this file stays to engineering work, not to where the alliance currently is or is going.
 
 ## Completed
 
 - [x] **Alliance/region-agnostic deployment system** — `deployments/` modules + `tools/bootstrap_deployment.py` bootstrap; `DEPLOYMENT` env var picks active deployment; per-deployment scoping in `intel.db` via `deployment_id`
+- [x] **Deployment posture** — `POSTURE` distinguishes "space we own" from "space we operate in", which `PRIMARY_CONSTELLATION_IDS` used to conflate. Resolves to two booleans: `HOLDS_SOV` (gates ADM trends, grinding planner, ADM alerts, grinding badges) and `HAS_AO` (gates map, system table, campaigns, activity, PI, regional/neighbour intel). Three postures — `sovereign` (both true), `guest` (living in a host's sov: `HOST_ALLIANCE_IDS` renders host sov blue rather than hostile, campaigns defending it read as DEFENSE, upgrades stay since they decide what anomalies spawn), `rootless` (neither: startup skips the ESI region walk and the intel tooling becomes the whole dashboard). The poller snapshots ADM only when `HOLDS_SOV` and activity whenever `HAS_AO`, so it can no longer file another alliance's ADM under our `deployment_id`. `WATCHED_REGIONS` + a validated `?region_id=` give the kill feed a region picker when there is no single home to anchor to. New `routes/regions.py`, `tests/test_posture.py`
 - [x] **Perrigen Falls migration** — LAWN relocated from Kalevala to Perrigen Falls; mock data, frontend, and CLAUDE.md all updated; old Kalevala history preserved but inert
 - [x] **SQLite persistence** — hourly ADM + activity snapshots with deduplication, scoped per deployment
 - [x] **ADM trend sparklines** — 7-day history per system with 24h change indicators
@@ -53,6 +54,16 @@
 ---
 
 ## Priority 1 — Immediate Tactical Value
+
+### Guest posture follow-ups
+**Why:** `guest` (living in a host alliance's sov) is implemented and covered by tests, but two things can only be done from inside the space.
+- [ ] Hand-tune `MAP_LAYOUT` for any guest deployment — the bootstrap's auto-layout is usable, not pretty
+- [ ] Populate `SYSTEM_UPGRADES` by observation once staged. ESI won't expose iHub fittings without SSO, and under a guest posture they aren't our iHubs anyway — but what's installed still decides what anomalies spawn where we live, so it's worth recording by hand
+
+### Deployment-specific data still hardcoded in the frontend
+**Why:** `GrindingPlan.jsx:7-12` hardcodes 14 Perrigen system names in `SYSTEM_TIERS`. Harmless while rootless (the panel doesn't render), but it silently mis-ranks the moment a second sov-holding deployment exists.
+- [ ] Move `SYSTEM_TIERS` into the deployment module, or derive tiers from ADM/activity instead of a static list
+- [ ] Sweep the remaining `lawn`-as-a-generic-term naming (`is_lawn`, `lawnSystemIds`, `MAP_LAYOUT`'s `lawn: True`, `CampaignAlerts.jsx:18` "Secure the lawn.")
 
 ### zKillboard Feed Enhancements
 **Why:** Current feed is basic — need better filtering and analysis for fleet intel.

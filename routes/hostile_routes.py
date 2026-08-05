@@ -1,6 +1,6 @@
 from concurrent.futures import ThreadPoolExecutor, wait
 
-from flask import Blueprint, jsonify
+from flask import Blueprint, jsonify, request
 
 import esi_client
 from config import (
@@ -10,8 +10,8 @@ from config import (
     FRIENDLY_STANDING_CORP_IDS,
     FRIENDLY_STANDING_CORP_NAMES,
     LAWN_ALLIANCE_ID,
-    REGION_ID,
 )
+from routes.regions import resolve_region_id
 from routes.system_state import state
 
 hostile_bp = Blueprint("hostile", __name__)
@@ -19,6 +19,10 @@ hostile_bp = Blueprint("hostile", __name__)
 
 @hostile_bp.route("/api/intel/active_hostiles")
 def api_active_hostiles():
+    region_id, err = resolve_region_id(request.args)
+    if err:
+        return jsonify(err), 400
+
     system_names = {}
     for cdata in state.constellation_data.values():
         for sys_id, sys_info in cdata["systems"].items():
@@ -32,7 +36,7 @@ def api_active_hostiles():
     friendly_corp_names |= {c.lower() for c in FRIENDLY_STANDING_CORP_NAMES}
     friendly_corp_ids = set(FRIENDLY_STANDING_CORP_IDS)
 
-    raw_kills = esi_client.get_zkill_region(REGION_ID)
+    raw_kills = esi_client.get_zkill_region(region_id)
     entity_stats = {}
 
     # Prefetch killmails in parallel so the sequential loop below hits the cache

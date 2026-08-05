@@ -15,7 +15,7 @@ import { useAuth } from '../utils/useAuth'
 const EMPTY_LAYOUT = {}
 const EMPTY_CONNECTIONS = []
 
-export default function ConstellationMap({ config, sovereignty, activity, campaigns, selectedSystem, onSelectSystem, mapMode = "subway", annotations = {}, onAnnotationChange, jumpBridges = [], intelAlerts = [] }) {
+export default function ConstellationMap({ config, sovereignty, activity, campaigns, selectedSystem, onSelectSystem, mapMode = "subway", annotations = {}, onAnnotationChange, jumpBridges = [], intelAlerts = [], holdsSov = true, hostName = "" }) {
     const [tooltip, setTooltip] = useState(null)
     const [touchTransform, setTouchTransform] = useState({ scale: 1, x: 0, y: 0 })
     const [annotationEditor, setAnnotationEditor] = useState(null)
@@ -156,6 +156,18 @@ export default function ConstellationMap({ config, sovereignty, activity, campai
         return m
     }, [intelAlerts])
 
+    // Blue in the EVE sense: allied space we live in but do not own. Without
+    // this a guest deployment's home renders the same green as sov we hold,
+    // because the host is on the friendly list — which reads as "we own this"
+    // when we very much don't.
+    const HOST_COLOR = "#4a9eff"
+
+    function isHostSystem(name) {
+        const sysId = nameToId[name]
+        if (!sysId) return false
+        return !!(sovereignty[sysId] || {}).is_host
+    }
+
     function getColor(name) {
         const layout = activeLayout[name]
         if (!layout) return "#3a5060"
@@ -164,6 +176,7 @@ export default function ConstellationMap({ config, sovereignty, activity, campai
             const sysId = nameToId[name]
             const sov = sysId ? (sovereignty[sysId] || {}) : {}
             if (sov.alliance_name && !sov.is_friendly) return "#ff3355"
+            if (sov.is_host) return HOST_COLOR
             return "#00ff88"
         }
         return constellationColor(layout.constellation)
@@ -203,7 +216,12 @@ export default function ConstellationMap({ config, sovereignty, activity, campai
         return campaigns && campaigns.some(c => String(c.solar_system_id) === sysId)
     }
 
+    // Grinding indicators mean "go rat here to raise OUR index". A guest's
+    // host is on the friendly list, so without the holdsSov gate these would
+    // fire on the host's ADM and tell the fleet to grind an iHub that isn't
+    // ours and that we cannot affect.
     function needsCriticalGrinding(name) {
+        if (!holdsSov) return false
         const layout = activeLayout[name]
         if (!layout || !layout.lawn) return false
         const sysId = nameToId[name]
@@ -215,6 +233,7 @@ export default function ConstellationMap({ config, sovereignty, activity, campai
     }
 
     function needsCautionGrinding(name) {
+        if (!holdsSov) return false
         const layout = activeLayout[name]
         if (!layout || !layout.lawn) return false
         const sysId = nameToId[name]
@@ -825,15 +844,19 @@ export default function ConstellationMap({ config, sovereignty, activity, campai
                     <div style={{ width: 8, height: 8, background: 'transparent', border: '2px dashed #ffaa00', borderRadius: '50%' }} />
                     <span>Reffed (active timer)</span>
                 </div>
-                <div className="map-legend-item">
+                {/* Grinding states can't occur without sov of our own, so don't
+                    advertise them in a legend where nothing will ever match. */}
+                <div className="map-legend-item" style={holdsSov ? {} : { display: 'none' }}>
                     <div style={{ width: 8, height: 8, background: 'transparent', border: '3px solid #ff3355', borderRadius: '50%' }} />
                     <span>Critical (ADM &lt; 2)</span>
                 </div>
-                <div className="map-legend-item">
+                <div className="map-legend-item" style={holdsSov ? {} : { display: 'none' }}>
                     <div style={{ width: 8, height: 8, background: 'transparent', border: '2px solid #ffaa00', borderRadius: '50%' }} />
                     <span>Caution (ADM 2-4)</span>
                 </div>
-                <div className="map-legend-item"><div className="map-legend-dot" style={{ background: '#00ff88' }} /><span>{allianceShort} Sov</span></div>
+                {hostName
+                    ? <div className="map-legend-item"><div className="map-legend-dot" style={{ background: '#4a9eff' }} /><span>{hostName} Sov (host)</span></div>
+                    : <div className="map-legend-item"><div className="map-legend-dot" style={{ background: '#00ff88' }} /><span>{allianceShort} Sov</span></div>}
                 <div className="map-legend-item"><div className="map-legend-dot" style={{ background: 'rgba(0,212,255,0.3)', border: '1px solid rgba(0,212,255,0.2)' }} /><span>NPC ratting</span></div>
                 <div className="map-legend-item"><div className="map-legend-dot" style={{ background: '#ff3355' }} /><span>PVP danger</span></div>
                 <div className="map-legend-item">

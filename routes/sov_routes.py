@@ -3,7 +3,12 @@ import logging
 from flask import Blueprint, jsonify
 
 import esi_client
-from config import FRIENDLY_ALLIANCE_IDS, FRIENDLY_ALLIANCES, PRIMARY_ALLIANCE_ID
+from config import (
+    FRIENDLY_ALLIANCE_IDS,
+    FRIENDLY_ALLIANCES,
+    HOST_ALLIANCE_IDS,
+    PRIMARY_ALLIANCE_ID,
+)
 from eve_constants import SOV_HUB_TYPE_IDS
 from routes.system_state import state
 
@@ -76,6 +81,14 @@ def api_sovereignty():
                 or alliance_id in FRIENDLY_ALLIANCE_IDS
                 or (alliance_name in FRIENDLY_ALLIANCES if alliance_name else False)
             )
+            # Under a guest posture this is the alliance whose space we live in.
+            # Without it the map paints our own home hostile-red, because we
+            # don't hold the sov there and never will. Empty for every other
+            # posture, so is_host is uniformly False and nothing changes.
+            is_host = bool(alliance_id) and alliance_id in HOST_ALLIANCE_IDS
+            # We hold this system ourselves — distinct from "friendly", which
+            # includes every blue in the region.
+            is_ours = alliance_id == PRIMARY_ALLIANCE_ID
 
             result[sys_id] = {
                 "system_id": sys_id,
@@ -85,6 +98,8 @@ def api_sovereignty():
                 "corporation_name": corp_name,
                 "faction_id": faction_id,
                 "is_friendly": is_friendly,
+                "is_host": is_host,
+                "is_ours": is_ours,
                 "adm": adm_by_system.get(sys_id, 0),
             }
             if sys_id in vuln_by_system:
@@ -125,7 +140,15 @@ def api_campaigns():
         struct_data = structure_by_id.get(struct_id, {})
         is_primary = sys_id in state.primary_system_ids
         defender_id = campaign.get("defender_id")
-        defender_is_friendly = defender_id in FRIENDLY_ALLIANCE_IDS or defender_id == PRIMARY_ALLIANCE_ID
+        # A host defending its own sov in our home constellation is us being
+        # attacked, so a guest deployment must read this as DEFENSE — hence the
+        # host check alongside the standings one.
+        defender_is_host = bool(defender_id) and defender_id in HOST_ALLIANCE_IDS
+        defender_is_friendly = (
+            defender_id in FRIENDLY_ALLIANCE_IDS
+            or defender_id == PRIMARY_ALLIANCE_ID
+            or defender_is_host
+        )
 
         enriched.append({
             **campaign,
@@ -136,6 +159,7 @@ def api_campaigns():
             "is_primary": is_primary,
             "is_lawn": is_primary,  # legacy alias for any frontend not yet migrated
             "defender_is_friendly": defender_is_friendly,
+            "defender_is_host": defender_is_host,
         })
 
     return jsonify(enriched)

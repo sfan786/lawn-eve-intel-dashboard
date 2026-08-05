@@ -1,6 +1,6 @@
 from flask import Blueprint, jsonify
 
-from config import ALLIANCE, DEPLOYMENT_ID, PI_DATA, REGION
+from config import ALLIANCE, DEPLOYMENT_ID, HOLDS_SOV, PI_DATA, POSTURE, REGION
 from mock.mock_data import MOCK_CONFIG
 
 mock_config_bp = Blueprint("mock_config", __name__)
@@ -29,6 +29,8 @@ def api_status():
         "deployment_id": DEPLOYMENT_ID + "-demo",
         "alliance": ALLIANCE,
         "region": REGION,
+        "posture": POSTURE,
+        "holds_sov": HOLDS_SOV,
         "constellations_monitored": len(MOCK_CONFIG["constellations"]),
         "systems_monitored": region_systems + neighbor_systems,
         "primary_systems": primary_systems,

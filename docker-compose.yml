@@ -14,6 +14,11 @@ services:
       # random per-process token is used). Never hardcode a default here.
       - TIMER_PASSWORD=${TIMER_PASSWORD:-}
       - DEPLOYMENT=${DEPLOYMENT:-lawn_perrigen}
+      # Where private deployment modules are mounted (see the volume below).
+      # The loader checks here before deployments/, so DEPLOYMENT=<name> picks
+      # up /app/private/<name>.py without that file ever being committed or
+      # baked into the image.
+      - DEPLOYMENT_DIR=/app/private
       # EVE SSO (optional). When all three EVE_* are set, "Log in with EVE"
       # replaces the password as the primary auth. Set a persistent
       # FLASK_SECRET_KEY or sessions reset on every restart.
@@ -34,6 +39,12 @@ services:
     volumes:
       # Persist SQLite database outside the container
       - ./intel.db:/app/intel.db
+      # Private deployment modules, read-only. Gitignored and dockerignored, so
+      # this mount is the only way they reach the container — which also means
+      # `git pull` and image rebuilds can never clobber or expose them.
+      # Harmless when the directory is empty (the default lawn_perrigen
+      # deployment ships in the image).
+      - ./private:/app/private:ro
     healthcheck:
       # python urllib, not curl — curl isn't installed in python:3.11-slim
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:5000/api/status', timeout=5)"]

@@ -16,7 +16,7 @@ import PlanetaryIntel from './components/PlanetaryIntel'
 import NeighborIntel from './components/NeighborIntel'
 import RegionalIntel from './components/RegionalIntel'
 import ActivityHeatmap from './components/ActivityHeatmap'
-import MobileNav from './components/MobileNav'
+import MobileNav, { SOV_TABS, ROOTLESS_TABS } from './components/MobileNav'
 import DscanParser from './components/DscanParser'
 import LocalScanner from './components/LocalScanner'
 import FleetCompAnalyzer from './components/FleetCompAnalyzer'
@@ -57,10 +57,16 @@ export default function App() {
     const [showUsageLink] = useState(() => localStorage.getItem(ANALYTICS_SEEN_KEY) === '1')
     const [mobileTab, setMobileTab] = useState(0)
     const [intelAlerts, setIntelAlerts] = useState([])
+    // Which region the kill feed / hostile tracker are pointed at. Only
+    // meaningful when the deployment watches more than one (see WATCHED_REGIONS);
+    // null means "whatever the backend defaults to".
+    const [regionId, setRegionId] = useState(null)
     const timer = useRef(null)
     // Mirrors `config` so fetchData can read it without taking it as a dependency
     // (which would rebuild the poll timer every time config lands).
     const configRef = useRef(null)
+    // Same reason: the poll reads the selected region without depending on it.
+    const regionIdRef = useRef(null)
     const { settings: notifSettings, saveSettings: saveNotifSettings, permStatus, requestPermission, checkAndNotify } = useNotifications()
 
     const fetchData = useCallback(async (init = false) => {
@@ -79,9 +85,17 @@ export default function App() {
                 checkedFetch("/api/campaigns"),
             ])
             const cfg = cfgFresh || configRef.current
-            if (cfgFresh) { configRef.current = cfgFresh; setConfig(cfgFresh) }
+            if (cfgFresh) {
+                configRef.current = cfgFresh; setConfig(cfgFresh)
+                // Default the feed to the deployment's own region on first load.
+                if (regionIdRef.current == null && cfgFresh.region?.id) {
+                    regionIdRef.current = cfgFresh.region.id
+                    setRegionId(cfgFresh.region.id)
+                }
+            }
             setSovereignty(sov); setActivity(act); setCampaigns(camp)
-            checkedFetch("/api/zkill/feed").then(setKillFeed).catch(e => console.warn("Kill feed unavailable:", e.message))
+            const regionQs = regionIdRef.current ? `?region_id=${regionIdRef.current}` : ''
+            checkedFetch(`/api/zkill/feed${regionQs}`).then(setKillFeed).catch(e => console.warn("Kill feed unavailable:", e.message))
             checkedFetch("/api/history/adm").then(setAdmHistory).catch(e => console.warn("ADM history unavailable:", e.message))
             checkedFetch("/api/annotations").then(setAnnotations).catch(e => console.warn("Annotations unavailable:", e.message))
             checkedFetch("/api/jumpbridges").then(setJumpBridges).catch(e => console.warn("Jump bridges unavailable:", e.message))
@@ -98,7 +112,7 @@ export default function App() {
                     })
                 })
                 const allianceShort = cfg?.alliance?.short_name || cfg?.alliance?.ticker || 'PRIMARY'
-                checkAndNotify(camp, sov, act, primaryIds, names, allianceShort)
+                checkAndNotify(camp, sov, act, primaryIds, names, allianceShort, cfg?.holds_sov !== false)
             }
         } catch (err) { if (init) setError(err.message) }
         finally { setLoading(false); setRefreshing(false) }
@@ -116,6 +130,17 @@ export default function App() {
         return () => window.removeEventListener('resize', handler)
     }, [])
 
+    // Switching regions refetches just the kill feed rather than the whole
+    // dashboard — sov/activity/campaigns are scoped to the deployment, not to
+    // whichever region the feed happens to be pointed at.
+    const changeRegion = useCallback((id) => {
+        regionIdRef.current = id
+        setRegionId(id)
+        checkedFetch(`/api/zkill/feed?region_id=${id}`)
+            .then(setKillFeed)
+            .catch(e => console.warn("Kill feed unavailable:", e.message))
+    }, [])
+
     const primarySysIdSet = useMemo(() => {
         if (!config?.constellations) return new Set()
         const s = new Set()
@@ -124,6 +149,15 @@ export default function App() {
         )
         return s
     }, [config])
+
+    // Host alliance name, for labelling whose sov and iHubs these actually are.
+    // Must stay above the early returns below — hooks run in the same order on
+    // every render or React throws "Rendered fewer hooks than expected".
+    const hostName = useMemo(() => {
+        if (!config?.host_alliance_ids?.length) return ""
+        const hit = Object.values(sovereignty).find(s => s?.is_host && s.alliance_name)
+        return hit?.alliance_name || ""
+    }, [config, sovereignty])
 
     if (loading) return (
         <div className="loading">
@@ -143,6 +177,21 @@ export default function App() {
     const allianceShort = alliance.short_name || alliance.ticker || "PRIMARY"
     const allianceDisplay = alliance.display_name || alliance.name || allianceShort
     const regionName = config.region?.name || ""
+    // Two independent questions, because a guest answers them differently.
+    //   holdsSov — do we own this space? Gates the ADM trends and grinding
+    //              planner, which are about raising OUR index.
+    //   hasAo    — do we have a home at all? Gates the map, system table,
+    //              campaigns, activity and neighbour intel.
+    // A guest is holdsSov=false, hasAo=true: it lives somewhere, defends it,
+    // and watches its neighbours, but the iHubs belong to the host.
+    // Both default to true so an older backend behaves exactly as before.
+    const holdsSov = config.holds_sov !== false
+    const hasAo = config.has_ao !== false
+    const tabs = hasAo ? SOV_TABS : ROOTLESS_TABS
+    // Tab 0 (Map) doesn't exist rootless; fall back to Intel rather than
+    // opening on a blank screen.
+    const activeTab = tabs.some(t => t.id === mobileTab) ? mobileTab : tabs[0].id
+    const showTab = (id) => !isMobile || activeTab === id
     const consts = config.constellations
     const cids = Object.keys(consts)
     const primaryCids = cids.filter(c => isPrimaryConst(consts[c]))
@@ -162,10 +211,13 @@ export default function App() {
     const totNPC = visible.reduce((s, v) => s + ((activity[v.system_id] || {}).npc_kills || 0), 0)
     const totJ = visible.reduce((s, v) => s + ((activity[v.system_id] || {}).jumps || 0), 0)
     const hostile = visible.filter(s => { const sv = sovereignty[s.system_id]; return sv && sv.alliance_name && !sv.is_friendly }).length
-    const criticalSystems = visible.filter(s => {
+    // Guarded on holdsSov: a host counts as friendly, so without this a guest
+    // would read the host's low-ADM systems as our own critical grinding debt.
+    const criticalSystems = !holdsSov ? 0 : visible.filter(s => {
         const sov = sovereignty[s.system_id]
         return primarySysIdSet.has(String(s.system_id)) && sov && sov.is_friendly && sov.adm > 0 && sov.adm < 2
     }).length
+    const hostSystems = visible.filter(s => sovereignty[s.system_id]?.is_host).length
 
     const primarySystems = Object.values(consts).filter(isPrimaryConst).flatMap(c => Object.values(c.systems))
     const { primaryPVP, primaryNPC, primaryJumps } = primarySystems.reduce((acc, v) => {
@@ -190,7 +242,9 @@ export default function App() {
                     <SummaryCard label="PVP Kills" value={totPVP} type={totPVP > 10 ? "danger" : totPVP > 0 ? "warn" : "safe"} />
                     <SummaryCard label="NPC Kills" value={totNPC.toLocaleString()} />
                     <SummaryCard label="Jumps" value={totJ.toLocaleString()} type={totJ > 200 ? "warn" : "default"} />
-                    <SummaryCard label="Critical ADM" value={criticalSystems} type={criticalSystems > 3 ? "danger" : criticalSystems > 0 ? "warn" : "safe"} />
+                    {holdsSov
+                        ? <SummaryCard label="Critical ADM" value={criticalSystems} type={criticalSystems > 3 ? "danger" : criticalSystems > 0 ? "warn" : "safe"} />
+                        : hostName && <SummaryCard label="Host Sov" value={hostSystems} type="safe" />}
                     <SummaryCard label="Hostile Sov" value={hostile} type={hostile > 0 ? "danger" : "safe"} />
                     {(() => {
                         const activeCount = campaigns.filter(c => getCampaignPhase(c).phase === 'nodes').length
@@ -207,7 +261,9 @@ export default function App() {
             <div className="panel panel-wide">
                 <CornerBrackets />
                 <div className="panel-header">
-                    <span className="panel-title">{allianceShort} Alliance Activity</span>
+                    {/* "Alliance Activity" over space we don't own would claim it
+                        as ours; under a guest posture it's our area of operations. */}
+                    <span className="panel-title">{holdsSov ? `${allianceShort} Alliance Activity` : `${allianceShort} AO Activity`}</span>
                     <span className="panel-badge">{primarySystems.length} systems · Last hour</span>
                 </div>
                 <div className="summary-row">
@@ -245,6 +301,8 @@ export default function App() {
                 onAnnotationChange={() => checkedFetch("/api/annotations").then(setAnnotations).catch(() => {})}
                 jumpBridges={jumpBridges}
                 intelAlerts={intelAlerts}
+                holdsSov={holdsSov}
+                hostName={hostName}
             />
         </div>
     )
@@ -281,6 +339,7 @@ export default function App() {
                 lawnSystemIds={primarySysIdSet}
                 config={config}
                 annotations={annotations}
+                holdsSov={holdsSov}
             />
         </div>
     )
@@ -292,7 +351,7 @@ export default function App() {
                     <img src="/static/logo.png" alt="" style={{ height: 40, marginRight: 12, display: 'block' }} onError={(e) => { e.target.style.display = 'none' }} />
                     <div>
                         <div className="logo-text">{allianceDisplay}</div>
-                        <div className="logo-sub" style={{ marginTop: '4px' }}>{regionName.toUpperCase()} — INTEL DASHBOARD</div>
+                        <div className="logo-sub" style={{ marginTop: '4px' }}>{(config.posture_label || regionName).toUpperCase()} — INTEL DASHBOARD</div>
                     </div>
                 </div>
                 <div className="status-bar">
@@ -316,65 +375,96 @@ export default function App() {
                         saveSettings={saveNotifSettings}
                         permStatus={permStatus}
                         requestPermission={requestPermission}
+                        holdsSov={holdsSov}
+                        hasAo={hasAo}
                     />
                 </div>
             </div>
-            <div className="dashboard">
-                {/* Tab 0: Map — summary cards + map */}
-                {(!isMobile || mobileTab === 0) && summaryPanels}
+            {hasAo ? (
+                <div className="dashboard">
+                    {/* Tab 0: Map — summary cards + map */}
+                    {showTab(0) && summaryPanels}
 
-                {/* Tab 1: Systems — grinding plan */}
-                {(!isMobile || mobileTab === 1) && (
-                    <GrindingPlan config={config} sovereignty={sovereignty} activity={activity} admHistory={admHistory} />
-                )}
+                    {/* Tab 1: Systems — grinding plan. Sov-holders only: it ranks
+                        where to rat to raise our own index, which we cannot do in
+                        a host's space. */}
+                    {showTab(1) && holdsSov && (
+                        <GrindingPlan config={config} sovereignty={sovereignty} activity={activity} admHistory={admHistory} />
+                    )}
 
-                {/* Tab 0: Map — constellation map */}
-                {(!isMobile || mobileTab === 0) && mapPanel}
+                    {/* Tab 0: Map — constellation map */}
+                    {showTab(0) && mapPanel}
 
-                {/* Tab 1: Systems — system table */}
-                {(!isMobile || mobileTab === 1) && systemStatusPanel}
+                    {/* Tab 1: Systems — system table */}
+                    {showTab(1) && systemStatusPanel}
 
-                {/* Tab 2: Kills — kill feed */}
-                {(!isMobile || mobileTab === 2) && <KillFeed kills={killFeed} config={config} />}
+                    {/* Tab 2: Kills — kill feed */}
+                    {showTab(2) && <KillFeed kills={killFeed} config={config} regionId={regionId} onRegionChange={changeRegion} />}
 
-                {/* Tab 3+4: Campaign alerts + Timers — side by side on tablet+ */}
-                {(!isMobile || mobileTab === 3 || mobileTab === 4) && (
-                    <div className="panel-pair">
-                        {(!isMobile || mobileTab === 3) && <CampaignAlerts campaigns={campaigns} config={config} />}
-                        {(!isMobile || mobileTab === 4) && <TimerBoard />}
-                    </div>
-                )}
+                    {/* Tab 3+4: Campaign alerts + Timers — side by side on tablet+ */}
+                    {(!isMobile || activeTab === 3 || activeTab === 4) && (
+                        <div className="panel-pair">
+                            {showTab(3) && <CampaignAlerts campaigns={campaigns} config={config} />}
+                            {showTab(4) && <TimerBoard />}
+                        </div>
+                    )}
 
-                {/* Tab 5: Industry — PI */}
-                {(!isMobile || mobileTab === 5) && <PlanetaryIntel config={config} />}
+                    {/* Tab 5: Industry — PI */}
+                    {showTab(5) && <PlanetaryIntel config={config} />}
 
-                {/* Tab 2: Kills — activity heatmap */}
-                {(!isMobile || mobileTab === 2) && <ActivityHeatmap config={config} sovereignty={sovereignty} lastUpdate={lastUpdate} />}
+                    {/* Tab 2: Kills — activity heatmap */}
+                    {showTab(2) && <ActivityHeatmap config={config} sovereignty={sovereignty} lastUpdate={lastUpdate} />}
 
-                {/* Tab 3: Intel — channel parser + hostile tracker + JB + neighbor intel + dscan + local scanner */}
-                {(!isMobile || mobileTab === 3) && <IntelChannelParser config={config} onBoardChange={setIntelAlerts} />}
-                {(!isMobile || mobileTab === 3) && <ActiveHostileTracker lastUpdate={lastUpdate} />}
-                {(!isMobile || mobileTab === 3) && (
-                    <JumpBridgeManager
-                        jumpBridges={jumpBridges}
-                        onJbChange={() => checkedFetch("/api/jumpbridges").then(setJumpBridges).catch(() => {})}
-                    />
-                )}
-                {(!isMobile || mobileTab === 3) && <RegionalIntel lastUpdate={lastUpdate} />}
-                {(!isMobile || mobileTab === 3) && <NeighborIntel lastUpdate={lastUpdate} />}
-                {(!isMobile || mobileTab === 3) && <DscanParser />}
-                {(!isMobile || mobileTab === 3) && <LocalScanner />}
-                {(!isMobile || mobileTab === 3) && <FleetCompAnalyzer />}
+                    {/* Tab 3: Intel — channel parser + hostile tracker + JB + neighbor intel + dscan + local scanner */}
+                    {showTab(3) && <IntelChannelParser config={config} onBoardChange={setIntelAlerts} />}
+                    {showTab(3) && <ActiveHostileTracker lastUpdate={lastUpdate} regionId={regionId} />}
+                    {showTab(3) && (
+                        <JumpBridgeManager
+                            jumpBridges={jumpBridges}
+                            onJbChange={() => checkedFetch("/api/jumpbridges").then(setJumpBridges).catch(() => {})}
+                        />
+                    )}
+                    {showTab(3) && <RegionalIntel lastUpdate={lastUpdate} />}
+                    {showTab(3) && <NeighborIntel lastUpdate={lastUpdate} />}
+                    {showTab(3) && <DscanParser />}
+                    {showTab(3) && <LocalScanner />}
+                    {showTab(3) && <FleetCompAnalyzer />}
 
-                {/* Tab 1: Systems — adm trends + upgrades side by side on tablet+ */}
-                {(!isMobile || mobileTab === 1) && (
-                    <div className="panel-pair">
-                        <AdmTrends admHistory={admHistory} config={config} sovereignty={sovereignty} />
-                        <UpgradesOverview config={config} />
-                    </div>
-                )}
-            </div>
-            {isMobile && <MobileNav activeTab={mobileTab} onTabChange={setMobileTab} />}
+                    {/* Tab 1: Systems — adm trends + upgrades side by side on tablet+.
+                        ADM trends are ours-only; upgrades stay under a guest posture
+                        because what's installed decides what anomalies spawn in the
+                        space we're living in, whoever owns the iHub. */}
+                    {showTab(1) && (holdsSov ? (
+                        <div className="panel-pair">
+                            <AdmTrends admHistory={admHistory} config={config} sovereignty={sovereignty} />
+                            <UpgradesOverview config={config} />
+                        </div>
+                    ) : (
+                        <UpgradesOverview config={config} hostName={hostName} />
+                    ))}
+                </div>
+            ) : (
+                /* Rootless: no sov, no home region. Everything derived from owning
+                   the primary constellations is gone; what's left is the paste-in
+                   intel tooling, which needs only standings and works anywhere. */
+                <div className="dashboard">
+                    {/* Tab 3: Intel — the toolkit leads, it's the reason to open the app */}
+                    {showTab(3) && <DscanParser />}
+                    {showTab(3) && <LocalScanner />}
+                    {showTab(3) && <FleetCompAnalyzer />}
+
+                    {/* Tab 2: Kills — feed over whichever watched region is selected */}
+                    {showTab(2) && <KillFeed kills={killFeed} config={config} regionId={regionId} onRegionChange={changeRegion} />}
+                    {showTab(2) && <ActiveHostileTracker lastUpdate={lastUpdate} regionId={regionId} />}
+
+                    {/* Tab 4: Timers — structure timers are still worth tracking on red sov */}
+                    {showTab(4) && <TimerBoard />}
+
+                    {/* Tab 3: Intel — channel parser is standings-driven, not sov-driven */}
+                    {showTab(3) && <IntelChannelParser config={config} onBoardChange={setIntelAlerts} />}
+                </div>
+            )}
+            {isMobile && <MobileNav activeTab={activeTab} onTabChange={setMobileTab} tabs={tabs} />}
         </div>
     )
 }

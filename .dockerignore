@@ -34,6 +34,12 @@ ROADMAP.md
 .env
 config.local.py
 
+# Live deployment modules — never bake these into an image layer. They carry
+# current standings and staging, and an image can be pushed or shared. They
+# reach the container as a read-only volume mount instead (docker-compose.yml).
+private/
+deployments/local_*.py
+
 # Demo mode
 demo.py
 

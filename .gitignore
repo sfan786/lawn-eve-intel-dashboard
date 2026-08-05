@@ -41,6 +41,16 @@ Thumbs.db
 .env
 config.local.py
 
+# Live deployment modules. A deployment module states current standings and
+# where the alliance actually lives, and this repo is public — so operational
+# ones go here and are never committed. Activate one the usual way
+# (DEPLOYMENT=<name>); the loader checks private/ before deployments/.
+# Reaches a server as a mounted volume, not via git — see tools/push-deployment.sh.
+private/
+# Belt and braces: catches an operational module dropped in deployments/ by
+# habit or by the bootstrap's default --output.
+deployments/local_*.py
+
 # Logs
 *.log
 

@@ -1,6 +1,9 @@
 import React from 'react'
 
-const TABS = [
+// A sov-holding deployment gets the full board. A rootless one has no map, no
+// system table and no PI, so those tabs would open onto nothing — it gets the
+// three that carry content without a home region.
+export const SOV_TABS = [
     { id: 0, icon: '🗺', label: 'Map' },
     { id: 1, icon: '📋', label: 'Systems' },
     { id: 2, icon: '💀', label: 'Kills' },
@@ -9,10 +12,16 @@ const TABS = [
     { id: 5, icon: '🏭', label: 'Industry' },
 ]
 
-export default function MobileNav({ activeTab, onTabChange }) {
+export const ROOTLESS_TABS = [
+    { id: 3, icon: '📡', label: 'Intel' },
+    { id: 2, icon: '💀', label: 'Kills' },
+    { id: 4, icon: '⏱', label: 'Timers' },
+]
+
+export default function MobileNav({ activeTab, onTabChange, tabs = SOV_TABS }) {
     return (
         <nav className="mobile-nav">
-            {TABS.map(tab => (
+            {tabs.map(tab => (
                 <button
                     key={tab.id}
                     className={`mobile-nav-tab ${activeTab === tab.id ? 'active' : ''}`}

@@ -662,6 +662,32 @@ body::after {
     color: var(--text-secondary);
 }
 
+/* ============ REGION PICKER ============ */
+/* Kill-feed region selector. Only rendered when a deployment watches more than
+   one region (i.e. has no single home to anchor the feed to). */
+.region-picker {
+    padding: 4px 8px;
+    background: var(--panel-bg, #0a1018);
+    border: 1px solid var(--border-dim);
+    border-radius: 3px;
+    color: var(--cyan);
+    font-family: 'Orbitron', sans-serif;
+    font-size: 9px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.region-picker:hover {
+    border-color: var(--border-active);
+}
+
+.region-picker:focus {
+    outline: none;
+    border-color: var(--cyan-dim);
+}
+
 /* ============ CONSTELLATION MAP ============ */
 .map-container {
     width: 100%;
