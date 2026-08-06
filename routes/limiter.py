@@ -28,6 +28,12 @@ limiter = Limiter(
 
 # Endpoints that fan out to zKillboard, one request per pilot.
 INTEL_SCAN_LIMIT = os.environ.get("RATELIMIT_INTEL_SCAN", "20 per minute")
+# The region kill feed and hostile tracker. They accept any known-space region,
+# so a caller can walk all 70 and miss the per-region cache every time — each
+# miss costs a zKill call plus a killmail fan-out to ESI. The cap is generous
+# because the dashboard polls this legitimately and a human flicking through
+# the region picker should never notice it.
+REGION_FEED_LIMIT = os.environ.get("RATELIMIT_REGION_FEED", "60 per minute")
 # The Gemini-backed summary endpoint — write-auth gated already, this bounds cost.
 AI_LIMIT = os.environ.get("RATELIMIT_AI", "10 per minute")
 # The analytics endpoints. These accept a password header, so the cap is here to

@@ -3,10 +3,32 @@ from concurrent.futures import ThreadPoolExecutor, wait
 from flask import Blueprint, jsonify, request
 
 import esi_client
-from routes.regions import resolve_region_id
+from routes.limiter import REGION_FEED_LIMIT, limiter
+from routes.regions import pinned_regions, resolve_region_id
 from routes.system_state import state
 
 zkill_bp = Blueprint("zkill", __name__)
+
+
+@zkill_bp.route("/api/regions")
+def api_regions():
+    """Every region the kill feed can be pointed at, plus the pinned shortlist.
+
+    Served separately from /api/config because it comes from ESI rather than
+    the deployment module, and because it's ~70 entries that only the feed
+    picker needs — no reason to put it in the payload every client fetches.
+    """
+    try:
+        regions = esi_client.get_all_regions()
+    except Exception:
+        # Degrade to the deployment's own shortlist rather than 503 — the
+        # picker is still usable, just shorter.
+        regions = pinned_regions()
+    return jsonify({
+        "regions": regions,
+        "pinned": [r["id"] for r in pinned_regions()],
+    })
+
 
 # EVE ship group IDs for capital classification
 _SUPER_GROUPS = {30, 659}        # Titan, Supercarrier
@@ -31,6 +53,7 @@ def api_zkill(system_id):
 
 
 @zkill_bp.route("/api/zkill/feed")
+@limiter.limit(REGION_FEED_LIMIT)
 def api_zkill_feed():
     region_id, err = resolve_region_id(request.args)
     if err:

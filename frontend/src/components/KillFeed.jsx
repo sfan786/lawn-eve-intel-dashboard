@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { formatIsk, timeAgo } from '../utils/formatters'
 import CornerBrackets from './common/CornerBrackets'
 
@@ -13,9 +13,33 @@ export default function KillFeed({ kills, config, regionId, onRegionChange }) {
     // Without sov there is no "our space", so every in_primary-derived stat
     // below is uniformly false and would just read as a row of zeroes.
     const holdsSov = config?.holds_sov !== false
-    // Only worth a picker when there's more than one region to pick.
+
+    // The feed can be pointed at any known-space region — an alliance between
+    // homes wants to look wherever the fight is, not just where it used to
+    // live. /api/regions is fetched lazily (~70 entries from ESI) and only
+    // when a picker is actually going to be shown.
+    const [allRegions, setAllRegions] = useState([])
+    const [pinnedIds, setPinnedIds] = useState([])
     const watchedRegions = config?.watched_regions || []
-    const showRegionPicker = watchedRegions.length > 1
+    // Show the picker whenever the deployment isn't anchored to one region.
+    const showRegionPicker = watchedRegions.length > 1 || !holdsSov
+
+    useEffect(() => {
+        if (!showRegionPicker) return
+        fetch('/api/regions')
+            .then(r => { if (!r.ok) throw new Error(r.status); return r.json() })
+            .then(d => { setAllRegions(d.regions || []); setPinnedIds(d.pinned || []) })
+            .catch(e => console.warn('Region list unavailable:', e.message))
+    }, [showRegionPicker])
+
+    // Pinned first so the deployment's own patch stays one click away, then
+    // everything else alphabetically.
+    const pinnedSet = new Set(pinnedIds)
+    const pinned = allRegions.filter(r => pinnedSet.has(r.id))
+    const others = allRegions.filter(r => !pinnedSet.has(r.id))
+    // Before /api/regions lands, fall back to the deployment's own list so the
+    // control is never empty.
+    const fallback = allRegions.length === 0 ? watchedRegions : []
 
     const visible = (kills || []).filter(k => {
         if (minIsk > 0 && (k.total_value || 0) < minIsk) return false
@@ -91,11 +115,25 @@ export default function KillFeed({ kills, config, regionId, onRegionChange }) {
                             className="region-picker"
                             value={regionId ?? ''}
                             onChange={(e) => onRegionChange && onRegionChange(Number(e.target.value))}
-                            title="Which region to pull kills from"
+                            title="Which region to pull kills from — type to jump"
                         >
-                            {watchedRegions.map(r => (
+                            {fallback.map(r => (
                                 <option key={r.id} value={r.id}>{r.name}</option>
                             ))}
+                            {pinned.length > 0 && (
+                                <optgroup label="Watched">
+                                    {pinned.map(r => (
+                                        <option key={r.id} value={r.id}>{r.name}</option>
+                                    ))}
+                                </optgroup>
+                            )}
+                            {others.length > 0 && (
+                                <optgroup label="All regions">
+                                    {others.map(r => (
+                                        <option key={r.id} value={r.id}>{r.name}</option>
+                                    ))}
+                                </optgroup>
+                            )}
                         </select>
                     )}
                     <div className="map-mode-toggle">

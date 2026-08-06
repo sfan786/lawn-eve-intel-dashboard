@@ -11,6 +11,7 @@ from config import (
     FRIENDLY_STANDING_CORP_NAMES,
     LAWN_ALLIANCE_ID,
 )
+from routes.limiter import REGION_FEED_LIMIT, limiter
 from routes.regions import resolve_region_id
 from routes.system_state import state
 
@@ -18,6 +19,7 @@ hostile_bp = Blueprint("hostile", __name__)
 
 
 @hostile_bp.route("/api/intel/active_hostiles")
+@limiter.limit(REGION_FEED_LIMIT)
 def api_active_hostiles():
     region_id, err = resolve_region_id(request.args)
     if err:
