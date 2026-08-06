@@ -1,25 +1,52 @@
 """
 Which region a feed endpoint is pointed at.
 
-A sovereign deployment has exactly one answer (its own region) and never needs
-to ask. A rootless one has no home to anchor to, so the kill feed and hostile
-tracker take a ?region_id= and the UI offers a picker over WATCHED_REGIONS.
+A sovereign deployment has one obvious answer (its own region). A rootless one
+has no home to anchor to and no reason to be fenced in either — an alliance
+between homes, or a pilot roaming, wants to look wherever the fight is. So
+`region_id` accepts **any known-space region**, and `WATCHED_REGIONS` is a
+pinned shortlist surfaced first in the UI rather than a hard allowlist.
 
-The allowlist is the point. These endpoints fan out to zKillboard and then to
-ESI for every killmail in the response, so an unvalidated region_id would turn
-them into an open proxy that any caller could drive against arbitrary regions —
-burning the shared ESI error budget that esi_client's backoff exists to
-protect, and doing it from the deployment's IP.
+Validation still matters, just for a different reason than before. These
+endpoints fan out to zKillboard and then to ESI for every killmail in the
+response, all from the deployment's IP and shared ESI error budget. Two things
+keep that bounded:
+
+  * the id must be a real known-space region, so the endpoint can't be aimed at
+    arbitrary numbers to generate cache-missing upstream requests, and
+  * the callers are rate limited per IP (see routes/limiter.py).
+
+Wormhole and Abyssal regions are excluded along with the catalogue in
+esi_client.get_all_regions() — nothing in this dashboard reads them usefully.
 """
 
-from config import REGION_ID, WATCHED_REGION_IDS
+import logging
+
+import esi_client
+from config import REGION_ID, WATCHED_REGIONS
+
+log = logging.getLogger(__name__)
+
+
+def known_region_ids():
+    """Valid region ids, or None if ESI is unreachable and we can't tell."""
+    try:
+        return {r["id"] for r in esi_client.get_all_regions()}
+    except Exception as e:
+        log.warning("Region catalogue unavailable, falling back to pinned regions: %s", e)
+        return None
+
+
+def pinned_regions():
+    """The deployment's shortlist, shown first in the picker."""
+    return [r for r in WATCHED_REGIONS if isinstance(r, dict) and r.get("id")]
 
 
 def resolve_region_id(args):
-    """Resolve a request's ?region_id= against the watched allowlist.
+    """Resolve a request's ?region_id= to a validated region.
 
-    Returns (region_id, None) on success, or (None, error_dict) when the
-    caller asked for a region this deployment does not watch.
+    Returns (region_id, None) on success, or (None, error_dict) when the id is
+    not a real region.
     """
     raw = args.get("region_id")
     if raw is None or raw == "":
@@ -30,10 +57,14 @@ def resolve_region_id(args):
     except (TypeError, ValueError):
         return None, {"error": "region_id must be an integer"}
 
-    if region_id not in WATCHED_REGION_IDS:
-        return None, {
-            "error": "region_id is not watched by this deployment",
-            "watched_region_ids": sorted(WATCHED_REGION_IDS),
-        }
+    valid = known_region_ids()
+    if valid is None:
+        # ESI is down, so we can't confirm the id is real. Fall back to the
+        # pinned list rather than either blocking every request or forwarding
+        # an unvalidated id upstream while ESI is already struggling.
+        valid = {r["id"] for r in pinned_regions()} | {REGION_ID}
+
+    if region_id not in valid:
+        return None, {"error": "not a known-space region id"}
 
     return region_id, None

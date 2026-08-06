@@ -137,11 +137,23 @@ class TestGuestPostureDerivation:
 # ---------------------------------------------------------------------------
 
 class TestResolveRegionId:
+    """The feed accepts ANY known-space region, not just the pinned shortlist —
+    an alliance between homes wants to look wherever the fight is. Validation
+    still rejects ids that aren't real regions, because each accepted request
+    fans out to zKill and then to ESI per killmail."""
+
+    ALL_REGIONS = [
+        {"id": 10000066, "name": "Perrigen Falls"},
+        {"id": 10000030, "name": "Heimatar"},
+        {"id": 10000002, "name": "The Forge"},   # real, but NOT pinned
+    ]
+
     @pytest.fixture(autouse=True)
-    def _watched(self, monkeypatch):
+    def _regions(self, monkeypatch):
         import routes.regions as regions
-        monkeypatch.setattr(regions, "WATCHED_REGION_IDS", {r["id"] for r in WATCHED})
+        monkeypatch.setattr(regions, "WATCHED_REGIONS", WATCHED)
         monkeypatch.setattr(regions, "REGION_ID", WATCHED[0]["id"])
+        monkeypatch.setattr(esi_client, "get_all_regions", lambda: self.ALL_REGIONS)
 
     def test_absent_falls_back_to_deployment_region(self):
         assert resolve_region_id({}) == (WATCHED[0]["id"], None)
@@ -149,47 +161,82 @@ class TestResolveRegionId:
     def test_empty_string_falls_back(self):
         assert resolve_region_id({"region_id": ""}) == (WATCHED[0]["id"], None)
 
-    def test_watched_region_is_accepted(self):
+    def test_pinned_region_is_accepted(self):
         region_id, err = resolve_region_id({"region_id": str(WATCHED[1]["id"])})
         assert err is None
         assert region_id == WATCHED[1]["id"]
 
-    def test_unwatched_region_is_rejected(self):
-        region_id, err = resolve_region_id({"region_id": str(UNWATCHED_REGION_ID)})
+    def test_unpinned_but_real_region_is_accepted(self):
+        """The whole point of opening this up: highsec, lowsec, anywhere."""
+        region_id, err = resolve_region_id({"region_id": "10000002"})
+        assert err is None
+        assert region_id == 10000002
+
+    def test_nonexistent_region_is_rejected(self):
+        region_id, err = resolve_region_id({"region_id": "99999999"})
         assert region_id is None
-        assert "not watched" in err["error"]
+        assert "known-space region" in err["error"]
 
     def test_non_integer_is_rejected(self):
         region_id, err = resolve_region_id({"region_id": "'; DROP TABLE"})
         assert region_id is None
         assert "integer" in err["error"]
 
+    def test_falls_back_to_pinned_when_esi_is_down(self, monkeypatch):
+        """If we can't confirm an id is real, don't forward it upstream while
+        ESI is already struggling — accept only the known-good shortlist."""
+        def _boom():
+            raise RuntimeError("ESI down")
+        monkeypatch.setattr(esi_client, "get_all_regions", _boom)
+
+        assert resolve_region_id({"region_id": str(WATCHED[1]["id"])}) == (WATCHED[1]["id"], None)
+        region_id, err = resolve_region_id({"region_id": "10000002"})
+        assert region_id is None and err
+
 
 class TestKillFeedRegionGate:
-    """The feed fans out to zKill then ESI per killmail, so an unvalidated
-    region_id would make it an open proxy driven off our IP and error budget."""
+    """The feed fans out to zKill then ESI per killmail, so a bogus region_id
+    must be rejected before any of that happens."""
 
     @pytest.fixture
     def client(self, monkeypatch):
         import routes.regions as regions
-        monkeypatch.setattr(regions, "WATCHED_REGION_IDS", {r["id"] for r in WATCHED})
+        from routes.limiter import limiter
+        monkeypatch.setattr(regions, "WATCHED_REGIONS", WATCHED)
         monkeypatch.setattr(regions, "REGION_ID", WATCHED[0]["id"])
+        monkeypatch.setattr(esi_client, "get_all_regions", lambda: list(WATCHED))
         flask_app = Flask(__name__)
-        flask_app.config.update(TESTING=True)
+        flask_app.config.update(TESTING=True, RATELIMIT_ENABLED=False)
+        limiter.init_app(flask_app)
         flask_app.register_blueprint(zkill_bp)
         return flask_app.test_client()
 
-    def test_unwatched_region_400s_without_calling_out(self, client, monkeypatch):
+    def test_nonexistent_region_400s_without_calling_out(self, client, monkeypatch):
         def _boom(*a, **kw):
             raise AssertionError("zKillboard must not be called for a rejected region")
         monkeypatch.setattr(esi_client, "get_zkill_region", _boom)
 
         resp = client.get(f"/api/zkill/feed?region_id={UNWATCHED_REGION_ID}")
         assert resp.status_code == 400
-        assert "not watched" in resp.get_json()["error"]
+        assert "known-space region" in resp.get_json()["error"]
 
     def test_garbage_region_400s(self, client):
         assert client.get("/api/zkill/feed?region_id=banana").status_code == 400
+
+    def test_regions_endpoint_lists_catalogue_and_pinned(self, client):
+        body = client.get("/api/regions").get_json()
+        assert body["regions"] == list(WATCHED)
+        assert body["pinned"] == [r["id"] for r in WATCHED]
+
+    def test_regions_endpoint_degrades_when_esi_is_down(self, client, monkeypatch):
+        """A short picker beats a broken one."""
+        def _boom():
+            raise RuntimeError("ESI down")
+        monkeypatch.setattr(esi_client, "get_all_regions", _boom)
+
+        resp = client.get("/api/regions")
+        assert resp.status_code == 200
+        assert resp.get_json()["regions"] == list(WATCHED)
 
 
 # ---------------------------------------------------------------------------

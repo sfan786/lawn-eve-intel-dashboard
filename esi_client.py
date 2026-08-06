@@ -231,6 +231,32 @@ def get_region_info(region_id: int) -> dict:
     return data
 
 
+def get_all_regions() -> list:
+    """Every known-space region as [{"id", "name"}], sorted by name.
+
+    Two calls (region list + bulk names) cached for a day, because regions are
+    as static as EVE data gets. Wormhole (11000000+) and Abyssal (12000000+)
+    regions are excluded: their names are procedural noise like "A-R00001",
+    there is nothing to watch in a picker, and they'd triple the list length.
+    Pochven (10000070) sits in the known-space range and is kept.
+    """
+    cache_key = "all_regions"
+    cached = _get_cached(cache_key)
+    if cached is not None:
+        return cached
+
+    region_ids = [rid for rid in esi_get("/universe/regions/") if rid < 11000000]
+    regions = []
+    for chunk_start in range(0, len(region_ids), 1000):
+        chunk = region_ids[chunk_start:chunk_start + 1000]
+        for item in esi_post("/universe/names/", chunk):
+            regions.append({"id": item["id"], "name": item["name"]})
+
+    regions.sort(key=lambda r: r["name"])
+    _set_cache(cache_key, regions, "region_info")
+    return regions
+
+
 def post_universe_ids(names: list) -> dict:
     """Bulk-resolve names to IDs via POST /universe/ids/.
     Returns dict with 'systems', 'constellations', etc. lists.
