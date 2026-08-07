@@ -43,8 +43,17 @@ deployments/local_*.py
 # Demo mode
 demo.py
 
-# Developer tools
+# Developer tools. Most of these run on a workstation — they resolve IDs from
+# ESI, scaffold a new deployment module, or scp one to a server — and have no
+# business in a production image.
+#
+# The exceptions are the two that operate on the *production database*, which
+# only exists inside the container (intel.db is bind-mounted, and private/
+# war and deployment modules arrive the same way). Excluding them meant the
+# only place they can run was the one place they weren't.
 tools/
+!tools/backfill_war.py
+!tools/migrate_deployment_ids.py
 
 # Node modules (installed in Docker stage 1, not from host)
 frontend/node_modules/
