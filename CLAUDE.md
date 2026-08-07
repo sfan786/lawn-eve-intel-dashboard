@@ -305,6 +305,19 @@ python tools/backfill_war.py --war <id> --dry-run          # volume estimate fir
 python tools/backfill_war.py --war <id> --since 2026-03-01
 ```
 
+**On a server, run it inside the container** — that is where the database and
+the mounted `private/wars/` module are:
+
+```bash
+docker compose exec app python tools/backfill_war.py --war <id> --since 2026-03-01
+```
+
+`.dockerignore` excludes `tools/` as workstation-only but un-ignores this
+script and `migrate_deployment_ids.py`, because both act on the production
+database and so can only run where it lives. Anything added to `tools/` that
+touches `intel.db` needs the same exception, or it will be missing from the
+image with no error until someone tries to use it.
+
 The walk is idempotent on `killmail_id`, so re-running tops up after an outage.
 A busy region-month can exceed `--max-pages` (default 40 = 8,000 kills); the
 tool warns when it truncates, and `--start-page` resumes that month without
