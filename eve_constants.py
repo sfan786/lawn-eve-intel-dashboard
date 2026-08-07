@@ -78,6 +78,28 @@ THREAT_SHIP_GROUPS = {
     963:  "T3C",     # Strategic Cruisers (Tengu/Legion/Proteus/Loki) — covert cyno subsystem
 }
 
+# ===== Kill classification: ship classes =====
+# Coarse buckets used by the kill feed and the war ledger to answer "was that a
+# capital?" without a full group taxonomy. Group IDs verified via ESI
+# /universe/types/{id}/.
+SUPER_GROUP_IDS = {30, 659}          # Titan, Supercarrier
+CAPITAL_GROUP_IDS = {485, 547, 1538}  # Dreadnought, Carrier, Force Auxiliary
+POD_GROUP_IDS = {29}                 # Capsule
+
+# zKillboard stamps the victim's *category* on every killmail as a `cat:N`
+# label, which is free to read and avoids an ESI type lookup on the ingest hot
+# path. Only the categories that are not ordinary ships matter here: a
+# structure loss and a fighter loss are both "kills" to zKill but neither
+# belongs in a fleet-attrition count.
+KILL_CATEGORY_CLASSES = {
+    65: "structure",   # Upwell structures (Citadel/EC/Refinery/Ansiblex)
+    40: "structure",   # Sovereignty structures (TCU, Sov Hub)
+    23: "structure",   # Starbase (Control Tower)
+    46: "structure",   # Orbital Infrastructure
+    22: "deployable",  # Mobile Depot, Warp Disruptor, etc.
+    87: "fighter",     # Fighters — a single supercap fight produces hundreds
+}
+
 # ===== Fleet composition role groups (subcap tactical roles from zkill stats groups) =====
 # Used by /api/fleet/analyze to classify pilots beyond capital detection.
 # Keys are EVE ship group IDs; values are short role labels shown in fleet comp UI.

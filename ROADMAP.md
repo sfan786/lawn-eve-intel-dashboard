@@ -4,6 +4,7 @@
 
 ## Completed
 
+- [x] **War tracker (`/war`)** — a persisted kill ledger for a named war between two coalitions across a set of regions, independent of the active deployment so the record survives a move. Scoreboard, full-war timeline (auto weekly buckets past ~120 days), contested systems ranked by how *balanced* the losses are rather than raw volume, hull-class losses, alliance leaderboards, gap-clustered battles with zKill BR links, our own war record, a classified kill feed, and a roster-suggestion panel that surfaces unrostered alliances fighting in the zone. Wars are defined in `private/wars/` (rosters are standings data); `wars/example.py` is the template. Ingest is a leased, cursor-driven poller (`routes/war_poller.py`) with a historical month-walk backfill (`tools/backfill_war.py`). Key finding: zKill's `/kills/` endpoints already embed the full killmail, so classification needs no ESI fetch at all
 - [x] **Alliance/region-agnostic deployment system** — `deployments/` modules + `tools/bootstrap_deployment.py` bootstrap; `DEPLOYMENT` env var picks active deployment; per-deployment scoping in `intel.db` via `deployment_id`
 - [x] **Deployment posture** — `POSTURE` distinguishes "space we own" from "space we operate in", which `PRIMARY_CONSTELLATION_IDS` used to conflate. Resolves to two booleans: `HOLDS_SOV` (gates ADM trends, grinding planner, ADM alerts, grinding badges) and `HAS_AO` (gates map, system table, campaigns, activity, PI, regional/neighbour intel). Three postures — `sovereign` (both true), `guest` (living in a host's sov: `HOST_ALLIANCE_IDS` renders host sov blue rather than hostile, campaigns defending it read as DEFENSE, upgrades stay since they decide what anomalies spawn), `rootless` (neither: startup skips the ESI region walk and the intel tooling becomes the whole dashboard). The poller snapshots ADM only when `HOLDS_SOV` and activity whenever `HAS_AO`, so it can no longer file another alliance's ADM under our `deployment_id`. `WATCHED_REGIONS` + a validated `?region_id=` give the kill feed a region picker when there is no single home to anchor to. New `routes/regions.py`, `tests/test_posture.py`
 - [x] **Perrigen Falls migration** — LAWN relocated from Kalevala to Perrigen Falls; mock data, frontend, and CLAUDE.md all updated; old Kalevala history preserved but inert
@@ -82,20 +83,23 @@
 ### ISK War Ledger
 **Why:** Both kill-feed routes already parse full killmails with `zkb.totalValue`, then throw the aggregate away every request. Persisting it answers "how did the week go?" at a glance.
 - [ ] `kill_ledger` table (deployment-scoped): killmail_id, timestamp, system_id, isk_value, our_loss vs our_kill
-- [ ] Populate from the background poller so it accrues without page views
-- [ ] Daily kills-vs-losses sparkline panel; 7/30-day ISK efficiency
-- [ ] Per-corp breakdown — who is bleeding ships
-- **Data sources:** zKillboard regional feed + ESI killmails (already fetched), SQLite
-- **Depends on:** background poller (done)
+- [x] Populate from the background poller so it accrues without page views
+- [x] Daily kills-vs-losses panel; ISK efficiency over any window up to the whole war
+- [x] Per-alliance breakdown — who is bleeding ships
+- **Shipped as** the war ledger behind `/war` (`war_kills`, `routes/war_poller.py`). Scoped to a
+  named war rather than to the deployment, so the record survives an alliance moving home.
+- **Still open:** a per-corp (rather than per-alliance) cut, and surfacing the ledger's
+  numbers on the main dashboard rather than only on `/war`.
 
 ### Battle Report Aggregation
 **Why:** The kill feed shows individual kills; fights are what actually matter for AARs and for knowing what the enemy committed.
-- [ ] Cluster kills by system + 20-minute window into "engagements"
-- [ ] Per-engagement: participant counts per side, ISK destroyed/lost, ship classes committed, duration
-- [ ] Link out to a zKillboard related-kills URL for the full BR
+- [x] Cluster kills into engagements — on a 30-minute in-system gap, **not** a fixed window:
+      a fixed clock bucket splits a fight that runs across its boundary and merges
+      unrelated ganks that share one
+- [x] Per-engagement: ISK destroyed, losses per side, cap/structure losses, peak attackers, duration
+- [x] Link out to a zKillboard related-kills URL, anchored on the hour with the most kills
 - [ ] Surface recent engagements on the dashboard and on `/entosis` for the active op
-- **Data sources:** pure post-processing over data the kill feed already fetches
-- **Depends on:** ISK war ledger (shared table)
+- **Data sources:** pure post-processing over the stored war ledger
 
 ### ADM Forecast
 **Why:** `computeGrindingRate` already derives +X.X/day per system; projecting it forward answers the question the Grinding Plan panel exists to answer.
@@ -149,8 +153,13 @@
 - [ ] Background RedisQ consumer feeding the same enrichment path as the current feed
 - [ ] Push new kills to the browser (SSE or WebSocket) instead of 5-minute refreshes
 - [ ] Drives PVP notifications directly, cutting alert latency from minutes to seconds
+- [ ] Point the war ledger at it too — this is now the highest-leverage consumer, since
+      the ledger's freshness is bounded by its poll interval plus zKill's own ingest lag
 - **Data sources:** zKillboard RedisQ
 - **Depends on:** background poller (same lifecycle/threading model)
+- **Made easy by the war ledger:** `war_classify.classify_kill()` is a pure function over a
+  zKill-shaped killmail, and RedisQ delivers exactly that shape. Swapping the transport
+  needs no schema change and no reclassification of stored history.
 
 ### Regional Intel Aggregation *(complete)*
 **Why:** Need early warning from neighboring regions before hostiles reach LAWN.

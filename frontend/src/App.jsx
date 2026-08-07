@@ -358,6 +358,11 @@ export default function App() {
                     <Link to="/entosis" style={{ fontFamily: 'Orbitron', fontSize: 10, color: 'var(--cyan)', textDecoration: 'none', letterSpacing: 1, border: '1px solid var(--cyan-dim)', padding: '3px 8px', whiteSpace: 'nowrap' }}>
                         ENTOSIS OP
                     </Link>
+                    {!!config?.wars?.length && (
+                        <Link to="/war" title={config.wars[0].name} style={{ fontFamily: 'Orbitron', fontSize: 10, color: 'var(--red)', textDecoration: 'none', letterSpacing: 1, border: '1px solid var(--red-dim)', padding: '3px 8px', whiteSpace: 'nowrap' }}>
+                            WAR
+                        </Link>
+                    )}
                     {!isMobile && showUsageLink && (
                         <Link to="/analytics" title="Dashboard usage stats (operator only)" style={{ fontFamily: 'Orbitron', fontSize: 10, color: 'var(--text-muted)', textDecoration: 'none', letterSpacing: 1, border: '1px solid var(--border-dim)', padding: '3px 8px', whiteSpace: 'nowrap' }}>
                             USAGE

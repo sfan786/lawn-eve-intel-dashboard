@@ -1,5 +1,6 @@
 from flask import Blueprint, jsonify
 
+import wars
 from config import (
     ALLIANCE,
     BORDER_SYSTEMS,
@@ -41,6 +42,12 @@ def api_config():
         "has_ao": HAS_AO,
         "host_alliance_ids": sorted(HOST_ALLIANCE_IDS),
         "watched_regions": WATCHED_REGIONS,
+        # Just enough for the header to decide whether to offer the /war link.
+        # The page itself pulls the full definitions from /api/wars.
+        "wars": [
+            {"key": w.key, "name": w.name, "short_name": w.short_name}
+            for w in wars.WARS.values()
+        ],
         "constellations": {
             str(cid): {
                 "name": data["name"],

@@ -592,3 +592,254 @@ def _build_regional_intel():
 
 
 MOCK_REGIONAL_INTEL = _build_regional_intel()
+
+
+# ============ War ledger ============
+#
+# A synthetic two-sided war over the deployment's watched regions, shaped like
+# the real /api/wars/* payloads. Numbers are a fixed function of the period or
+# system index, so the demo is byte-identical on every refresh.
+
+_WAR_REGIONS = [
+    {"id": r["id"], "name": r["name"]}
+    for r in (config.WATCHED_REGIONS or [config.REGION])
+][:8]
+
+_WAR_SIDE_A = _HOSTILE_NAMES[0] if _HOSTILE_NAMES else "Hostile Coalition"
+_WAR_SIDE_B = config.ALLIANCE.get("short_name") or config.ALLIANCE["name"]
+
+MOCK_WAR = {
+    "key": "demo-war",
+    "name": f"{_WAR_SIDE_A} vs {_WAR_SIDE_B}",
+    "short_name": "DEMO WAR",
+    "start_date": (datetime.now(UTC) - timedelta(days=120)).strftime("%Y-%m-%d"),
+    "description": "Demo war — synthetic data, no ESI connection",
+    "regions": _WAR_REGIONS,
+    "sides": {
+        "a": {"key": "a", "label": _WAR_SIDE_A, "short": "HOSTILE", "color": "#ff3355",
+              "alliance_count": 4, "corporation_count": 0},
+        "b": {"key": "b", "label": _WAR_SIDE_B, "short": _WAR_SIDE_B, "color": "#00ff88",
+              "alliance_count": 12, "corporation_count": 5},
+    },
+    "home_alliance_ids": [config.PRIMARY_ALLIANCE_ID],
+}
+
+
+def _war_system_names(count):
+    """Stable system names for the demo war, whatever the posture."""
+    names = list(DEPLOYMENT.PRIMARY_SYSTEMS) or list(_systems_by_name)
+    if not names:
+        names = [f"J{100000 + i}" for i in range(count)]
+    return (names * count)[:count]
+
+
+def _build_war_series(weeks=16):
+    """Weekly kills/ISK, drifting so the chart has a readable shape."""
+    series = []
+    start = datetime.now(UTC) - timedelta(weeks=weeks)
+    for i in range(weeks):
+        period = (start + timedelta(weeks=i)).strftime("%Y-%m-%d")
+        swing = (i * 7) % 23
+        series.append({
+            "period": period,
+            "a_kills": 40 + swing * 3,
+            "a_isk": (18 + swing) * 1e9,
+            "b_kills": 30 + ((i * 5) % 19) * 2,
+            "b_isk": (12 + (i * 5) % 19) * 1e9,
+        })
+    return series
+
+
+_WAR_SERIES = _build_war_series()
+_WAR_SYSTEMS = _war_system_names(10)
+
+MOCK_WAR_SUMMARY = {
+    "war_id": "demo-war",
+    "days": 0,
+    "bucket": "week",
+    "generated_at": datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ"),
+    "totals": {
+        "a_kills": sum(p["a_kills"] for p in _WAR_SERIES),
+        "b_kills": sum(p["b_kills"] for p in _WAR_SERIES),
+        "a_isk": sum(p["a_isk"] for p in _WAR_SERIES),
+        "b_isk": sum(p["b_isk"] for p in _WAR_SERIES),
+        "a_efficiency": 61.4,
+        "b_efficiency": 38.6,
+    },
+    "coverage": {
+        "rows": 12480,
+        "first_kill": (datetime.now(UTC) - timedelta(days=120)).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "last_kill": (datetime.now(UTC) - timedelta(minutes=6)).strftime("%Y-%m-%dT%H:%M:%SZ"),
+    },
+    "series": _WAR_SERIES,
+    "contested_systems": [
+        {
+            "system_id": _mint_id(name),
+            "system_name": name,
+            "region_id": _WAR_REGIONS[i % len(_WAR_REGIONS)]["id"],
+            "kills": 180 - i * 14,
+            "isk": (90 - i * 7) * 1e9,
+            "last_kill": (datetime.now(UTC) - timedelta(hours=i + 1)).strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "a_losses": 60 - i * 4,
+            "b_losses": 52 - i * 5,
+            "other_losses": 8 + i,
+            "contest_score": round(3.9 - i * 0.3, 3),
+        }
+        for i, name in enumerate(_WAR_SYSTEMS[:8])
+    ],
+    "ship_classes": {
+        "a": {
+            "subcap": {"count": 820, "isk": 210e9},
+            "capital": {"count": 34, "isk": 128e9},
+            "super": {"count": 3, "isk": 96e9},
+            "structure": {"count": 11, "isk": 41e9},
+        },
+        "b": {
+            "subcap": {"count": 940, "isk": 188e9},
+            "capital": {"count": 21, "isk": 74e9},
+            "super": {"count": 1, "isk": 31e9},
+            "structure": {"count": 26, "isk": 88e9},
+        },
+    },
+    "biggest_kills": [
+        {
+            "killmail_id": 130000000 + i,
+            "killmail_time": (datetime.now(UTC) - timedelta(days=i * 3)).strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "system_name": _WAR_SYSTEMS[i % len(_WAR_SYSTEMS)],
+            "victim_side": "a" if i % 2 else "b",
+            "victim_alliance_name": _WAR_SIDE_A if i % 2 else _WAR_SIDE_B,
+            "ship_name": ["Erebus", "Hel", "Phoenix", "Thanatos", "Apostle"][i % 5],
+            "ship_class": "super" if i < 2 else "capital",
+            "isk_destroyed": (96 - i * 11) * 1e9,
+        }
+        for i in range(6)
+    ],
+}
+
+MOCK_WAR_BATTLES = [
+    {
+        "system_id": _mint_id(name),
+        "system_name": name,
+        "region_id": _WAR_REGIONS[i % len(_WAR_REGIONS)]["id"],
+        "start_time": (datetime.now(UTC) - timedelta(days=i, minutes=90)).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "end_time": (datetime.now(UTC) - timedelta(days=i)).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "kills": 96 - i * 11,
+        "isk": (140 - i * 18) * 1e9,
+        "a_losses": 40 - i * 4,
+        "b_losses": 34 - i * 5,
+        "cap_losses": 9 - i,
+        "structure_losses": i % 3,
+        "peak_attackers": 210 - i * 15,
+        "duration_minutes": 90.0 - i * 7,
+        "winner": "b" if i % 3 == 0 else "a",
+        "related_url": f"https://zkillboard.com/related/{_mint_id(name)}/"
+                       + (datetime.now(UTC) - timedelta(days=i)).strftime("%Y%m%d%H") + "00/",
+    }
+    for i, name in enumerate(_WAR_SYSTEMS[:6])
+]
+
+MOCK_WAR_LEADERBOARD = {
+    "bleeders": [
+        {
+            "victim_side": "a" if i % 2 else "b",
+            "alliance_id": 99000000 + i,
+            "name": f"{_WAR_SIDE_A if i % 2 else _WAR_SIDE_B} {'ABCDEFGH'[i]}",
+            "losses": 220 - i * 24,
+            "isk_lost": (86 - i * 9) * 1e9,
+        }
+        for i in range(8)
+    ],
+    "killers": [
+        {
+            "alliance_id": 99100000 + i,
+            "involved_kills": 640 - i * 62,
+            "isk_involved": (410 - i * 38) * 1e9,
+        }
+        for i in range(8)
+    ],
+}
+
+MOCK_WAR_PARTICIPANT = {
+    "kills": 412,
+    "losses": 198,
+    "isk_killed": 128e9,
+    "isk_lost": 61e9,
+    "efficiency": 67.7,
+    "top_systems": [
+        {"system_name": name, "n": 64 - i * 8}
+        for i, name in enumerate(_WAR_SYSTEMS[:5])
+    ],
+}
+
+MOCK_WAR_UNCLASSIFIED = [
+    {
+        "alliance_id": 99200000 + i,
+        "name": f"Unaligned Alliance {'ABCDE'[i]}",
+        "involved_kills": 48 - i * 8,
+        "isk_involved": (22 - i * 3) * 1e9,
+        "last_seen": (datetime.now(UTC) - timedelta(hours=i * 5 + 2)).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "kills_vs_a": 30 - i * 6 if i % 2 else 4,
+        "kills_vs_b": 4 if i % 2 else 26 - i * 5,
+        "suggested_side": "b" if i % 2 else "a",
+    }
+    for i in range(5)
+]
+
+
+def _build_war_kills(count=30):
+    ships = ["Muninn", "Loki", "Ishtar", "Hurricane", "Sabre", "Guardian",
+             "Revelation", "Nidhoggur", "Rokh", "Capsule"]
+    classes = ["subcap"] * 7 + ["capital", "subcap", "pod"]
+    out = []
+    for i in range(count):
+        side = "a" if i % 3 else "b"
+        out.append({
+            "killmail_id": 131000000 + i,
+            "killmail_time": (datetime.now(UTC) - timedelta(minutes=7 * i + 3)).strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "system_id": _mint_id(_WAR_SYSTEMS[i % len(_WAR_SYSTEMS)]),
+            "system_name": _WAR_SYSTEMS[i % len(_WAR_SYSTEMS)],
+            "region_id": _WAR_REGIONS[i % len(_WAR_REGIONS)]["id"],
+            "victim_side": side,
+            "killer_side": "b" if side == "a" else "a",
+            "victim_alliance_name": _WAR_SIDE_A if side == "a" else _WAR_SIDE_B,
+            "victim_corp_name": f"Demo Corp {'ABCDEF'[i % 6]}",
+            "victim_char_name": f"Demo Pilot {i + 1}",
+            "ship_name": ships[i % len(ships)],
+            "ship_class": classes[i % len(classes)],
+            "isk_destroyed": (2.4 + (i % 9) * 1.7) * 1e9,
+            "isk_value": (2.6 + (i % 9) * 1.9) * 1e9,
+            "attacker_count": 12 + (i * 7) % 60,
+            "pilot_count": 10 + (i * 5) % 50,
+            "is_npc": 0,
+        })
+    return out
+
+
+MOCK_WAR_KILLS = _build_war_kills()
+
+MOCK_WAR_STATUS = {
+    "war_id": "demo-war",
+    "regions": [
+        {
+            "region_id": r["id"],
+            "region_name": r["name"],
+            "last_success_at": (datetime.now(UTC) - timedelta(minutes=4)).strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "last_kill_time": (datetime.now(UTC) - timedelta(minutes=6 + i)).strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "new_kills": 12 - i,
+            "saturated": False,
+            "last_error": None,
+        }
+        for i, r in enumerate(_WAR_REGIONS)
+    ],
+    "coverage_since": MOCK_WAR_SUMMARY["coverage"]["first_kill"],
+    "last_kill": MOCK_WAR_SUMMARY["coverage"]["last_kill"],
+    "rows": MOCK_WAR_SUMMARY["coverage"]["rows"],
+    "any_gaps": False,
+}
+
+# Advertise the demo war to the header, the same way /api/config does live.
+# Set here rather than in the MOCK_CONFIG literal because the war is built
+# further down this module.
+MOCK_CONFIG["wars"] = [
+    {"key": MOCK_WAR["key"], "name": MOCK_WAR["name"], "short_name": MOCK_WAR["short_name"]}
+]

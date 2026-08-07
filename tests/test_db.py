@@ -41,6 +41,7 @@ class TestSchema:
             "adm_snapshots", "activity_snapshots", "custom_timers",
             "system_annotations", "jump_bridges", "sov_state",
             "sov_changes", "entosis_nodes",
+            "war_kills", "war_ingest_state", "war_poll_lease",
         }
         with _conn(tmp_db) as c:
             tables = {r[0] for r in c.execute(

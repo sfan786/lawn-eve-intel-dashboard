@@ -105,6 +105,7 @@ lawn-eve-intel-dashboard/
 │   ├── sov_routes.py        # /api/sovereignty, /api/campaigns
 │   ├── activity_routes.py   # /api/activity
 │   ├── zkill_routes.py      # /api/zkill/feed, /api/zkill/<id>
+│   ├── war_routes.py        # /api/wars + per-war summary/battles/leaderboard/kills/status
 │   ├── history_routes.py    # /api/history/adm, /api/history/activity/heatmap
 │   ├── intel_routes.py      # /api/intel/neighbors, /api/intel/regional, /api/intel/sov_changes, /api/local/scan, /api/chars/analyze, /api/fleet/analyze
 │   ├── hostile_routes.py    # /api/intel/active_hostiles (hostile kill feed)
@@ -118,6 +119,7 @@ lawn-eve-intel-dashboard/
 │   ├── limiter.py           # flask-limiter instance + per-IP caps for intel/AI endpoints
 │   ├── regions.py           # ?region_id= resolution against the WATCHED_REGIONS allowlist
 │   ├── poller.py            # Background ESI poller — writes ADM/activity history on an interval
+│   ├── war_poller.py        # Background war-kill ingest — leased, cursor-driven
 │   └── static_routes.py     # / and /entosis (serves Vite SPA)
 │
 ├── mock/                    # Demo mock blueprints (no ESI calls)
@@ -129,10 +131,17 @@ lawn-eve-intel-dashboard/
 │   ├── lawn_perrigen.py     # Sovereign-posture reference deployment (public/historical)
 │   └── example.py           # Commented template for new deployments
 │
-├── private/                 # Live deployments — GITIGNORED + DOCKERIGNORED.
-│                            # Reaches a server as a read-only volume mount,
-│                            # never via git or an image layer.
+├── wars/                    # One module per tracked war (see Key Decision 16)
+│   ├── __init__.py          # Loader: private/wars/ first, then wars/. Never fatal.
+│   └── example.py           # Commented template for new wars
 │
+├── private/                 # Live deployments — GITIGNORED + DOCKERIGNORED.
+│   └── wars/                # Live war modules. Same rule: a war roster names
+│                            # both coalitions' current standings, so it is not
+│                            # committed. Inside the existing ./private mount.
+│
+├── war_classify.py          # Pure zKill-killmail → classified ledger row
+├── war_ingest.py            # Fetch/classify/store, shared by poller + backfill
 ├── eve_constants.py         # Game-wide constants (ESI URLs, TTLs, upgrade catalog, planet types)
 │
 ├── frontend/                # Vite + React project
@@ -152,6 +161,7 @@ lawn-eve-intel-dashboard/
 │   ├── push-deployment.sh   # Copy a private deployment to a server (one-time per deployment)
 │   ├── esi_lookup.py        # CLI: resolve system/alliance/corp names to IDs
 │   ├── migrate_deployment_ids.py # One-off: backfill deployment_id on pre-migration DBs
+│   ├── backfill_war.py      # CLI: seed a war ledger from zKillboard history (month walk)
 │   └── bootstrap_deployment.py  # CLI: scaffold a new deployment from ESI
 │
 ├── Dockerfile               # Multi-stage: Node (Vite build) → Python (gunicorn)
@@ -205,6 +215,19 @@ lawn-eve-intel-dashboard/
 13. **Rate limiting** — `routes/limiter.py` holds a `flask-limiter` instance applied per-endpoint (no global default, so ordinary dashboard polling is never throttled). It caps the analytics endpoints (to make guessing `ANALYTICS_PASSWORD` impractical) and the unauthenticated intel endpoints (`/api/local/scan`, `/api/chars/analyze`, `/api/fleet/analyze`), which each fan out to zKillboard — up to 25 parallel stats requests per call — plus the Gemini endpoint. `/api/zkill/feed` and `/api/intel/active_hostiles` are capped too (`RATELIMIT_REGION_FEED`, default 60/min): they accept any known-space region, so a caller can walk all ~70 and miss the per-region cache every time, each miss costing a zKill call plus a killmail fan-out to ESI. Storage is per-worker in memory, so the effective ceiling is workers × limit; set `RATELIMIT_STORAGE_URI` to Redis if you need it exact.
 14. **Traffic analytics** — `routes/analytics_routes.py` registers an app-wide `after_app_request` hook that counts every request into two rollup tables (`traffic_hourly`, `traffic_visitors`), never per-request rows: a busy day is a few hundred rows regardless of how hard the dashboard is polled. Counts are buffered in memory and flushed every `ANALYTICS_FLUSH_SECONDS` (and by the poller each cycle, so a quiet night still persists), so an SQLite write is not on the path of every 5-minute poll. Privacy: no IPs, user agents, or request bodies are stored — a visitor is a truncated HMAC of (IP + user agent) keyed on `ANALYTICS_SALT` (defaults to `FLASK_SECRET_KEY`); logged-in SSO sessions additionally stamp the character name. Bot/crawler user agents are counted separately and never as visitors, parameterised API paths collapse to their `url_rule` (`/api/zkill/<id>`), and unknown page paths bucket to `/other` so scanners can't blow up path cardinality. Reading the stats has its **own** gate, deliberately not `require_write_auth`: that credential is fleet-wide (`TIMER_PASSWORD` is handed out for timers/entosis and `AUTH_ALLOWED_ALLIANCE_IDS` covers every alliance member), so it would let any member read usage numbers. `require_analytics_auth` accepts only an explicit character allowlist (`ANALYTICS_ALLOWED_CHARACTER_IDS`, checked against the SSO session) or a dedicated `ANALYTICS_PASSWORD` sent as `X-Analytics-Auth`. Both default to unset, in which case reads return 503 while recording continues — data accumulates until an operator opts in. Password comparison is `hmac.compare_digest` and both endpoints are rate limited (`RATELIMIT_ANALYTICS`, default 20/min) so the password can't be guessed over the network. The unlock form keeps the typed value out of the fetch path — an early version keyed the load effect on the input state and fired a request per keystroke, which tripped that limit before the user could submit. `GET /api/analytics/auth` is public but returns only which unlock methods exist, never data. The header USAGE link renders only on a browser that has already unlocked the page (`analytics_seen` in localStorage) so the page isn't advertised to the alliance — a UI hint only, access is enforced server-side. Set `ANALYTICS_ENABLED=false` to turn recording off.
 15. **Gunicorn preload** — `gunicorn.conf.py` sets `preload_app`, so `resolve_all_systems()` (a full ESI walk of the region) runs once in the master and every worker inherits the warm ESI cache through fork, instead of each worker repeating the walk and maintaining a private cache.
+16. **War ledger** — `/war` tracks a named war between two coalitions across a set of regions, backed by a persisted `war_kills` table rather than the live kill feed. The pieces: `wars/` (loader + template), `private/wars/<name>.py` (real rosters), `war_classify.py` (pure killmail → row), `war_ingest.py` (fetch/classify/store), `routes/war_poller.py` (steady state), `tools/backfill_war.py` (history), `routes/war_routes.py` (read API).
+
+    Five things here are counter-intuitive enough to be worth stating, because each was found by measuring the live API and would otherwise be "corrected" back:
+
+    * **zKill's `/kills/` endpoints return the full killmail inline** — `victim`, `attackers`, `killmail_time`, plus a `zkb` block with ISK values and `cat:N` category labels. Classifying a kill needs **no ESI killmail fetch at all**. The older `zkill_routes`/`hostile_routes` feeds still fan out to ESI for data zKill already sent; that is a leftover, not a pattern to copy.
+    * **The plain region URL is CDN-cached for an hour** (~585 KB/page). Polling it on a timer re-downloads an identical body. Steady-state ingest therefore asks for `/pastSeconds/{n}/` with `n` derived from the stored cursor, so each cycle is a distinct URL and actually fresh.
+    * **`pastSeconds` cannot reach into history** — the 200-kill cap applies whatever the time filter. History is walked with `year/YYYY/month/M/page/N/`, verified contiguous and non-overlapping. That is what `backfill_war.py` uses; pages run newest-first, so `--max-pages` truncates the *oldest* end of a month and `--start-page` resumes it.
+    * **The ledger is keyed by `war_id`, not `deployment_id`** — the only table in `db.py` that skips deployment scoping. A war outlives whichever space we happen to live in, and two deployments watching one war must see one ledger.
+    * **The war poller takes a database lease**, unlike the ADM poller which safely runs in every worker. Duplicate ADM cycles cost one small ESI call; duplicate war cycles cost megabytes of zKillboard traffic.
+
+    Battles are clustered by a **30-minute gap within a system**, not by clock hour — hour bucketing splits a 19:55–20:20 fight into two engagements that never happened, and merges unrelated ganks. `hour_bucket` survives only to build the zKill `/related/` URL, anchored on the hour with the most kills.
+
+    Two honesty details the UI depends on: third-party kills are stored with a NULL side (dropping them would mean re-fetching the same kills every cycle forever, since the "already seen" filter is the stored rows), and `/api/wars/<key>/status` exists so the page can state its coverage and staleness rather than implying a paginated, CDN-cached feed is complete. The killer leaderboard is labelled "involvement" because zKill-style credit goes to every participant and so sums to more than the ISK destroyed.
 
 ## Development
 
@@ -262,6 +285,83 @@ python app.py                     # or: FLASK_PORT=5001 python demo.py
 cd frontend && npm run dev        # or: npm run dev:demo
 ```
 
+### Tracking a War
+
+A war is defined by one module in `private/wars/` (start from `wars/example.py`).
+It needs a stable `WAR_ID`, a `START_DATE`, the `REGIONS` it is fought in, and
+two side rosters of alliance/corp IDs. When one side is "us and our blues",
+derive it from the active deployment rather than pasting the standings list —
+otherwise the roster drifts and the ledger starts misattributing kills:
+
+```python
+from deployments import ACTIVE as _D
+SIDES["b"]["alliance_ids"] = [_D.ALLIANCE["id"], *_D.FRIENDLY_ALLIANCE_IDS]
+```
+
+Seed the history once, then the poller keeps it current:
+
+```bash
+python tools/backfill_war.py --war <id> --dry-run          # volume estimate first
+python tools/backfill_war.py --war <id> --since 2026-03-01
+```
+
+The walk is idempotent on `killmail_id`, so re-running tops up after an outage.
+A busy region-month can exceed `--max-pages` (default 40 = 8,000 kills); the
+tool warns when it truncates, and `--start-page` resumes that month without
+re-fetching what it already has.
+
+Rosters drift as a war goes on, so they are edited **from the page**, not by
+hand: the "unaligned in the war zone" panel ranks alliances fighting there that
+are on neither side, and each row has buttons to put them on a side or rule
+them out. Edits are write-auth gated and land in `war_roster_overrides`, a
+layer on top of the module's lists — the module stays the reviewable base
+roster, and `private/` is mounted read-only in production anyway, so the app
+could not write it even if that were a good idea. A "Roster Edits" panel lists
+what has been changed, with undo.
+
+Assigning a side **reclassifies stored history**, since a war's membership is
+discovered as it goes and a correction that only affected future kills would
+leave the totals permanently wrong. Two rules keep that from corrupting the
+ledger, both learned from a change that did not round-trip:
+
+* **Scoped to the entity that changed.** Rows it never appeared on keep their
+  ingest-time answer. Rewriting everything on every edit meant an assignment
+  and its undo did not cancel out.
+* **Exact where the data allows.** `attacker_alliance_counts` stores pilots per
+  attacking alliance, which is what lets a reclassification reproduce the
+  ingest majority rule precisely. Rows predating that column recompute only the
+  unambiguous cases (one side present, or none) and otherwise keep what ingest
+  decided — a stale-but-original answer beats a confidently wrong one.
+
+Measured on a 123k-row ledger of pre-counts rows, assign-then-undo restored the
+totals exactly for one alliance and left a single row changed for another. New
+rows carry counts and round-trip exactly.
+
+**Listing a region does not mean the war is fought there**, and you do not have
+to know in advance which ones matter — the ledger measures it. Once there is
+data, the share of a region's kills that involve a belligerent tells you
+directly (measured across the Drone Regions: the core war regions run 70–87%,
+while quieter or busier neighbours ranged from 3% to 36%). Two consequences
+are already handled in code, and are why "contested systems" is trustworthy in
+a region that is mostly unrelated traffic:
+
+* the contested-systems shortlist is taken by **belligerent kills, not ISK** —
+  otherwise unrelated ratting losses in a busy region crowd genuinely fought-over
+  systems out of the list before the contest ranking is applied, and
+* the contest score is computed from war kills, so a system with 200 unrelated
+  losses and two belligerent ones does not read as contested.
+
+The `war / all` column on that panel shows the split per system. A region that
+stays near zero is costing one zKill request per cycle for nothing and can be
+dropped from `REGIONS`.
+
+**Dropping a region is non-destructive.** `REGIONS` governs reads as well as
+ingest — every aggregate filters to it — so a dropped region stops being polled
+and disappears from the page, but its stored kills stay in `war_kills`. Putting
+it back restores its history immediately, with no second backfill walk. That is
+why the filter exists rather than a `DELETE`: the measurement that justifies
+dropping a region is only trustworthy while the data behind it still exists.
+
 ### Entity Lookup
 ```bash
 python tools/esi_lookup.py alliance "Some Alliance Name"
@@ -315,7 +415,20 @@ Resolves names to numeric IDs for `config.py`. Uses ESI `POST /universe/ids/` fo
 - `GET /api/analytics/summary?days=30` — dashboard usage rollup (unique/returning visitors, daily series, hour-of-day, top pages + API endpoints, logged-in pilots, bot hits); operator-gated by `ANALYTICS_ALLOWED_CHARACTER_IDS` / `ANALYTICS_PASSWORD` (`X-Analytics-Auth`) — **not** the fleet write auth; 503 when neither is configured, `days` clamped to 1–365
 - `GET /api/analytics/auth` — which unlock methods the analytics page should offer and whether the caller is already in (no data)
 - `GET /api/pi_data` — planetary interaction data (per-planet `type_id`/`type` for every planet in the active deployment's primary systems)
+- `GET /api/wars` — configured wars (key, name, start date, regions, side rosters). Empty list when none — wars are optional
+- `GET /api/wars/<key>/summary?days=N&bucket=day|week|month` — scoreboard, time series, contested systems, hull losses. `days=all` spans the whole war; windows over ~120 days roll up to weekly buckets automatically
+- `GET /api/wars/<key>/battles?days=N` — engagements clustered on a 30-minute gap, with zKill `/related/` links
+- `GET /api/wars/<key>/leaderboard?days=N` — heaviest losses by alliance, plus most-involved killers
+- `GET /api/wars/<key>/kills?limit&before&side&class` — classified kill feed; `before` is an opaque `time|id` cursor (a fight puts many kills in one second, so time alone cannot page)
+- `GET /api/wars/<key>/participant[?alliance_id=]` — one alliance's own record; defaults to the war's `HOME_ALLIANCE_IDS`
+- `GET /api/wars/<key>/unclassified?days=N` — alliances fighting in the zone that are on neither roster, for roster maintenance. Excludes anything already decided, including entities explicitly ruled neutral
+- `GET /api/wars/<key>/roster` — effective rosters plus the edits made from the page
+- `POST /api/wars/<key>/roster` — assign an entity to side `a`/`b`, or `null` for "not a belligerent"; write-auth gated, reclassifies that entity's stored kills
+- `DELETE /api/wars/<key>/roster/<entity_id>[?entity_type=]` — undo an edit, reverting to the war module
+- `GET /api/wars/<key>/status` — per-region ingest cursor, last success, saturation flag, and overall coverage window
 - `GET /api/status` — health check
+
+All `/api/wars/*` reads are pure SQLite with no upstream fan-out, so they carry no rate limit (unlike the zKill-backed feeds); `days` and `limit` clamping is what bounds them, and aggregates are memoized in-process for 60s.
 
 ### Map Implementation Details
 
@@ -454,8 +567,8 @@ See [ROADMAP.md](ROADMAP.md) for full details and backlog.
 - [x] **Reliability & operations pass** — background ESI poller (`routes/poller.py`) writes ADM/activity history on an interval instead of as a side effect of read endpoints; pooled `requests.Session` with retry/backoff + ESI error-budget backoff; `gunicorn.conf.py` with `preload_app` and a `post_fork` poller start; per-IP rate limits on the zKill-fanout and Gemini endpoints; 20k-char AI input cap; `logging` replaces `print()` backend-wide; legacy `static/index.html` fallback removed (missing build now 503s loudly); ruff + eslint in CI; route-level test suite (`tests/test_routes.py`)
 
 **Priority 1 — Immediate tactical value:**
-- [ ] ISK war ledger — persist kills/losses the feed already parses; daily kills-vs-losses trend
-- [ ] Battle report aggregation — cluster kills into engagements with ISK in/out
+- [x] **ISK war ledger** — `war_kills` persists every classified kill in a war's regions; kills/ISK per side over time on `/war`, with the whole war reachable via `days=all`
+- [x] **Battle report aggregation** — kills clustered into engagements on a 30-minute in-system gap, with ISK in/out, cap losses, peak attackers and a zKill `/related/` link per battle
 - [ ] ADM forecast — project "days to ADM 5" from the observed grinding rate
 - [x] zKillboard feed panel enhancements (filtering, ship class breakdowns)
 - [x] ADM grinding planner (priority ranking, rate estimation, daily targets)
@@ -476,7 +589,7 @@ See [ROADMAP.md](ROADMAP.md) for full details and backlog.
 **Priority 2 — Operational:**
 - [ ] PWA / service worker — alerts that fire with the app closed (highest-leverage follow-up to the poller)
 - [ ] Hostile pilot watchlist — auto-flag known droppers using the existing role detection
-- [ ] zKillboard RedisQ stream — near-real-time kills, replaces polling
+- [ ] zKillboard RedisQ stream — near-real-time kills, replaces polling. Now the natural next step for the war ledger: `war_classify` is a pure function over a zKill-shaped killmail, and RedisQ delivers that same shape, so it swaps in behind `war_ingest` with no schema change and no reclassification
 - [x] Browser push notifications (PVP alerts, sov campaigns, ADM drops) — ALERTS button in header, `useNotifications` hook + `NotificationBell.jsx`
 - [x] Regional intel aggregation — `/api/intel/regional` + `/api/intel/sov_changes` + `RegionalIntel.jsx` with spike detection vs 7-day baseline
 - [ ] Structure tracking (requires SSO)
