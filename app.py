@@ -37,6 +37,7 @@ from routes.sov_routes import sov_bp
 from routes.static_routes import static_bp
 from routes.system_state import resolve_all_systems, state
 from routes.timer_routes import timer_bp
+from routes.war_routes import war_bp
 from routes.zkill_routes import zkill_bp
 
 
@@ -65,7 +66,7 @@ def create_app():
     apply_proxy_fix(app)
     warn_on_untrusted_proxy(app)
     limiter.init_app(app)
-    for bp in [config_bp, sov_bp, activity_bp, zkill_bp, history_bp, intel_bp, hostile_bp, timer_bp, annotation_bp, jb_bp, entosis_bp, auth_sso_bp, static_bp, ai_bp, analytics_bp]:
+    for bp in [config_bp, sov_bp, activity_bp, zkill_bp, war_bp, history_bp, intel_bp, hostile_bp, timer_bp, annotation_bp, jb_bp, entosis_bp, auth_sso_bp, static_bp, ai_bp, analytics_bp]:
         app.register_blueprint(bp)
     return app
 
@@ -85,6 +86,7 @@ if __name__ == "__main__":
     # Threads don't survive fork, so under gunicorn the poller starts from the
     # post_fork hook instead (gunicorn.conf.py). Here we own the process.
     from routes.poller import start_poller
+    from routes.war_poller import start_war_poller
 
     log = logging.getLogger(__name__)
     primary_names = [c["name"] for c in state.constellation_data.values() if c.get("is_primary")]
@@ -96,5 +98,7 @@ if __name__ == "__main__":
     # Werkzeug's reloader runs this module twice; only the child holds the server.
     if not FLASK_DEBUG or os.environ.get("WERKZEUG_RUN_MAIN") == "true":
         start_poller()
+        # No-op unless a war module is configured.
+        start_war_poller()
 
     app.run(host=FLASK_HOST, port=FLASK_PORT, debug=FLASK_DEBUG)

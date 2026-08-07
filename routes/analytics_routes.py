@@ -52,7 +52,7 @@ PRUNE_INTERVAL_SECONDS = 24 * 3600
 # SPA routes we count by name. Anything else that reaches the catch-all is
 # bucketed as "/other" — scanners probing /wp-login.php and friends would
 # otherwise give the path column unbounded cardinality.
-KNOWN_PAGES = {"/", "/entosis", "/analytics"}
+KNOWN_PAGES = {"/", "/entosis", "/analytics", "/war"}
 
 _BOT_UA = re.compile(
     r"bot|crawl|spider|slurp|bingpreview|facebookexternalhit|headless|"

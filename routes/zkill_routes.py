@@ -6,6 +6,7 @@ import esi_client
 from routes.limiter import REGION_FEED_LIMIT, limiter
 from routes.regions import pinned_regions, resolve_region_id
 from routes.system_state import state
+from war_classify import ship_class_from_group as _ship_class
 
 zkill_bp = Blueprint("zkill", __name__)
 
@@ -28,22 +29,6 @@ def api_regions():
         "regions": regions,
         "pinned": [r["id"] for r in pinned_regions()],
     })
-
-
-# EVE ship group IDs for capital classification
-_SUPER_GROUPS = {30, 659}        # Titan, Supercarrier
-_CAPITAL_GROUPS = {485, 547, 1538}  # Dreadnought, Carrier, Force Auxiliary
-_POD_GROUPS = {29}               # Capsule
-
-
-def _ship_class(group_id: int) -> str:
-    if group_id in _SUPER_GROUPS:
-        return "super"
-    if group_id in _CAPITAL_GROUPS:
-        return "capital"
-    if group_id in _POD_GROUPS:
-        return "pod"
-    return "subcap"
 
 
 @zkill_bp.route("/api/zkill/<int:system_id>")

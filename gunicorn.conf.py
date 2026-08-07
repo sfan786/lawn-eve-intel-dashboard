@@ -24,7 +24,16 @@ loglevel = os.environ.get("LOG_LEVEL", "info").lower()
 
 
 def post_fork(server, worker):
-    """Start the per-worker background ESI poller after fork."""
+    """Start the background pollers after fork.
+
+    Both start in every worker, but they coordinate differently: the ESI poller
+    is safe to duplicate (its writes dedupe, and a redundant cycle is one small
+    request), while the war poller takes a database lease so exactly one worker
+    does the fetching — a duplicate war cycle would be megabytes of zKillboard
+    traffic, not a rounding error.
+    """
     from routes.poller import start_poller
+    from routes.war_poller import start_war_poller
 
     start_poller()
+    start_war_poller()

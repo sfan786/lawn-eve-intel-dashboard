@@ -532,6 +532,48 @@ def get_zkill_region(region_id: int) -> list:
     return _zkill_get(f"/kills/regionID/{region_id}/", f"zkill_region_{region_id}")
 
 
+def get_zkill_region_kills(region_id: int, past_seconds: int = None, year: int = None,
+                           month: int = None, page: int = 1, timeout: int = 30) -> list:
+    """Region kills for the war ledger. Raises on failure, and never caches.
+
+    Deliberately not built on _zkill_get, on two counts:
+
+    * **It raises.** _zkill_get flattens an outage to [], which is right for a
+      read endpoint but corrupts a cursor: a timeout would look like "no kills
+      happened", the ingest would advance its high-water mark past the gap, and
+      those kills would never be fetched again. The caller has to be able to
+      tell "nothing died" from "nobody answered".
+    * **It does not cache.** These responses are large (a full page is ~600 KB)
+      and each URL is fetched once, so caching them would evict up to a fifth
+      of the shared ESI cache — the sov, activity and name entries the rest of
+      the dashboard depends on — in exchange for hits that never come.
+
+    Modifiers compose as zKillboard documents them, verified against the live
+    API: `pastSeconds` for a rolling window (steady-state polling) and
+    `year`/`month` for a historical walk (backfill). Both cap at 200 kills per
+    page, so `page` is what actually reaches further back.
+    """
+    path = f"/kills/regionID/{region_id}/"
+    if year and month:
+        path += f"year/{year}/month/{month}/"
+    elif past_seconds:
+        path += f"pastSeconds/{int(past_seconds)}/"
+    if page and page > 1:
+        path += f"page/{int(page)}/"
+
+    resp = _session.get(f"{ZKILL_BASE}{path}", timeout=timeout)
+    resp.raise_for_status()
+    data = resp.json()
+    if not isinstance(data, list):
+        # zKill answers an over-deep page or a bad modifier with an object.
+        raise ValueError(f"zKill returned {type(data).__name__}, not a kill list, for {path}")
+    # An empty window comes back as `[null]`, not `[]` — verified against the
+    # live API on a quiet region. Filtering here keeps every caller from having
+    # to know that, and "no kills" stays distinguishable from "no answer"
+    # (which raises).
+    return [k for k in data if isinstance(k, dict)]
+
+
 def get_zkill_alliance(alliance_id: int) -> list:
     """Get recent kills for an alliance from zKillboard.
 
