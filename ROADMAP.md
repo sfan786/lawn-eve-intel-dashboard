@@ -1,6 +1,6 @@
 # ROADMAP — EVE Alliance Intel Dashboard
 
-**Note:** this repository is public. Live deployment modules (current standings, staging location, next move) live in gitignored `deployments/local_*.py` and are never committed — and this file stays to engineering work, not to where the alliance currently is or is going.
+**Note:** this repository is public. Live deployment modules (current standings, staging location, next move) live in gitignored `private/<name>.py` and are never committed — and this file stays to engineering work, not to where the alliance currently is or is going.
 
 ## Completed
 
@@ -60,6 +60,10 @@
 **Why:** `guest` (living in a host alliance's sov) is implemented and covered by tests, but two things can only be done from inside the space.
 - [ ] Hand-tune `MAP_LAYOUT` for any guest deployment — the bootstrap's auto-layout is usable, not pretty
 - [ ] Populate `SYSTEM_UPGRADES` by observation once staged. ESI won't expose iHub fittings without SSO, and under a guest posture they aren't our iHubs anyway — but what's installed still decides what anomalies spawn where we live, so it's worth recording by hand
+
+### Hostile tracker lists NPC starter corps as hostile entities
+**Why:** `routes/hostile_routes.py` classifies any non-friendly attacker corp as a hostile entity, so an unaffiliated pilot flying in Federal Navy Academy (id `1000168`) or State War Academy takes a slot in the top-15 alongside real threat groups. Player corp IDs start at `98000000`, so anything below that is an NPC corp and is noise by definition — it names a starter corp, not an organisation that will undock on you again. The noise scales with how few blues a deployment has, so it is at its worst under a rootless posture with a short standings list.
+- [ ] Skip attackers whose only affiliation is an NPC corp (`corp_id < 98000000` and no alliance) when aggregating; keep them in the raw kill feed
 
 ### Deployment-specific data still hardcoded in the frontend
 **Why:** `GrindingPlan.jsx:7-12` hardcodes 14 Perrigen system names in `SYSTEM_TIERS`. Harmless while rootless (the panel doesn't render), but it silently mis-ranks the moment a second sov-holding deployment exists.

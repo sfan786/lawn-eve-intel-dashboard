@@ -1,13 +1,15 @@
 # CLAUDE.md — EVE Alliance Intel Dashboard
 
 ## What This Is
-Real-time intel dashboard for an EVE Online alliance, currently configured for **Get Off My Lawn [LAWN]** in **Perrigen Falls**. After being evicted from The Kalevala Expanse, LAWN relocated and claimed two constellations: **9BGY-6** and **WXB-RY**.
+Real-time intel dashboard for an EVE Online alliance, built for **Get Off My Lawn [LAWN]**.
 
 The codebase is **alliance/region agnostic** — alliance, region, system list, map layout, and friendly/hostile entity lists all come from a deployment module under `deployments/`. The dashboard serves the whole alliance (12 member corps including Astrum Mechanica, Gnomeland Services, LAWN HC, etc.).
 
-**Coalition status (June 2026):** LAWN joined the **RMC coalition** — ~50 alliances at +5 (Legion of xXDEATHXx, Red Alliance, Against ALL Authorities., etc.) plus 8 standalone +5 corps, all in the deployment's friendly lists. The old mini coalition is gone: **BorderZone [BOZON]** folded under the pressure of B0SS's war and evac'd (still +10 on standings with **InnerZone** HS alts, but effectively gone), and **The Skeleton Crew [MEAN]** never joined the Perrigen Falls move — standings-only +5 now. **Gnomes Rising HoA [GNOME]** remains LAWN's alt/highsec alliance at +10.
+The only deployment committed here is `lawn_perrigen`, a **historical** sovereign-posture reference: LAWN's Perrigen Falls holdings after the eviction from The Kalevala Expanse. It is kept because it exercises the full sov stack and is already public, **not** because it describes where the alliance is now. The live deployment is private and untracked — see the next section.
 
 The active deployment is selected by the `DEPLOYMENT` env var (default: `lawn_perrigen`). Bootstrap a new deployment for any alliance/region with `tools/bootstrap_deployment.py`.
+
+**Do not restore a "current situation" or "coalition status" section here.** One existed and went stale within weeks while remaining live opsec the whole time — the worst of both. Where the alliance lives, who it is blue to, and where it is going belong in the private module only.
 
 ## Deployment Data Is Not Public
 
@@ -77,9 +79,11 @@ python tools/bootstrap_deployment.py \
 
 The bootstrap resolves ESI IDs, walks the gate graph for the whole region, fetches PI data per primary system, generates an auto-layout for `MAP_LAYOUT` / `MAP_LAYOUT_SUBWAY`, and writes a complete deployment module to `deployments/<name>.py`. Hand-tune `MAP_LAYOUT` positions afterwards — auto-layout produces something usable but not pretty. Then run with `DEPLOYMENT=some_alliance_region python app.py`. Switching deployments preserves history (rows scoped by `deployment_id`); reads filter to the active one.
 
-**Rootless deployments are hand-written, not bootstrapped.** There is no region geography to walk, so there is nothing for the bootstrap to do — start from `deployments/example.py`, set `POSTURE = "rootless"`, list `WATCHED_REGIONS`, and leave every geography key empty. Standings can be imported from another deployment module rather than duplicated, since standings belong to the alliance, not to the space it is sitting in.
+**Rootless deployments are hand-written, not bootstrapped.** There is no region geography to walk, so there is nothing for the bootstrap to do — start from `deployments/example.py`, set `POSTURE = "rootless"`, list `WATCHED_REGIONS`, and leave every geography key empty.
 
-**Bootstrap output for a live deployment goes to `deployments/local_<name>.py`** (gitignored) — pass `--output`, or rename afterwards. Only reference/historical deployments belong in version control.
+**Standings belong to the alliance rather than to the space it is sitting in, but do not import them from a committed module to avoid duplicating them.** That coupling means the only way to update standings is to edit a public file, which is exactly the leak `private/` exists to prevent — a live deployment must define its own friendly lists inline. Importing stable, already-public identity (`ALLIANCE`) is fine; importing `FRIENDLY_*` is not.
+
+**Bootstrap output for a live deployment goes to `private/<name>.py`** (gitignored and dockerignored) — pass `--output`, or move it afterwards. `deployments/local_*.py` is also ignored and still works, but `private/` is the current convention: it is the directory mounted read-only into the container. Only reference/historical deployments belong in version control.
 
 ## Tech Stack
 - **Backend:** Python 3.11 + Flask, split into Flask Blueprint modules under `routes/` (live) and `mock/` (demo)
