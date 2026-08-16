@@ -1,13 +1,15 @@
 # CLAUDE.md — EVE Alliance Intel Dashboard
 
 ## What This Is
-Real-time intel dashboard for an EVE Online alliance, currently configured for **Get Off My Lawn [LAWN]** in **Perrigen Falls**. After being evicted from The Kalevala Expanse, LAWN relocated and claimed two constellations: **9BGY-6** and **WXB-RY**.
+Real-time intel dashboard for an EVE Online alliance, built for **Get Off My Lawn [LAWN]**.
 
 The codebase is **alliance/region agnostic** — alliance, region, system list, map layout, and friendly/hostile entity lists all come from a deployment module under `deployments/`. The dashboard serves the whole alliance (12 member corps including Astrum Mechanica, Gnomeland Services, LAWN HC, etc.).
 
-**Coalition status (June 2026):** LAWN joined the **RMC coalition** — ~50 alliances at +5 (Legion of xXDEATHXx, Red Alliance, Against ALL Authorities., etc.) plus 8 standalone +5 corps, all in the deployment's friendly lists. The old mini coalition is gone: **BorderZone [BOZON]** folded under the pressure of B0SS's war and evac'd (still +10 on standings with **InnerZone** HS alts, but effectively gone), and **The Skeleton Crew [MEAN]** never joined the Perrigen Falls move — standings-only +5 now. **Gnomes Rising HoA [GNOME]** remains LAWN's alt/highsec alliance at +10.
+The only deployment committed here is `lawn_perrigen`, a **historical** sovereign-posture reference: LAWN's Perrigen Falls holdings after the eviction from The Kalevala Expanse. It is kept because it exercises the full sov stack and is already public, **not** because it describes where the alliance is now. The live deployment is private and untracked — see the next section.
 
 The active deployment is selected by the `DEPLOYMENT` env var (default: `lawn_perrigen`). Bootstrap a new deployment for any alliance/region with `tools/bootstrap_deployment.py`.
+
+**Do not restore a "current situation" or "coalition status" section here.** One existed and went stale within weeks while remaining live opsec the whole time — the worst of both. Where the alliance lives, who it is blue to, and where it is going belong in the private module only.
 
 ## Deployment Data Is Not Public
 
@@ -77,9 +79,11 @@ python tools/bootstrap_deployment.py \
 
 The bootstrap resolves ESI IDs, walks the gate graph for the whole region, fetches PI data per primary system, generates an auto-layout for `MAP_LAYOUT` / `MAP_LAYOUT_SUBWAY`, and writes a complete deployment module to `deployments/<name>.py`. Hand-tune `MAP_LAYOUT` positions afterwards — auto-layout produces something usable but not pretty. Then run with `DEPLOYMENT=some_alliance_region python app.py`. Switching deployments preserves history (rows scoped by `deployment_id`); reads filter to the active one.
 
-**Rootless deployments are hand-written, not bootstrapped.** There is no region geography to walk, so there is nothing for the bootstrap to do — start from `deployments/example.py`, set `POSTURE = "rootless"`, list `WATCHED_REGIONS`, and leave every geography key empty. Standings can be imported from another deployment module rather than duplicated, since standings belong to the alliance, not to the space it is sitting in.
+**Rootless deployments are hand-written, not bootstrapped.** There is no region geography to walk, so there is nothing for the bootstrap to do — start from `deployments/example.py`, set `POSTURE = "rootless"`, list `WATCHED_REGIONS`, and leave every geography key empty.
 
-**Bootstrap output for a live deployment goes to `deployments/local_<name>.py`** (gitignored) — pass `--output`, or rename afterwards. Only reference/historical deployments belong in version control.
+**Standings belong to the alliance rather than to the space it is sitting in, but do not import them from a committed module to avoid duplicating them.** That coupling means the only way to update standings is to edit a public file, which is exactly the leak `private/` exists to prevent — a live deployment must define its own friendly lists inline. Importing stable, already-public identity (`ALLIANCE`) is fine; importing `FRIENDLY_*` is not.
+
+**Bootstrap output for a live deployment goes to `private/<name>.py`** (gitignored and dockerignored) — pass `--output`, or move it afterwards. `deployments/local_*.py` is also ignored and still works, but `private/` is the current convention: it is the directory mounted read-only into the container. Only reference/historical deployments belong in version control.
 
 ## Tech Stack
 - **Backend:** Python 3.11 + Flask, split into Flask Blueprint modules under `routes/` (live) and `mock/` (demo)
@@ -589,11 +593,11 @@ See [ROADMAP.md](ROADMAP.md) for full details and backlog.
 - [x] Local chat scanner — paste pilot names → ESI affiliation lookup → lawn/friendly/unknown/unresolved classification with zKill links (`LocalScanner.jsx`, `POST /api/local/scan`)
 - [x] PLH-style pilot risk ratings — `POST /api/chars/analyze` classifies VERY DANGEROUS / DANGEROUS / MODERATE / SNUGGLY / NEWBIE with kills + ISK efficiency; shown in Local Scanner RISK column and Intel Channel Parser char rows
 - [x] Capital/dropper/covert role detection — `_detect_roles()` reads zkill stats `groups` dict; role badges TITAN/SUPER/DREAD/CARRIER/FAX/BLOPS/RECON/BOMBER/T3C/COVOPS displayed next to risk tier in both scanner panels; `THREAT_SHIP_GROUPS` in `eve_constants.py`
-- [x] Ally expansion — The Skeleton Crew [MEAN] (99008788) and Weapons Of Mass Production [WOMP] (99010468) added as friendly alliances
+- [x] Ally expansion — further allied alliances added to the friendly lists
 - [x] Wide screen layout — dashboard expands to max-width 2000px at 1400px+ (all panels remain full-width)
 - [x] **Entosis command node board** — dedicated `/entosis` page (`EntosisPage.jsx`); pilots claim nodes with a callsign; status machine (unclaimed → running → contested → captured/lost); password-gated add/delete; 5s auto-refresh; `routes/entosis_routes.py` + SQLite `entosis_nodes` table
 - [x] **Entosis ops redesign (event board)** — `/entosis` is organized around ESI-detected sov campaigns: one event panel per campaign (active first, score bar / node-spawn countdown / vuln window), command nodes nested under their event via a nullable `entosis_nodes.campaign_id`, per-event add-node dropdown scoped to the campaign's constellation (nodes spawn constellation-wide), UNLINKED NODES fallback for manual/legacy nodes; focused OP MAP renders `ConstellationMap` with a config filtered to campaign constellations (`utils/entosisHelpers.js`); collapsible side column: D-Scan Parser, Local Scanner, OP KILL FEED (zkill feed filtered to campaign-constellation systems), Fleet Comp Analyzer, Timerboard; ALERTS bell with browser push for new campaigns / nodes-spawned (reinforced→nodes transition alert added to `useNotifications`) / ADM drops
-- [x] **RMC coalition standings** — ~50 RMC alliance IDs + 8 standalone +5 corps added to `lawn_perrigen.py`; new `FRIENDLY_STANDING_CORPORATIONS` deployment key (list of `{id, name}` dicts) for standalone corps not covered by alliance IDs; `config.py` derives `FRIENDLY_STANDING_CORP_IDS`/`_NAMES` sets used by intel/local-scan/hostile routes
+- [x] **Standalone-corp standings support** — new `FRIENDLY_STANDING_CORPORATIONS` deployment key (list of `{id, name}` dicts) for corps on the standings list not covered by alliance IDs; `config.py` derives `FRIENDLY_STANDING_CORP_IDS`/`_NAMES` sets used by intel/local-scan/hostile routes. The roster itself lives in the private deployment, never here
 - [x] **Performance & security pass** — parallel killmail prefetch via `ThreadPoolExecutor` in kill feed and hostile feed; bulk ESI name resolution primes cache before enrichment loop; compound DB indexes on `(deployment_id, system_id, timestamp)`; thread-safe ESI cache with `_cache_lock` and per-entry expiry timestamps; HMAC-based timer password check
 - [x] **SQLite-backed sov change tracking** — `sov_state` + `sov_changes` tables replace in-memory dict; `db.record_sov_changes()` persists neighbor sov events across restarts; served via `/api/intel/sov_changes`
 - [x] **AI threat summaries** — "AI SUMMARY" button in D-scan + Local scanner panels sends parsed intel to Gemini (`gemini-2.5-flash`) for a 1-3 sentence tactical read-out; `routes/ai_routes.py` (`POST /api/ai/threat_summary`), gated by `require_write_auth`, token/timeout bounded, prompt-injection guarded; shared `useAiSummary` hook + `common/AiSummary.jsx`; needs `GEMINI_API_KEY`
