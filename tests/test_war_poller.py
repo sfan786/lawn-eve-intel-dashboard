@@ -8,6 +8,7 @@ kill and one fighter kill — the cases that classify differently.
 
 import json
 import os
+from datetime import UTC, datetime, timedelta
 
 import pytest
 
@@ -219,6 +220,16 @@ class TestPollRegion:
     def test_picks_up_where_a_backfill_left_off(self, tmp_db, spec, kills, no_names, monkeypatch):
         # A backfill writes rows but no ingest cursor. Without falling back to
         # the ledger the first cycle would ask for a full week already stored.
+        #
+        # Re-stamp the fixture to an hour ago. Its killmail_times are literals,
+        # and _window_seconds() measures them against the wall clock: once they
+        # aged past _MAX_WINDOW the fallback clamped to a full week and this
+        # assertion could never pass again. Timestamps that feed a time-windowed
+        # query have to be relative — see "Never hardcode absolute dates in
+        # tests" in CLAUDE.md.
+        recent = (datetime.now(UTC) - timedelta(hours=1)).strftime("%Y-%m-%dT%H:%M:%SZ")
+        kills = [{**k, "killmail_time": recent} for k in kills]
+
         war_ingest.store_kills(spec, REGION, kills)
         assert db.get_war_ingest_state(spec.key) == []
 
