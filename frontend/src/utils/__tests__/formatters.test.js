@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { formatIsk, timeAgo, classifyKills } from '../formatters'
+import { classifyKills, eveTime, formatIsk, timeAgo } from '../formatters'
 
 // ---------------------------------------------------------------------------
 // formatIsk
@@ -106,5 +106,34 @@ describe('classifyKills', () => {
         expect(classifyKills(3, [2, 10])).toBe('medium')
         expect(classifyKills(1, [2, 10])).toBe('low')
         expect(classifyKills(10, [2, 10])).toBe('high')
+    })
+})
+
+
+describe('eveTime', () => {
+    it('renders EVE time, which is UTC, regardless of the viewer timezone', () => {
+        expect(eveTime('2026-08-24T19:42:07Z')).toBe('2026-08-24 19:42')
+    })
+
+    it('includes seconds on request', () => {
+        expect(eveTime('2026-08-24T19:42:07Z', { withSeconds: true })).toBe('2026-08-24 19:42:07')
+    })
+
+    it('zero-pads every field', () => {
+        expect(eveTime('2026-01-05T04:07:09Z', { withSeconds: true })).toBe('2026-01-05 04:07:09')
+    })
+
+    it('does not shift the date when the local zone would', () => {
+        // A late-UTC timestamp lands on the next day in +HH zones and the
+        // previous one in -HH. The whole point of this helper is that it does
+        // neither, so a shared snapshot reads the same for everyone.
+        expect(eveTime('2026-08-24T23:50:00Z')).toBe('2026-08-24 23:50')
+        expect(eveTime('2026-08-24T00:10:00Z')).toBe('2026-08-24 00:10')
+    })
+
+    it('returns an empty string for missing or unparseable input', () => {
+        expect(eveTime(null)).toBe('')
+        expect(eveTime('')).toBe('')
+        expect(eveTime('not a date')).toBe('')
     })
 })
