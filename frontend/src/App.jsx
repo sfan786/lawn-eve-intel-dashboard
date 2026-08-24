@@ -24,6 +24,8 @@ import IntelChannelParser from './components/IntelChannelParser'
 import ActiveHostileTracker from './components/ActiveHostileTracker'
 import JumpBridgeManager from './components/JumpBridgeManager'
 import NotificationBell from './components/NotificationBell'
+import EveLoginButton from './components/common/EveLoginButton'
+import { useAuth } from './utils/useAuth'
 import { useNotifications } from './hooks/useNotifications'
 import { ANALYTICS_SEEN_KEY } from './utils/analyticsAuth'
 
@@ -51,6 +53,10 @@ export default function App() {
     const [selectedSystem, setSelectedSystem] = useState(null)
     const [mapMode, setMapMode] = useState("subway")
     const [isMobile, setIsMobile] = useState(() => window.innerWidth < 640)
+    // Login lives in the header, not only inside the panels that happen to need
+    // write access. Buried in the Timerboard it was undiscoverable, so features
+    // gated on being logged in (SHARE, AI summaries) looked simply absent.
+    const auth = useAuth()
     // The /analytics page is operator-only and unadvertised: the link appears
     // only on a browser that has already unlocked it, so it isn't a signpost
     // for the rest of the alliance. The page enforces access server-side.
@@ -383,6 +389,7 @@ export default function App() {
                         holdsSov={holdsSov}
                         hasAo={hasAo}
                     />
+                    <EveLoginButton auth={auth} />
                 </div>
             </div>
             {hasAo ? (

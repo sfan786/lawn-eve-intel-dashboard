@@ -15,6 +15,26 @@ export function timeAgo(isoTime) {
     return Math.floor(diff / 86400) + "d";
 }
 
+/**
+ * Absolute wall-clock time in EVE time, which is UTC: "2026-08-24 19:42".
+ *
+ * Relative ages ("3h") are good for a glance but useless for the thing intel
+ * actually gets compared against — a fleet ping, a timer, someone else's
+ * report. Those are all quoted in EVE time, so anything claiming to be a
+ * point in time should show it.
+ *
+ * Pass withSeconds for timestamps where the exact second matters.
+ */
+export function eveTime(isoTime, { withSeconds = false } = {}) {
+    if (!isoTime) return "";
+    const d = new Date(isoTime);
+    if (Number.isNaN(d.getTime())) return "";
+    const pad = (n) => String(n).padStart(2, "0");
+    const hms = `${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())}`
+        + (withSeconds ? `:${pad(d.getUTCSeconds())}` : "");
+    return `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())} ${hms}`;
+}
+
 export function classifyKills(count, thresholds = [5, 20]) {
     if (count === 0) return "none";
     if (count < thresholds[0]) return "low";

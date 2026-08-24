@@ -8,7 +8,7 @@ import DscanResult from '../components/parsers/DscanResult'
 import LocalScanResult, { localCounts, StandingCounts } from '../components/parsers/LocalScanResult'
 import FleetCompResult, { FleetCounts } from '../components/parsers/FleetCompResult'
 import { buildShareCopyText } from '../utils/parserCopy'
-import { timeAgo } from '../utils/formatters'
+import { eveTime, timeAgo } from '../utils/formatters'
 import { useAuth } from '../utils/useAuth'
 
 // Read-only view of a shared parser snapshot (/s/<token>).
@@ -24,6 +24,20 @@ const KIND_TITLE = {
     dscan: 'D-SCAN',
     local: 'LOCAL SCAN',
     fleet: 'FLEET COMP',
+}
+
+/**
+ * Colour the age so staleness is legible without doing arithmetic.
+ *
+ * Fifteen minutes is roughly how long a D-scan or local list stays actionable
+ * before a fleet has moved; past a couple of hours it is history, not intel.
+ */
+function ageColorFor(isoTime) {
+    const minutes = (Date.now() - new Date(isoTime).getTime()) / 60000
+    if (!Number.isFinite(minutes)) return 'var(--text-muted)'
+    if (minutes < 15) return 'var(--green)'
+    if (minutes < 120) return 'var(--amber)'
+    return 'var(--red)'
 }
 
 function Notice({ title, children }) {
@@ -141,6 +155,7 @@ export default function SharePage() {
     }
 
     const { kind, payload, title, created_by: createdBy, created_at: createdAt, expires_at: expiresAt, visibility } = report
+    const ageColor = ageColorFor(createdAt)
 
     return (
         <div style={{ maxWidth: 1100, margin: '0 auto', padding: '16px 12px' }}>
@@ -158,18 +173,25 @@ export default function SharePage() {
                 </div>
 
                 {/* Age is not decoration. A D-scan read as live when it is three
-                    hours old is worse than no D-scan at all. */}
+                    hours old is worse than no D-scan at all.
+                    The absolute EVE time leads and the relative age follows it:
+                    "3h ago" is the glance, but the timestamp is what gets compared
+                    against a fleet ping or a timer — and unlike the relative age,
+                    it does not quietly rot while the tab sits open. */}
                 <div style={{
                     ...mono, fontSize: 10, color: 'var(--text-muted)',
-                    display: 'flex', gap: 12, flexWrap: 'wrap',
+                    display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'baseline',
                     borderBottom: '1px solid var(--border-dim)', paddingBottom: 6, marginBottom: 2,
                 }}>
                     <span style={{ color: 'var(--amber)' }}>SNAPSHOT — not live</span>
-                    <span>taken {timeAgo(createdAt)}</span>
+                    <span style={{ color: 'var(--text-secondary)', fontSize: 11 }}>
+                        {eveTime(createdAt, { withSeconds: true })} EVE
+                    </span>
+                    <span style={{ color: ageColor }}>{timeAgo(createdAt)} old</span>
                     {createdBy && <span>by {createdBy}</span>}
                     {title && <span style={{ color: 'var(--text-secondary)' }}>{title}</span>}
                     {visibility === 'alliance' && <span style={{ color: 'var(--cyan)' }}>alliance only</span>}
-                    <span style={{ marginLeft: 'auto' }}>link expires {expiresAt?.replace('T', ' ').replace('Z', ' UTC')}</span>
+                    <span style={{ marginLeft: 'auto' }}>expires {eveTime(expiresAt)} EVE</span>
                 </div>
 
                 <ShareBody kind={kind} payload={payload} />
