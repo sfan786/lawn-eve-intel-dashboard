@@ -119,6 +119,7 @@ lawn-eve-intel-dashboard/
 │   ├── jb_routes.py         # /api/jumpbridges (manual JB overlay config)
 │   ├── ai_routes.py         # /api/ai/threat_summary (Gemini, write-auth gated)
 │   ├── analytics_routes.py  # Traffic recording hook + /api/analytics/summary (operator-only gate)
+│   ├── share_routes.py      # /api/share — publish/read a frozen parser snapshot
 │   ├── auth_sso.py          # EVE SSO login + require_write_auth decorator (/api/auth/*)
 │   ├── limiter.py           # flask-limiter instance + per-IP caps for intel/AI endpoints
 │   ├── regions.py           # ?region_id= resolution against the WATCHED_REGIONS allowlist
@@ -153,10 +154,11 @@ lawn-eve-intel-dashboard/
 │   ├── vite.config.js       # Proxy /api → Flask, build → static/dist/
 │   └── src/
 │       ├── App.jsx          # Root component — state, fetching, tab nav
-│       ├── pages/           # Full-page routes (EntosisPage.jsx — /entosis event board + focused op map; AnalyticsPage.jsx — /analytics usage stats)
+│       ├── pages/           # Full-page routes (EntosisPage.jsx — /entosis event board + focused op map; AnalyticsPage.jsx — /analytics usage stats; SharePage.jsx — /s/<token> read-only parser snapshot)
 │       ├── hooks/           # useNotifications (browser push alerts)
 │       ├── utils/           # admHelpers, campaignHelpers, entosisHelpers, formatters, upgradeHelpers, mapHelpers, useAuth, useAiSummary
-│       └── components/      # feature components + common/ (CornerBrackets, AiSummary, EveLoginButton, …)
+│       └── components/      # feature components + common/ (CornerBrackets, AiSummary, EveLoginButton, CopyButton, ShareButton, …)
+│           └── parsers/      # presentational result renderers, shared by the live panels and /s/<token>
 │
 ├── static/
 │   └── dist/                # Vite build output (gitignored, served by Flask in prod)
@@ -232,6 +234,20 @@ lawn-eve-intel-dashboard/
     Battles are clustered by a **30-minute gap within a system**, not by clock hour — hour bucketing splits a 19:55–20:20 fight into two engagements that never happened, and merges unrelated ganks. `hour_bucket` survives only to build the zKill `/related/` URL, anchored on the hour with the most kills.
 
     Two honesty details the UI depends on: third-party kills are stored with a NULL side (dropping them would mean re-fetching the same kills every cycle forever, since the "already seen" filter is the stored rows), and `/api/wars/<key>/status` exists so the page can state its coverage and staleness rather than implying a paginated, CDN-cached feed is complete. The killer leaderboard is labelled "involvement" because zKill-style credit goes to every participant and so sums to more than the ISK destroyed.
+
+17. **Shared parser snapshots** — the D-scan, Local and Fleet parsers can publish their current result to a read-only page at `/s/<token>`. The pieces: `shared_reports` in `db.py`, `routes/share_routes.py` (create/read), `frontend/src/components/parsers/` (the presentational renderers), `frontend/src/pages/SharePage.jsx`, and `common/ShareButton.jsx`.
+
+    Five choices worth stating, because each looks like an inconsistency until you know why:
+
+    * **The snapshot is frozen, not re-derived.** A local scan's standings and risk tiers are only true as of when they were scanned, so replaying the lookups on view would change the answer under the reader *and* spend the rate-limited zKill/ESI fan-out on every page load. What the recipient sees is what the sender saw. The page says so, and states its own age — a D-scan read as live when it is three hours old is worse than no D-scan.
+    * **`shared_reports` is not filtered by `deployment_id` on read.** It is stored for provenance, but the token is the identity: a URL someone already pasted into a chat window should not start 404ing because the server switched deployments. This is the second table after `war_kills` to skip deployment scoping, for a different reason, and `tests/test_db.py::TestSharedReports::test_readable_from_a_different_deployment` exists to fail if it gets "fixed".
+    * **Oversized payloads are rejected (413), not truncated** — the opposite of the AI route's input cap (`ai_routes._MAX_INPUT_CHARS`). Half a prompt is still a prompt; half a JSON document is a corrupt report.
+    * **Reads are rate limited despite being pure SQLite.** `war_routes` establishes that SQLite-only reads need no cap because they cost nothing upstream. This one is capped anyway because the lookup key is a *secret*: the 192-bit token makes guessing hopeless, and the limit makes it hopeless in wall-clock terms too.
+    * **Visibility is per-share, chosen at publish time.** `link` for anything that can go in a coalition channel, `alliance` when the viewer should have to be logged in (checked against the same `require_write_auth` gate). Switching audience **re-publishes** rather than mutating: a snapshot is immutable, so the old link keeps working exactly as pasted.
+
+    Shares expire (`SHARE_RETENTION_DAYS`, default 3) and are pruned by the ADM poller each cycle. `/s/<token>` is collapsed to the literal `/s` in `analytics_routes.classify_request` so a token never reaches `traffic_hourly.path`, and `robots.txt` disallows `/s/`.
+
+    The extraction that made this possible is reusable on its own: each parser's result rendering now lives in `components/parsers/<X>Result.jsx` taking the result as a prop, the copy-text builders are exported from `utils/parserCopy.js` (and unit-tested, which they never were inside the components), and the four-times-duplicated clipboard button is `common/CopyButton.jsx`. `IntelChannelParser` is deliberately left out of all of this — it is a rolling board rather than a one-shot parse, and may be removed outright.
 
 ## Development
 
@@ -443,6 +459,8 @@ Resolves names to numeric IDs for `config.py`. Uses ESI `POST /universe/ids/` fo
 - `POST /api/wars/<key>/roster` — assign an entity to side `a`/`b`, or `null` for "not a belligerent"; write-auth gated, reclassifies that entity's stored kills
 - `DELETE /api/wars/<key>/roster/<entity_id>[?entity_type=]` — undo an edit, reverting to the war module
 - `GET /api/wars/<key>/status` — per-region ingest cursor, last success, saturation flag, and overall coverage window
+- `POST /api/share` — publish the current parser result as a read-only page (`{kind, payload, visibility?, title?}`); write-auth gated and rate limited; payload capped at 256 KB (**rejected** with 413, not truncated); returns `{token, url, expires_at}`
+- `GET /api/share/<token>` — read a shared snapshot. Public for `visibility: "link"`; `visibility: "alliance"` 403s unless the caller passes the write-auth gate. Unknown and expired tokens both 404
 - `GET /api/status` — health check
 
 All `/api/wars/*` reads are pure SQLite with no upstream fan-out, so they carry no rate limit (unlike the zKill-backed feeds); `days` and `limit` clamping is what bounds them, and aggregates are memoized in-process for 60s.
@@ -601,6 +619,7 @@ See [ROADMAP.md](ROADMAP.md) for full details and backlog.
 - [x] **Performance & security pass** — parallel killmail prefetch via `ThreadPoolExecutor` in kill feed and hostile feed; bulk ESI name resolution primes cache before enrichment loop; compound DB indexes on `(deployment_id, system_id, timestamp)`; thread-safe ESI cache with `_cache_lock` and per-entry expiry timestamps; HMAC-based timer password check
 - [x] **SQLite-backed sov change tracking** — `sov_state` + `sov_changes` tables replace in-memory dict; `db.record_sov_changes()` persists neighbor sov events across restarts; served via `/api/intel/sov_changes`
 - [x] **AI threat summaries** — "AI SUMMARY" button in D-scan + Local scanner panels sends parsed intel to Gemini (`gemini-2.5-flash`) for a 1-3 sentence tactical read-out; `routes/ai_routes.py` (`POST /api/ai/threat_summary`), gated by `require_write_auth`, token/timeout bounded, prompt-injection guarded; shared `useAiSummary` hook + `common/AiSummary.jsx`; needs `GEMINI_API_KEY`
+- [x] **Shareable parser results** — D-Scan / Local Scanner / Fleet Comp each publish their current result to a read-only page at `/s/<token>` (`POST /api/share`, `SharePage.jsx`), with a per-share `link` vs `alliance` audience toggle and a 3-day expiry; result rendering extracted into `components/parsers/` so the live panel and the shared page draw from one renderer
 - [x] **UX polish** — SystemTable live name-filter input (count badge + ✕ clear); LocalScanner COPY button (formats as `NAME (Corp/Alliance) [STANDING] RISK [ROLES]`); FleetCompAnalyzer COPY button (fleet summary); DscanParser COPY button (threat tier + ship counts); CampaignAlerts COPY button (fleet-ping-ready sov campaign summary, `buildCampaignCopyText` in `campaignHelpers.js`)
 
 **Priority 2 — Operational:**

@@ -45,6 +45,17 @@ def assets(filename):
     return send_from_directory(os.path.join(_DIST_DIR, "assets"), filename)
 
 
+@static_bp.route("/robots.txt")
+def robots():
+    """Keep shared parser snapshots out of search indexes.
+
+    Share tokens are unguessable, so a crawler can only reach one if somebody
+    posts the link somewhere public — which is exactly the case worth covering,
+    since the snapshot is alliance intel and the link outlives the paste.
+    """
+    return "User-agent: *\nDisallow: /s/\n", 200, {"Content-Type": "text/plain; charset=utf-8"}
+
+
 @static_bp.route("/<path:path>")
 def spa_fallback(path):
     """Catch-all: serve the SPA for client-side routes (e.g. /entosis). Returns 404 for unknown API paths."""

@@ -42,3 +42,10 @@ AI_LIMIT = os.environ.get("RATELIMIT_AI", "10 per minute")
 # one more per range button), so keep enough headroom that normal use never
 # trips it — 20/min still leaves online guessing hopeless.
 ANALYTICS_LIMIT = os.environ.get("RATELIMIT_ANALYTICS", "20 per minute")
+# Publishing a parser snapshot. Write-auth gated already; this bounds how fast
+# an authorised session can fill the table with quarter-megabyte payloads.
+SHARE_LIMIT = os.environ.get("RATELIMIT_SHARE", "10 per minute")
+# Reading a share. Pure SQLite, so unlike the feeds above this costs nothing
+# upstream — the cap is here because the lookup key is a secret, and a limit is
+# what makes brute-forcing hopeless in wall-clock terms on top of the entropy.
+SHARE_READ_LIMIT = os.environ.get("RATELIMIT_SHARE_READ", "60 per minute")

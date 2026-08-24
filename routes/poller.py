@@ -138,6 +138,16 @@ def _loop():
             analytics_routes.flush(force=True)
         except Exception:
             log.exception("Poller: traffic analytics flush failed")
+        # Lapsed parser shares. Cheap enough (indexed DELETE over at most a few
+        # days of rows) to run every cycle without an interval guard, and this
+        # loop keeps ticking under every posture — poll_once no-ops for
+        # rootless, but expired shares still have to go.
+        try:
+            dropped = db.prune_shared_reports()
+            if dropped:
+                log.info("Poller: pruned %d expired shared report(s)", dropped)
+        except Exception:
+            log.exception("Poller: shared-report prune failed")
         time.sleep(POLL_INTERVAL_SECONDS)
 
 

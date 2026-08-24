@@ -1,8 +1,13 @@
 import React, { useState, useMemo } from 'react'
 import CornerBrackets from './common/CornerBrackets'
+import CopyButton from './common/CopyButton'
+import ShareButton from './common/ShareButton'
 import { AiSummaryButton, AiSummaryBox } from './common/AiSummary'
+import DscanResult from './parsers/DscanResult'
+import { CATEGORY_LABELS, formatTypes, shipCatRows } from '../utils/dscanCategories'
+import { buildDscanCopyText } from '../utils/parserCopy'
 import { useAiSummary } from '../utils/useAiSummary'
-import { useAuth } from '../utils/useAuth'
+import { useWriteAuth } from '../utils/useAuth'
 
 // Lowercase-keyed version built at module load for case-insensitive matching
 const GROUP_CATEGORIES_LOWER = {}
@@ -192,32 +197,9 @@ Object.entries(GROUP_CATEGORIES).forEach(([k, v]) => { GROUP_CATEGORIES_LOWER[k.
 // Regex to detect distance-like fields so we skip them during column scanning
 const DISTANCE_RE = /^[\d,.*-]|km$|au$| m$/i
 
-const CATEGORY_ORDER = [
-    'SUPER', 'CAPITAL', 'BATTLESHIP', 'BATTLECRUISER', 'DOCTRINE', 'RECON',
-    'SUPPORT', 'TACKLE', 'CRUISER', 'EWAR', 'BOMBER', 'COVOPS',
-    'DESTROYER', 'FRIGATE', 'POD',
-    'STRUCTURE', 'DEPLOYABLE', 'BUBBLE', 'SOV', 'PROBE',
-]
-
-const CATEGORY_LABELS = {
-    SUPER: 'Supercapital', CAPITAL: 'Capital', BATTLESHIP: 'Battleship',
-    BATTLECRUISER: 'Battlecruiser', DOCTRINE: 'T3/HAC', RECON: 'Recon',
-    SUPPORT: 'Logistics', TACKLE: 'Tackle/Dictor', CRUISER: 'Cruiser',
-    EWAR: 'EWAR', BOMBER: 'Bomber', COVOPS: 'Covert Ops',
-    DESTROYER: 'Destroyer', FRIGATE: 'Frigate', POD: 'Pod',
-    STRUCTURE: 'Structure', DEPLOYABLE: 'Deployable', BUBBLE: 'Warp Bubble',
-    SOV: 'Sov Object', PROBE: 'Probe',
-}
-
-const CATEGORY_COLORS = {
-    SUPER: '#ff3355', CAPITAL: '#ff6677', BATTLESHIP: '#ffaa00',
-    BATTLECRUISER: '#ffcc44', DOCTRINE: '#ff8844', RECON: '#ff9966',
-    SUPPORT: '#00d4ff', TACKLE: '#cc88ff', CRUISER: '#88aaff',
-    EWAR: '#aa88ff', BOMBER: '#9966cc', COVOPS: '#7755aa',
-    DESTROYER: '#6699aa', FRIGATE: '#4488aa', POD: '#336677',
-    STRUCTURE: '#66aa88', DEPLOYABLE: '#558877', BUBBLE: '#ddaa44',
-    SOV: '#aaaaaa', PROBE: '#445566',
-}
+// CATEGORY_ORDER / CATEGORY_LABELS / CATEGORY_COLORS live in
+// utils/dscanCategories so the result renderer and the copy-text builder can
+// label a category without importing this component.
 
 const THREAT_TIERS = [
     { tier: 'CRITICAL', color: '#ff3355', bg: 'rgba(255,51,85,0.15)', test: cats => cats.has('SUPER') },
@@ -290,60 +272,20 @@ function parseDscan(raw) {
     return { byCat, structures, ships: ships.length, total: lines.length, unrecognized, unrecognizedSamples, threat }
 }
 
-function buildCopyText(result, shipCatRows, structureCounts) {
-    const lines = [`THREAT: ${result.threat.tier}`]
-    lines.push(`${result.ships} combat ships · ${result.structures.length} structures`)
-    lines.push('')
-    for (const { cat, count, types } of shipCatRows) {
-        const typeStr = Object.entries(types)
-            .sort((a, b) => b[1] - a[1])
-            .map(([t, n]) => n > 1 ? `${t} x${n}` : t)
-            .join(', ')
-        lines.push(`${CATEGORY_LABELS[cat]}: ${count}  (${typeStr})`)
-    }
-    if (Object.keys(structureCounts).length > 0) {
-        lines.push('')
-        lines.push('Objects: ' + Object.entries(structureCounts)
-            .map(([t, n]) => n > 1 ? `${t} x${n}` : t).join(', '))
-    }
-    return lines.join('\n')
-}
-
 export default function DscanParser() {
     const [rawInput, setRawInput] = useState('')
-    const [copied, setCopied] = useState(false)
-    const { authorized, ssoEnabled } = useAuth()
-    // Show the AI button when the session can write (SSO) or when SSO is off
-    // (demo / no-SSO) — matches the backend require_write_auth gate.
-    const canUseAi = authorized || !ssoEnabled
-    // In password-only deployments the AI endpoint is authed via X-Timer-Auth,
-    // same as the other write features; under SSO the session cookie carries it.
-    const writeHeaders = ssoEnabled ? {} : { 'X-Timer-Auth': localStorage.getItem('timer_auth') || '' }
+    // canWrite mirrors the backend require_write_auth gate; writeHeaders carries
+    // the password credential in deployments where SSO is off.
+    const { canWrite, writeHeaders } = useWriteAuth()
     const { summary: aiSummary, generating: generatingAiSummary, error: aiError, generate } = useAiSummary(rawInput)
 
     const result = useMemo(() => parseDscan(rawInput), [rawInput])
 
-    const shipCatRows = result
-        ? CATEGORY_ORDER.filter(cat => result.byCat[cat]).map(cat => ({
-            cat,
-            count: result.byCat[cat].count,
-            types: result.byCat[cat].types,
-        }))
-        : []
-
-    // Group structures by type
-    const structureCounts = result?.structures.reduce((acc, s) => {
-        acc[s.type] = (acc[s.type] || 0) + 1
-        return acc
-    }, {}) || {}
-
     function generateAiSummary() {
         if (!result) return
-        const shipData = shipCatRows.map(({ cat, count, types }) => {
-            const typesStr = Object.entries(types)
-                .map(([t, n]) => n > 1 ? `${t} x${n}` : t).join(', ')
-            return `${CATEGORY_LABELS[cat]}: ${count} (${typesStr})`
-        }).join('\n')
+        const shipData = shipCatRows(result).map(({ cat, count, types }) =>
+            `${CATEGORY_LABELS[cat]}: ${count} (${formatTypes(types, 'x')})`
+        ).join('\n')
 
         generate({
             type: 'dscan',
@@ -359,32 +301,21 @@ export default function DscanParser() {
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                     {result && <span className="panel-badge">{result.ships} ships · {result.total} total</span>}
                     {result && (
-                        <button
-                            onClick={async () => {
-                                const text = buildCopyText(result, shipCatRows, structureCounts)
-                                try {
-                                    await navigator.clipboard.writeText(text)
-                                } catch {
-                                    const el = document.createElement('textarea')
-                                    el.value = text
-                                    document.body.appendChild(el)
-                                    el.select()
-                                    document.execCommand('copy')
-                                    document.body.removeChild(el)
-                                }
-                                setCopied(true)
-                                setTimeout(() => setCopied(false), 2000)
-                            }}
-                            style={{
-                                background: 'none',
-                                border: `1px solid ${copied ? '#00ff8866' : 'var(--border-dim)'}`,
-                                color: copied ? '#00ff88' : 'var(--text-secondary)',
-                                cursor: 'pointer',
-                                fontFamily: 'Share Tech Mono, monospace',
-                                fontSize: 10, padding: '2px 8px', letterSpacing: 1,
-                                transition: 'color 0.2s, border-color 0.2s',
-                            }}
-                        >{copied ? 'COPIED!' : 'COPY'}</button>
+                        <CopyButton
+                            getText={() => buildDscanCopyText(result)}
+                            copiedLabel="COPIED!"
+                            color="var(--text-secondary)"
+                            copiedColor="#00ff88"
+                            copiedBorderColor="#00ff8866"
+                        />
+                    )}
+                    {result && canWrite && (
+                        <ShareButton
+                            kind="dscan"
+                            title={`D-Scan — ${result.ships} ships`}
+                            writeHeaders={writeHeaders}
+                            buildPayload={() => ({ result, ai_summary: aiSummary || null })}
+                        />
                     )}
                     {rawInput && (
                         <button
@@ -413,120 +344,17 @@ export default function DscanParser() {
                 }}
             />
 
-            {result && (
-                <>
-                    {/* Threat Banner */}
-                    <div style={{
-                        marginTop: 10, padding: '7px 12px',
-                        background: result.threat.bg,
-                        border: `1px solid ${result.threat.color}`,
-                        display: 'flex', alignItems: 'center', gap: 12,
-                    }}>
-                        <span style={{
-                            fontFamily: 'Orbitron, sans-serif', fontSize: 11,
-                            fontWeight: 700, letterSpacing: 3,
-                            color: result.threat.color,
-                        }}>THREAT: {result.threat.tier}</span>
-                        <span style={{ fontFamily: 'Share Tech Mono, monospace', fontSize: 10, color: 'var(--text-secondary)' }}>
-                            {result.ships} combat ships · {result.structures.length} structures
-                            {result.unrecognized > 0 && ` · ${result.unrecognized} unrecognized`}
-                        </span>
-                        {canUseAi && <>
-                            <div style={{ flex: 1 }} />
-                            <AiSummaryButton
-                                generating={generatingAiSummary}
-                                disabled={result.ships === 0}
-                                onClick={generateAiSummary}
-                            />
-                        </>}
-                    </div>
-
-                    <AiSummaryBox summary={aiSummary} error={aiError} />
-
-                    {/* Ship Groups */}
-                    {shipCatRows.length > 0 && (
-                        <div style={{ marginTop: 10 }}>
-                            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                                <tbody>
-                                    {shipCatRows.map(({ cat, count, types }) => (
-                                        <tr key={cat} style={{ borderBottom: '1px solid var(--border-dim)' }}>
-                                            <td style={{ padding: '5px 8px', width: 120 }}>
-                                                <span style={{
-                                                    fontFamily: 'Orbitron, sans-serif', fontSize: 9,
-                                                    fontWeight: 600, letterSpacing: 2,
-                                                    color: CATEGORY_COLORS[cat],
-                                                }}>{CATEGORY_LABELS[cat]}</span>
-                                            </td>
-                                            <td style={{ padding: '5px 8px', width: 40, textAlign: 'right' }}>
-                                                <span style={{
-                                                    fontFamily: 'Share Tech Mono, monospace', fontSize: 12,
-                                                    color: CATEGORY_COLORS[cat], fontWeight: 700,
-                                                }}>{count}</span>
-                                            </td>
-                                            <td style={{ padding: '5px 8px' }}>
-                                                <span style={{
-                                                    fontFamily: 'Share Tech Mono, monospace', fontSize: 10,
-                                                    color: 'var(--text-secondary)',
-                                                }}>
-                                                    {Object.entries(types)
-                                                        .sort((a, b) => b[1] - a[1])
-                                                        .map(([t, n]) => n > 1 ? `${t} ×${n}` : t)
-                                                        .join(', ')}
-                                                </span>
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
-                    )}
-
-                    {/* Structures / Deployables */}
-                    {result.structures.length > 0 && (
-                        <div style={{ marginTop: 8, padding: '6px 8px', background: 'rgba(0,0,0,0.2)', border: '1px solid var(--border-dim)' }}>
-                            <span style={{
-                                fontFamily: 'Orbitron, sans-serif', fontSize: 9, letterSpacing: 2,
-                                color: 'var(--text-secondary)', marginRight: 10,
-                            }}>OBJECTS</span>
-                            {Object.entries(structureCounts).map(([type, n]) => (
-                                <span key={type} style={{
-                                    fontFamily: 'Share Tech Mono, monospace', fontSize: 10,
-                                    color: 'var(--text-primary)', marginRight: 12,
-                                }}>
-                                    {type}{n > 1 ? ` ×${n}` : ''}
-                                </span>
-                            ))}
-                        </div>
-                    )}
-
-                    {result.ships === 0 && result.structures.length === 0 && (
-                        <div style={{ padding: '8px 0', color: 'var(--text-muted)', fontFamily: 'Share Tech Mono, monospace', fontSize: 11 }}>
-                            No recognized ships or structures found.
-                        </div>
-                    )}
-
-                    {/* Debug: show sample unrecognized lines so we can identify format issues */}
-                    {result.unrecognized > 0 && result.unrecognizedSamples.length > 0 && (
-                        <div style={{ marginTop: 8, padding: '6px 8px', background: 'rgba(255,170,0,0.05)', border: '1px solid var(--amber-dim)' }}>
-                            <span style={{ fontFamily: 'Orbitron, sans-serif', fontSize: 9, letterSpacing: 2, color: 'var(--amber)', marginRight: 8 }}>
-                                UNRECOGNIZED ({result.unrecognized})
-                            </span>
-                            <div style={{ marginTop: 4 }}>
-                                {result.unrecognizedSamples.map((l, i) => (
-                                    <div key={i} style={{ fontFamily: 'Share Tech Mono, monospace', fontSize: 9, color: 'var(--text-muted)', whiteSpace: 'pre' }}>
-                                        {l.replace(/\t/g, ' → ')}
-                                    </div>
-                                ))}
-                                {result.unrecognized > result.unrecognizedSamples.length && (
-                                    <div style={{ fontFamily: 'Share Tech Mono, monospace', fontSize: 9, color: 'var(--text-muted)' }}>
-                                        …and {result.unrecognized - result.unrecognizedSamples.length} more
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                    )}
-                </>
-            )}
+            <DscanResult
+                result={result}
+                bannerActions={canWrite ? (
+                    <AiSummaryButton
+                        generating={generatingAiSummary}
+                        disabled={result?.ships === 0}
+                        onClick={generateAiSummary}
+                    />
+                ) : null}
+                summarySlot={<AiSummaryBox summary={aiSummary} error={aiError} />}
+            />
 
             {!rawInput && (
                 <div style={{ padding: '8px 0', color: 'var(--text-muted)', fontFamily: 'Share Tech Mono, monospace', fontSize: 11 }}>

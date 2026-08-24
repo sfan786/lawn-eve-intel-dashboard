@@ -46,3 +46,26 @@ export function useAuth() {
 
     return { ...auth, login, logout, refresh }
 }
+
+/**
+ * What a panel needs to offer a write-gated action (AI summary, share).
+ *
+ * `canWrite` mirrors the backend's require_write_auth: an SSO session that is
+ * authorized, or any caller at all when SSO is switched off (demo and
+ * password-only deployments, where the header below carries the credential
+ * instead). `writeHeaders` is empty under SSO because the session cookie
+ * already carries it.
+ *
+ * This was copy-pasted verbatim into every panel that has such a button, which
+ * meant the gate could drift apart between them.
+ */
+export function useWriteAuth() {
+    const { authorized, ssoEnabled, ...rest } = useAuth()
+    return {
+        ...rest,
+        authorized,
+        ssoEnabled,
+        canWrite: authorized || !ssoEnabled,
+        writeHeaders: ssoEnabled ? {} : { 'X-Timer-Auth': localStorage.getItem('timer_auth') || '' },
+    }
+}

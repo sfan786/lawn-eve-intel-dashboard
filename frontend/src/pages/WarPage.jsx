@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import CornerBrackets from '../components/common/CornerBrackets'
+import CopyButton from '../components/common/CopyButton'
 import EveLoginButton from '../components/common/EveLoginButton'
 import WarBarChart from '../components/war/WarBarChart'
 import { useAuth } from '../utils/useAuth'
@@ -46,28 +47,6 @@ function Stat({ label, value, sub, color = '#00d4ff' }) {
             <div style={{ ...mono, fontSize: 20, color, lineHeight: 1.2 }}>{value}</div>
             {sub && <div style={{ ...mono, fontSize: 9, color: '#6a8090' }}>{sub}</div>}
         </div>
-    )
-}
-
-function CopyButton({ text, label = 'COPY' }) {
-    const [copied, setCopied] = useState(false)
-    const copy = () => {
-        const done = () => { setCopied(true); setTimeout(() => setCopied(false), 2000) }
-        if (navigator.clipboard?.writeText) {
-            navigator.clipboard.writeText(text).then(done).catch(() => {})
-            return
-        }
-        const ta = document.createElement('textarea')
-        ta.value = text
-        document.body.appendChild(ta)
-        ta.select()
-        try { document.execCommand('copy'); done() } catch (_) { /* nothing to do */ }
-        document.body.removeChild(ta)
-    }
-    return (
-        <button onClick={copy} style={btn(copied ? '#00ff88' : '#6a8090')}>
-            {copied ? 'COPIED!' : label}
-        </button>
     )
 }
 
@@ -302,7 +281,10 @@ export default function WarPage() {
                         <span className="panel-title">Scoreboard</span>
                         <span className="panel-badge">{summary?.bucket === 'week' ? 'weekly' : summary?.bucket || 'daily'}</span>
                         <span style={{ marginLeft: 'auto' }}>
-                            <CopyButton text={buildWarCopyText(war, summary)} />
+                            <CopyButton text={buildWarCopyText(war, summary)} copiedLabel="COPIED!"
+                                color="#6a8090" borderColor="#6a8090"
+                                copiedColor="#00ff88" copiedBorderColor="#00ff88"
+                                style={{ letterSpacing: 0.5 }} />
                         </span>
                     </div>
                     <div className="summary-row" style={{ marginBottom: 8 }}>
