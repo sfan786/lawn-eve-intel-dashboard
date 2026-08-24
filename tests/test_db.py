@@ -1,5 +1,6 @@
 # Tests for db.py — SQLite persistence layer (uses tmp_db fixture from conftest.py).
 
+import json
 import sqlite3
 from datetime import UTC, datetime, timedelta
 
@@ -42,6 +43,7 @@ class TestSchema:
             "system_annotations", "jump_bridges", "sov_state",
             "sov_changes", "entosis_nodes",
             "war_kills", "war_ingest_state", "war_poll_lease",
+            "shared_reports",
         }
         with _conn(tmp_db) as c:
             tables = {r[0] for r in c.execute(
@@ -440,3 +442,72 @@ class TestSovChanges:
         db.record_sov_changes(dict.fromkeys(range(60), 2000), names)
         # The table is capped at SOV_CHANGES_MAX rows regardless of limit asked.
         assert _count(tmp_db, "sov_changes") == db.SOV_CHANGES_MAX
+
+
+# ---------------------------------------------------------------------------
+# Shared parser snapshots
+# ---------------------------------------------------------------------------
+
+class TestSharedReports:
+    def test_create_and_read_round_trip(self, tmp_db):
+        db.create_shared_report("tok1", "dscan", '{"result": {"ships": 3}}',
+                                visibility="alliance", title="Gate camp",
+                                created_by="Some Pilot")
+        row = db.get_shared_report("tok1")
+        assert row["kind"] == "dscan"
+        assert row["visibility"] == "alliance"
+        assert row["title"] == "Gate camp"
+        assert row["created_by"] == "Some Pilot"
+        assert json.loads(row["payload"])["result"]["ships"] == 3
+
+    def test_defaults_to_link_visibility(self, tmp_db):
+        db.create_shared_report("tok2", "local", "{}")
+        assert db.get_shared_report("tok2")["visibility"] == "link"
+
+    def test_unknown_token_is_none(self, tmp_db):
+        assert db.get_shared_report("never-issued") is None
+
+    def test_ttl_is_days_from_now(self, tmp_db):
+        db.create_shared_report("tok3", "fleet", "{}", ttl_days=3)
+        expires = db.get_shared_report("tok3")["expires_at"]
+        expected = (datetime.now(UTC) + timedelta(days=3)).strftime("%Y-%m-%dT%H:%M:%SZ")
+        # Same day and hour is enough — the seconds can tick between the two calls.
+        assert expires[:13] == expected[:13]
+
+    def test_expired_share_reads_as_absent_before_pruning(self, tmp_db):
+        # Expiry is enforced in the read query, not only by the poller's prune,
+        # so a lapsed link stops working immediately rather than up to a poll
+        # cycle later.
+        db.create_shared_report("stale", "dscan", "{}")
+        with _conn(tmp_db) as c:
+            c.execute("UPDATE shared_reports SET expires_at = ? WHERE token = ?",
+                      (_old_ts(hours=1), "stale"))
+        assert db.get_shared_report("stale") is None
+        assert _count(tmp_db, "shared_reports") == 1  # still on disk
+
+    def test_prune_drops_only_expired(self, tmp_db):
+        db.create_shared_report("live", "dscan", "{}")
+        db.create_shared_report("dead", "dscan", "{}")
+        with _conn(tmp_db) as c:
+            c.execute("UPDATE shared_reports SET expires_at = ? WHERE token = ?",
+                      (_old_ts(hours=1), "dead"))
+        assert db.prune_shared_reports() == 1
+        assert _count(tmp_db, "shared_reports") == 1
+        assert db.get_shared_report("live") is not None
+
+    def test_readable_from_a_different_deployment(self, tmp_db, monkeypatch):
+        """The inverse of TestDeploymentIsolation, and deliberately so.
+
+        A share is a URL somebody has already pasted into a chat window. The
+        token is its identity, not the deployment, so switching deployments must
+        not break existing links. This test exists to fail loudly if someone
+        "fixes" get_shared_report to filter on deployment_id like every other
+        table.
+        """
+        db.create_shared_report("portable", "local", '{"results": []}')
+        monkeypatch.setattr(db, "DEPLOYMENT_ID", "other_deploy")
+        assert db.get_shared_report("portable") is not None
+
+    def test_records_creating_deployment(self, tmp_db):
+        db.create_shared_report("stamped", "local", "{}")
+        assert db.get_shared_report("stamped")["deployment_id"] == "test_deploy"

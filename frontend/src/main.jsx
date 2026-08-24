@@ -5,6 +5,7 @@ import './styles/global.css'
 import App from './App'
 import EntosisPage from './pages/EntosisPage'
 import AnalyticsPage from './pages/AnalyticsPage'
+import SharePage from './pages/SharePage'
 import WarPage from './pages/WarPage'
 
 ReactDOM.createRoot(document.getElementById('root')).render(
@@ -15,6 +16,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(
         <Route path="/entosis" element={<EntosisPage />} />
         <Route path="/war" element={<WarPage />} />
         <Route path="/analytics" element={<AnalyticsPage />} />
+        <Route path="/s/:token" element={<SharePage />} />
       </Routes>
     </BrowserRouter>
   </React.StrictMode>

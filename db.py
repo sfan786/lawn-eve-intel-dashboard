@@ -105,6 +105,27 @@ def init():
             UNIQUE(deployment_id, system_a, system_b)
         );
 
+        -- Shared parser snapshots. A row is a frozen D-scan / Local / Fleet
+        -- result published at an unguessable token.
+        --
+        -- NOTE: deployment_id is recorded for provenance but is deliberately
+        -- NOT filtered on read. The token is the identity here, and a URL
+        -- somebody already pasted into a chat window should not start 404ing
+        -- because the server switched deployments. Do not add a deployment
+        -- filter to get_shared_report to "match the other tables".
+        CREATE TABLE IF NOT EXISTS shared_reports (
+            id            INTEGER PRIMARY KEY AUTOINCREMENT,
+            token         TEXT NOT NULL UNIQUE,
+            kind          TEXT NOT NULL,
+            visibility    TEXT NOT NULL DEFAULT 'link',
+            deployment_id TEXT NOT NULL DEFAULT '{LEGACY_DEPLOYMENT_ID}',
+            title         TEXT,
+            created_by    TEXT,
+            payload       TEXT NOT NULL,
+            created_at    TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')),
+            expires_at    TEXT NOT NULL
+        );
+
         CREATE TABLE IF NOT EXISTS sov_state (
             deployment_id TEXT NOT NULL,
             system_id     INTEGER NOT NULL,
@@ -322,6 +343,8 @@ def init():
         CREATE INDEX IF NOT EXISTS idx_entosis_deployment ON entosis_nodes(deployment_id);
         CREATE INDEX IF NOT EXISTS idx_traffic_hourly_deploy_hour ON traffic_hourly(deployment_id, hour);
         CREATE INDEX IF NOT EXISTS idx_traffic_visitors_deploy_day ON traffic_visitors(deployment_id, day);
+
+        CREATE INDEX IF NOT EXISTS idx_shared_reports_expires ON shared_reports(expires_at);
 
         CREATE INDEX IF NOT EXISTS idx_war_kills_time ON war_kills(war_id, killmail_time);
         CREATE INDEX IF NOT EXISTS idx_war_kills_sys_time ON war_kills(war_id, system_id, killmail_time);
@@ -620,6 +643,69 @@ def delete_jump_bridge(bridge_id):
     )
     conn.commit()
     conn.close()
+
+
+# ---------------------------------------------------------------------------
+# Shared parser snapshots
+#
+# A share is a frozen parser result published at an unguessable token, so it
+# ages out rather than accumulating: intel is only meaningful close to when it
+# was gathered, and an old link is a liability rather than an asset.
+# ---------------------------------------------------------------------------
+
+SHARE_RETENTION_DAYS = int(os.environ.get("SHARE_RETENTION_DAYS", "3"))
+
+
+def create_shared_report(token, kind, payload_json, visibility="link", title=None,
+                         created_by=None, ttl_days=None):
+    """Store a parser snapshot under `token`. Returns the new row id.
+
+    Plain INSERT with no ON CONFLICT clause, so lastrowid is reliable here —
+    unlike add_jump_bridge, which has to look the id back up.
+    """
+    ttl = SHARE_RETENTION_DAYS if ttl_days is None else ttl_days
+    expires_at = (datetime.now(UTC) + timedelta(days=ttl)).strftime("%Y-%m-%dT%H:%M:%SZ")
+    conn = get_connection()
+    cur = conn.execute(
+        "INSERT INTO shared_reports "
+        "(token, kind, visibility, deployment_id, title, created_by, payload, expires_at) "
+        "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+        (token, kind, visibility, DEPLOYMENT_ID, title, created_by, payload_json, expires_at),
+    )
+    conn.commit()
+    new_id = cur.lastrowid
+    conn.close()
+    return new_id
+
+
+def get_shared_report(token):
+    """Look up a share by token, or None if unknown or expired.
+
+    Expiry is enforced in the query rather than left to prune_shared_reports,
+    so a link stops working the moment it lapses instead of at the next poller
+    cycle. Deliberately not scoped by deployment_id — see the schema comment.
+    """
+    now = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
+    conn = get_connection()
+    row = conn.execute(
+        "SELECT id, token, kind, visibility, deployment_id, title, created_by, "
+        "payload, created_at, expires_at FROM shared_reports "
+        "WHERE token = ? AND expires_at > ?",
+        (token, now),
+    ).fetchone()
+    conn.close()
+    return dict(row) if row else None
+
+
+def prune_shared_reports():
+    """Drop lapsed shares (all deployments). Returns rows deleted."""
+    now = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
+    conn = get_connection()
+    cur = conn.execute("DELETE FROM shared_reports WHERE expires_at <= ?", (now,))
+    deleted = cur.rowcount
+    conn.commit()
+    conn.close()
+    return deleted
 
 
 def get_activity_heatmap_data(hours=168):

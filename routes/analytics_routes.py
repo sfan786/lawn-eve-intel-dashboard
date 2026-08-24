@@ -51,8 +51,9 @@ PRUNE_INTERVAL_SECONDS = 24 * 3600
 
 # SPA routes we count by name. Anything else that reaches the catch-all is
 # bucketed as "/other" — scanners probing /wp-login.php and friends would
-# otherwise give the path column unbounded cardinality.
-KNOWN_PAGES = {"/", "/entosis", "/analytics", "/war"}
+# otherwise give the path column unbounded cardinality. Shared parser snapshots
+# ("/s/<token>") are collapsed to "/s" in classify_request before this check.
+KNOWN_PAGES = {"/", "/entosis", "/analytics", "/war", "/s"}
 
 _BOT_UA = re.compile(
     r"bot|crawl|spider|slurp|bingpreview|facebookexternalhit|headless|"
@@ -111,6 +112,12 @@ def classify_request():
         # The url_rule keeps parameterised routes ("/api/zkill/<id>") from
         # exploding into one path per system.
         return ("api", request.url_rule.rule if request.url_rule else path)
+    if path == "/s" or path.startswith("/s/"):
+        # Collapse every share to the literal "/s". The token must never reach
+        # traffic_hourly.path: it is the secret that guards the snapshot, and
+        # one row per share would give the path column exactly the unbounded
+        # cardinality the "/other" bucket exists to prevent.
+        return ("page", "/s")
     return ("page", path if path in KNOWN_PAGES else "/other")
 
 

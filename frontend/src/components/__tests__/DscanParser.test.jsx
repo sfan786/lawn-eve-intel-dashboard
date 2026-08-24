@@ -5,6 +5,11 @@ import DscanParser from '../DscanParser'
 
 vi.mock('../../utils/useAuth', () => ({
     useAuth: () => ({ authorized: false, ssoEnabled: false }),
+    // ssoEnabled: false means canWrite is true — the same fall-through the
+    // backend takes when SSO is unconfigured.
+    useWriteAuth: () => ({
+        authorized: false, ssoEnabled: false, canWrite: true, writeHeaders: { 'X-Timer-Auth': '' },
+    }),
 }))
 
 vi.mock('../../utils/useAiSummary', () => ({
