@@ -48,6 +48,34 @@ export function useAuth() {
 }
 
 /**
+ * Check a TIMER_PASSWORD against /api/auth/check.
+ *
+ * Resolves to 'ok', 'invalid', 'locked' (429 — too many failures from this
+ * IP) or 'error' (network). Every wrong attempt counts toward a per-IP
+ * lockout shared with all write endpoints, so call this on submit or once on
+ * mount with a remembered password — never from an effect keyed on the input,
+ * which would spend the allowance one keystroke at a time.
+ */
+export async function checkTimerPassword(password) {
+    try {
+        const res = await fetch('/api/auth/check', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ password }),
+        })
+        if (res.ok) return 'ok'
+        return res.status === 429 ? 'locked' : 'invalid'
+    } catch {
+        return 'error'
+    }
+}
+
+export const TIMER_AUTH_MESSAGES = {
+    invalid: 'Invalid password',
+    locked: 'Too many attempts — wait a minute',
+}
+
+/**
  * What a panel needs to offer a write-gated action (AI summary, share).
  *
  * `canWrite` mirrors the backend's require_write_auth: an SSO session that is

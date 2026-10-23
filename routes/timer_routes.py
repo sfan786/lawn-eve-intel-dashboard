@@ -1,10 +1,7 @@
-import hmac
-
 from flask import Blueprint, jsonify, request
 
 import db
-from config import TIMER_PASSWORD
-from routes.auth_sso import require_write_auth
+from routes.auth_sso import AUTH_LOCKED, AUTH_OK, check_timer_password, locked_out_response, require_write_auth
 
 timer_bp = Blueprint("timer", __name__)
 
@@ -17,9 +14,13 @@ def api_get_timers():
 
 @timer_bp.route("/api/auth/check", methods=["POST"])
 def api_check_auth():
-    data = request.json or {}
-    password = data.get("password")
-    if isinstance(password, str) and TIMER_PASSWORD and hmac.compare_digest(password, TIMER_PASSWORD):
+    # Shares the per-IP failure budget with the X-Timer-Auth header on every
+    # write endpoint, so this can't be used as an unthrottled guessing oracle.
+    data = request.get_json(silent=True) or {}
+    status = check_timer_password(data.get("password") if isinstance(data, dict) else None)
+    if status == AUTH_LOCKED:
+        return locked_out_response()
+    if status == AUTH_OK:
         return jsonify({"status": "ok"})
     return jsonify({"error": "Invalid password"}), 401
 

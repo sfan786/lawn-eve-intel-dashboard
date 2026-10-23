@@ -165,6 +165,18 @@ def _parse_int(raw, default):
 
 TRUSTED_PROXY_HOPS = _parse_int(os.environ.get("TRUSTED_PROXY_HOPS"), 0)
 
+# ===== SSO session lifetime =====
+# The session cookie is signed client-side and can't be revoked from the
+# server, so the alliance check made at login is not trusted forever: an
+# authorized session re-verifies the character's alliance with ESI once it is
+# older than AUTH_RECHECK_MINUTES (min 1). A pilot who leaves or is kicked loses
+# write access within that window rather than when the cookie expires.
+AUTH_RECHECK_SECONDS = max(1, _parse_int(os.environ.get("AUTH_RECHECK_MINUTES"), 60)) * 60
+# Idle lifetime of the cookie itself. Flask refreshes it on every request, so
+# this is "log in again after N hours of not using the dashboard" (was Flask's
+# 31-day default).
+SESSION_LIFETIME_HOURS = max(1, _parse_int(os.environ.get("SESSION_LIFETIME_HOURS"), 168))
+
 # ===== Analytics (operator-only) =====
 # Deliberately NOT the write-auth credential. TIMER_PASSWORD is shared with the
 # whole fleet for timers/entosis, and AUTH_ALLOWED_ALLIANCE_IDS covers every

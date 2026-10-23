@@ -66,7 +66,9 @@ def client(app):
 def authed(monkeypatch):
     """Satisfy require_write_auth. Roster edits are a fleet write action."""
     import routes.auth_sso as auth_sso
-    monkeypatch.setattr(auth_sso, "request_is_authorized", lambda: True)
+    # write_auth_status is what both require_write_auth and
+    # request_is_authorized consult.
+    monkeypatch.setattr(auth_sso, "write_auth_status", lambda: auth_sso.AUTH_OK)
 
 
 def _ago(**kw):

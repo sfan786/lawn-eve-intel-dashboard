@@ -9,17 +9,30 @@ fallback so demo/local work without a registered EVE application.
 Identity is derived from the access-token JWT (sub = "CHARACTER:EVE:<id>",
 name = character name); alliance is resolved from the public character endpoint.
 No ESI scopes are requested.
+
+Two things here exist because the cookie and the password are both long-lived:
+
+* The session cookie is signed client-side, so it cannot be revoked from the
+  server. A pilot who leaves the alliance would otherwise keep write access for
+  the cookie's whole lifetime. `authorized` is therefore re-derived from ESI
+  every AUTH_RECHECK_MINUTES rather than trusted forever from login.
+* TIMER_PASSWORD is one shared secret accepted on every write endpoint. Failed
+  attempts are counted per IP across all of them (and /api/auth/check), so it
+  cannot be guessed online by spreading attempts over endpoints.
 """
 
 import hmac
 import logging
 import secrets
+import time
 from functools import wraps
 from urllib.parse import urlencode, urlparse
 
 import jwt
 import requests
 from flask import Blueprint, jsonify, redirect, request, session
+from flask_limiter.util import get_remote_address
+from limits import parse_many
 
 import config
 from esi_client import esi_get
@@ -29,8 +42,24 @@ from eve_constants import (
     SSO_JWKS_URL,
     SSO_TOKEN_URL,
 )
+from routes.limiter import PASSWORD_FAIL_LIMIT, limiter
 
 log = logging.getLogger(__name__)
+
+# Results of a write-auth check. LOCKED is distinct from DENIED so callers can
+# answer 429 — a correct password is refused too while an IP is locked out,
+# otherwise the lockout would leak which guess was right.
+AUTH_OK = "ok"
+AUTH_DENIED = "denied"
+AUTH_LOCKED = "locked"
+
+_PASSWORD_FAIL_ITEMS = parse_many(PASSWORD_FAIL_LIMIT)
+_PASSWORD_FAIL_SCOPE = "timer-password-failures"
+
+# When ESI can't be reached during a re-check, keep the session's previous
+# answer (locking the whole fleet out mid-op because ESI blipped is worse than
+# a kicked pilot keeping access a few more minutes) and try again this soon.
+_RECHECK_RETRY_SECONDS = 300
 
 auth_sso_bp = Blueprint("auth_sso", __name__)
 
@@ -77,12 +106,108 @@ def is_authorized(character_id, alliance_id):
     )
 
 
+def _password_failures_exceeded():
+    """True once this IP has used up its failed-password allowance."""
+    if not limiter.enabled:
+        return False
+    ip = get_remote_address()
+    try:
+        return any(not limiter.limiter.test(item, _PASSWORD_FAIL_SCOPE, ip)
+                   for item in _PASSWORD_FAIL_ITEMS)
+    except Exception:
+        # Storage outage (e.g. Redis down): fail open rather than lock every
+        # FC out of the timerboard. The password itself is still checked.
+        log.exception("Password-failure limiter unavailable")
+        return False
+
+
+def _record_password_failure():
+    if not limiter.enabled:
+        return
+    ip = get_remote_address()
+    try:
+        for item in _PASSWORD_FAIL_ITEMS:
+            limiter.limiter.hit(item, _PASSWORD_FAIL_SCOPE, ip)
+    except Exception:
+        log.exception("Password-failure limiter unavailable")
+
+
+def check_timer_password(candidate):
+    """Check a TIMER_PASSWORD attempt, counting failures per IP.
+
+    Returns AUTH_OK, AUTH_DENIED or AUTH_LOCKED.
+    """
+    if _password_failures_exceeded():
+        return AUTH_LOCKED
+    # Compare bytes: compare_digest raises TypeError on non-ASCII str, and a
+    # header value is attacker-controlled.
+    if (isinstance(candidate, str) and candidate and config.TIMER_PASSWORD
+            and hmac.compare_digest(candidate.encode(), config.TIMER_PASSWORD.encode())):
+        return AUTH_OK
+    _record_password_failure()
+    log.warning("Rejected TIMER_PASSWORD attempt from %s", get_remote_address())
+    return AUTH_DENIED
+
+
+def _stamp_authorization(authorized):
+    session["authorized"] = authorized
+    session["auth_checked_at"] = time.time()
+
+
+def session_is_authorized():
+    """True if the SSO session may write, re-verifying alliance membership
+    with ESI once it is older than AUTH_RECHECK_MINUTES.
+
+    Sessions from before the re-check existed carry no `auth_checked_at`, so
+    they are re-verified on their first request.
+    """
+    if not session.get("authorized"):
+        return False
+    checked_at = session.get("auth_checked_at") or 0
+    if time.time() - checked_at < config.AUTH_RECHECK_SECONDS:
+        return True
+
+    character_id = session.get("character_id")
+    if not character_id:
+        _stamp_authorization(False)
+        return False
+    if character_id in config.AUTH_ALLOWED_CHARACTER_IDS:
+        _stamp_authorization(True)
+        return True
+    try:
+        alliance_id = esi_get(f"/characters/{character_id}/").get("alliance_id")
+    except Exception:
+        log.warning("ESI unreachable re-checking character %s; keeping current access", character_id)
+        session["auth_checked_at"] = time.time() - config.AUTH_RECHECK_SECONDS + _RECHECK_RETRY_SECONDS
+        return True
+
+    session["alliance_id"] = alliance_id
+    authorized = is_authorized(character_id, alliance_id)
+    _stamp_authorization(authorized)
+    if not authorized:
+        log.info("Revoked write access for %s (character %s): no longer in an allowed alliance",
+                 session.get("character_name"), character_id)
+    return authorized
+
+
+def write_auth_status():
+    """AUTH_OK / AUTH_DENIED / AUTH_LOCKED for the current request.
+
+    An authorized SSO session wins; otherwise the X-Timer-Auth header is tried.
+    An absent header is a plain denial and is not counted as a guess — the
+    frontend sends an empty one whenever no password has been entered.
+    """
+    if session_is_authorized():
+        return AUTH_OK
+    header = request.headers.get("X-Timer-Auth") or ""
+    if not header:
+        return AUTH_DENIED
+    return check_timer_password(header)
+
+
 def request_is_authorized():
     """True if the request carries a valid SSO session OR the legacy password."""
-    if session.get("authorized"):
-        return True
-    header = request.headers.get("X-Timer-Auth") or ""
-    return bool(config.TIMER_PASSWORD) and hmac.compare_digest(header, config.TIMER_PASSWORD)
+    return write_auth_status() == AUTH_OK
 
 
 def current_character_name():
@@ -90,12 +215,20 @@ def current_character_name():
     return session.get("character_name")
 
 
+def locked_out_response():
+    return jsonify({"error": "Too many failed password attempts — try again later"}), 429
+
+
 def require_write_auth(view):
-    """Decorator: 401 unless the request is authorized (SSO session or password)."""
+    """Decorator: 401 unless the request is authorized (SSO session or password),
+    429 while the caller's IP is locked out for repeated wrong passwords."""
 
     @wraps(view)
     def wrapper(*args, **kwargs):
-        if not request_is_authorized():
+        status = write_auth_status()
+        if status == AUTH_LOCKED:
+            return locked_out_response()
+        if status != AUTH_OK:
             return jsonify({"error": "Unauthorized"}), 401
         return view(*args, **kwargs)
 
@@ -110,7 +243,7 @@ def api_auth_me():
         "sso_enabled": config.SSO_ENABLED,
         "logged_in": bool(session.get("character_id")),
         "character_name": session.get("character_name"),
-        "authorized": bool(session.get("authorized")),
+        "authorized": session_is_authorized(),
     })
 
 
@@ -225,7 +358,7 @@ def api_sso_callback():
     session["character_id"] = character_id
     session["character_name"] = character_name
     session["alliance_id"] = alliance_id
-    session["authorized"] = is_authorized(character_id, alliance_id)
+    _stamp_authorization(is_authorized(character_id, alliance_id))
     session.permanent = True
 
     return redirect(session.pop("sso_next", "/") or "/")

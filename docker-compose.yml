@@ -3,7 +3,12 @@ services:
     build: .
     restart: unless-stopped
     ports:
-      - "5000:5000"
+      # Loopback only. nginx on the host is the public entry point. Publishing
+      # on all interfaces would let clients reach gunicorn directly and skip
+      # nginx — and with TRUSTED_PROXY_HOPS=1 they could then forge
+      # X-Forwarded-For to get a fresh rate-limit bucket per request. Docker
+      # writes its own iptables rules, so ufw does NOT block a published port.
+      - "127.0.0.1:5000:5000"
     env_file:
       - .env
     environment:

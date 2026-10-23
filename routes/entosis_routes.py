@@ -1,7 +1,9 @@
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, jsonify, request, session
 
+import config
 import db
 from routes.auth_sso import current_character_name, require_write_auth
+from routes.limiter import ENTOSIS_PATCH_LIMIT, limiter
 
 entosis_bp = Blueprint("entosis", __name__)
 
@@ -35,9 +37,19 @@ def api_add_node():
 
 
 @entosis_bp.route("/api/entosis/nodes/<int:node_id>", methods=["PATCH"])
+@limiter.limit(ENTOSIS_PATCH_LIMIT)
 def api_update_node(node_id):
-    # Intentionally open (no X-Timer-Auth): any fleet member must be able to
-    # claim a node and advance its status without knowing the FC password.
+    # Never gated on X-Timer-Auth: any fleet member must be able to claim a
+    # node and advance its status without knowing the FC password.
+    #
+    # With SSO on, it does require being logged in as *some* EVE character —
+    # not an alliance member, since blues fly entosis ops too. That is the same
+    # bar the page already applies before offering CLAIM, and it means a
+    # stranger who finds the URL can't flip node statuses mid-op. Without SSO
+    # there is no identity to require, so it stays open and the rate limit is
+    # the only bound.
+    if config.SSO_ENABLED and not session.get("character_id"):
+        return jsonify({"error": "Log in with EVE to claim nodes"}), 401
     data = request.json
     if not isinstance(data, dict):
         return jsonify({"error": "Invalid JSON payload"}), 400

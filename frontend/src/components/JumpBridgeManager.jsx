@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import CornerBrackets from './common/CornerBrackets'
 import EveLoginButton from './common/EveLoginButton'
-import { useAuth } from '../utils/useAuth'
+import { TIMER_AUTH_MESSAGES, checkTimerPassword, useAuth } from '../utils/useAuth'
 
 const inputStyle = {
     background: 'var(--bg-deep)', border: '1px solid var(--border-dim)', color: 'var(--text-primary)',
@@ -18,40 +18,29 @@ export default function JumpBridgeManager({ jumpBridges = [], onJbChange }) {
     const [newJb, setNewJb] = useState({ system_a: '', system_b: '', label: '' })
     const [password, setPassword] = useState(localStorage.getItem("timer_auth") || "")
     const [isAuthenticated, setIsAuthenticated] = useState(false)
-    const [authError, setAuthError] = useState(false)
+    const [authError, setAuthError] = useState("")
 
     const auth = useAuth()
     const canWrite = auth.ssoEnabled ? auth.authorized : isAuthenticated
     const writeHeaders = auth.ssoEnabled ? {} : { "X-Timer-Auth": password }
 
-    const checkAuth = useCallback(async () => {
-        if (!password) return
-        try {
-            const res = await fetch("/api/auth/check", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ password }),
-            })
-            if (res.ok) {
-                setIsAuthenticated(true)
-                setAuthError(false)
-                localStorage.setItem("timer_auth", password)
-            } else {
-                setIsAuthenticated(false)
-                setAuthError(true)
-            }
-        } catch {
-            setIsAuthenticated(false)
-        }
-    }, [password])
+    const checkAuth = useCallback(async (pw) => {
+        if (!pw) return
+        const result = await checkTimerPassword(pw)
+        setIsAuthenticated(result === "ok")
+        setAuthError(TIMER_AUTH_MESSAGES[result] || "")
+        if (result === "ok") localStorage.setItem("timer_auth", pw)
+    }, [])
 
+    // Once on mount with the remembered password — never per keystroke, since
+    // each wrong check counts toward the server's failed-password lockout.
     useEffect(() => {
-        if (password) checkAuth()
-    }, [checkAuth, password])
+        checkAuth(localStorage.getItem("timer_auth"))
+    }, [checkAuth])
 
     const handleLogin = (e) => {
         e.preventDefault()
-        checkAuth()
+        checkAuth(password)
     }
 
     const handleLogout = () => {
@@ -74,7 +63,9 @@ export default function JumpBridgeManager({ jumpBridges = [], onJbChange }) {
             if (onJbChange) onJbChange()
         } else if (res.status === 401) {
             setIsAuthenticated(false)
-            setAuthError(true)
+            setAuthError(TIMER_AUTH_MESSAGES.invalid)
+            // An SSO session can lose write access server-side (alliance re-check).
+            auth.refresh()
         }
     }
 
@@ -88,7 +79,9 @@ export default function JumpBridgeManager({ jumpBridges = [], onJbChange }) {
             if (onJbChange) onJbChange()
         } else if (res.status === 401) {
             setIsAuthenticated(false)
-            setAuthError(true)
+            setAuthError(TIMER_AUTH_MESSAGES.invalid)
+            // An SSO session can lose write access server-side (alliance re-check).
+            auth.refresh()
         }
     }
 
@@ -135,7 +128,7 @@ export default function JumpBridgeManager({ jumpBridges = [], onJbChange }) {
                         />
                         <button type="submit" style={{ ...actionBtnStyle, background: 'var(--red-dim)', color: '#fff' }}>LOGIN</button>
                     </form>
-                    {authError && <div style={{ color: 'var(--red)', fontSize: 10, marginTop: 4 }}>Invalid password</div>}
+                    {authError && <div style={{ color: 'var(--red)', fontSize: 10, marginTop: 4 }}>{authError}</div>}
                 </div>
             )}
 

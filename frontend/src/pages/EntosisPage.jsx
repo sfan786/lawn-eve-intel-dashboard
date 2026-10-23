@@ -9,7 +9,7 @@ import TimerBoard from '../components/TimerBoard'
 import FleetCompAnalyzer from '../components/FleetCompAnalyzer'
 import KillFeed from '../components/KillFeed'
 import NotificationBell from '../components/NotificationBell'
-import { useAuth } from '../utils/useAuth'
+import { checkTimerPassword, useAuth } from '../utils/useAuth'
 import { useNotifications } from '../hooks/useNotifications'
 import { getCampaignPhase, formatCountdown, formatEveTime, formatLocalTime, formatVulnWindow } from '../utils/campaignHelpers'
 import {
@@ -270,7 +270,8 @@ export default function EntosisPage() {
     const [callsignInput, setCallsignInput] = useState(() => localStorage.getItem('entosis_callsign') || '')
     const [password, setPassword] = useState(() => localStorage.getItem('timer_auth') || '')
     const [isAuth, setIsAuth] = useState(false)
-    const [authError, setAuthError] = useState(false)
+    // '' | 'invalid' | 'locked' — see checkTimerPassword.
+    const [authError, setAuthError] = useState('')
     const [addFormFor, setAddFormFor] = useState(null)   // campaign_id | 'unlinked' | null
     const [addError, setAddError] = useState('')
     const [patchError, setPatchError] = useState('')
@@ -363,14 +364,10 @@ export default function EntosisPage() {
     useEffect(() => {
         const storedPw = localStorage.getItem('timer_auth')
         if (!storedPw) return
-        fetch('/api/auth/check', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ password: storedPw }),
-        }).then(r => {
-            setIsAuth(r.ok)
-            if (!r.ok) setAuthError(true)
-        }).catch(() => setIsAuth(false))
+        checkTimerPassword(storedPw).then(result => {
+            setIsAuth(result === 'ok')
+            if (result === 'invalid' || result === 'locked') setAuthError(result)
+        })
     }, [])
 
     const saveCallsign = () => {
@@ -381,17 +378,10 @@ export default function EntosisPage() {
 
     const handleAuth = async (e) => {
         e.preventDefault()
-        const res = await fetch('/api/auth/check', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ password }),
-        })
-        if (res.ok) {
-            setIsAuth(true); setAuthError(false)
-            localStorage.setItem('timer_auth', password)
-        } else {
-            setIsAuth(false); setAuthError(true)
-        }
+        const result = await checkTimerPassword(password)
+        setIsAuth(result === 'ok')
+        setAuthError(result === 'invalid' || result === 'locked' ? result : '')
+        if (result === 'ok') localStorage.setItem('timer_auth', password)
     }
 
     const addNode = async (systemName, label, campaignId) => {
@@ -591,7 +581,7 @@ export default function EntosisPage() {
                                 placeholder="FC password"
                             />
                             <button type="submit" style={btn(authError ? '#ff3355' : '#ffaa00')}>
-                                {authError ? 'WRONG PW' : 'FC LOGIN'}
+                                {authError === 'locked' ? 'WAIT 1 MIN' : authError ? 'WRONG PW' : 'FC LOGIN'}
                             </button>
                         </form>
                     ) : (
