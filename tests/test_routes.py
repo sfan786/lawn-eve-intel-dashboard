@@ -33,9 +33,6 @@ def _future_ts(hours=6):
 def app(tmp_db, monkeypatch):
     """Flask app with the write-gated blueprints, backed by an isolated DB."""
     monkeypatch.setattr(config, "TIMER_PASSWORD", "test-password")
-    # timer_routes imports TIMER_PASSWORD by value at module load.
-    import routes.timer_routes as timer_routes
-    monkeypatch.setattr(timer_routes, "TIMER_PASSWORD", "test-password")
 
     flask_app = Flask(__name__)
     flask_app.secret_key = "test-secret"

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import { formatCountdown, formatEveTime, formatLocalTime } from '../utils/campaignHelpers'
-import { useAuth } from '../utils/useAuth'
+import { TIMER_AUTH_MESSAGES, checkTimerPassword, useAuth } from '../utils/useAuth'
 import CornerBrackets from './common/CornerBrackets'
 import EveLoginButton from './common/EveLoginButton'
 
@@ -27,7 +27,7 @@ export default function TimerBoard() {
     const [now, setNow] = useState(new Date())
     const [password, setPassword] = useState(localStorage.getItem("timer_auth") || "")
     const [isAuthenticated, setIsAuthenticated] = useState(false)
-    const [authError, setAuthError] = useState(false)
+    const [authError, setAuthError] = useState("")
 
     const auth = useAuth()
     // SSO when configured, else the legacy password flow.
@@ -35,26 +35,13 @@ export default function TimerBoard() {
     // SSO uses the session cookie (sent automatically); password mode uses the header.
     const writeHeaders = auth.ssoEnabled ? {} : { "X-Timer-Auth": password }
 
-    const checkAuth = useCallback(async () => {
-        if (!password) return
-        try {
-            const res = await fetch("/api/auth/check", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ password })
-            })
-            if (res.ok) {
-                setIsAuthenticated(true)
-                setAuthError(false)
-                localStorage.setItem("timer_auth", password)
-            } else {
-                setIsAuthenticated(false)
-                setAuthError(true)
-            }
-        } catch (e) {
-            setIsAuthenticated(false)
-        }
-    }, [password])
+    const checkAuth = useCallback(async (pw) => {
+        if (!pw) return
+        const result = await checkTimerPassword(pw)
+        setIsAuthenticated(result === "ok")
+        setAuthError(TIMER_AUTH_MESSAGES[result] || "")
+        if (result === "ok") localStorage.setItem("timer_auth", pw)
+    }, [])
 
     const fetchTimers = useCallback(async () => {
         const res = await fetch("/api/timers")
@@ -67,13 +54,19 @@ export default function TimerBoard() {
     useEffect(() => {
         fetchTimers()
         const interval = setInterval(() => setNow(new Date()), 1000)
-        if (password) checkAuth()
         return () => clearInterval(interval)
-    }, [fetchTimers, checkAuth, password])
+    }, [fetchTimers])
+
+    // Verify a remembered password once on mount. Not keyed on `password`:
+    // that fired a check per keystroke, and each one now counts toward the
+    // server's failed-password lockout.
+    useEffect(() => {
+        checkAuth(localStorage.getItem("timer_auth"))
+    }, [checkAuth])
 
     const handleLogin = (e) => {
         e.preventDefault()
-        checkAuth()
+        checkAuth(password)
     }
 
     const handleLogout = () => {
@@ -121,7 +114,9 @@ export default function TimerBoard() {
             fetchTimers()
         } else if (res.status === 401) {
             setIsAuthenticated(false)
-            setAuthError(true)
+            setAuthError(TIMER_AUTH_MESSAGES.invalid)
+            // An SSO session can lose write access server-side (alliance re-check).
+            auth.refresh()
         }
     }
 
@@ -136,7 +131,9 @@ export default function TimerBoard() {
             fetchTimers()
         } else if (res.status === 401) {
             setIsAuthenticated(false)
-            setAuthError(true)
+            setAuthError(TIMER_AUTH_MESSAGES.invalid)
+            // An SSO session can lose write access server-side (alliance re-check).
+            auth.refresh()
         }
     }
 
@@ -178,7 +175,7 @@ export default function TimerBoard() {
                         />
                         <button type="submit" style={{ ...actionBtnStyle, background: 'var(--red-dim)', color: '#fff' }}>LOGIN</button>
                     </form>
-                    {authError && <div style={{ color: 'var(--red)', fontSize: 10, marginTop: 4 }}>Invalid password</div>}
+                    {authError && <div style={{ color: 'var(--red)', fontSize: 10, marginTop: 4 }}>{authError}</div>}
                 </div>
             )}
 

@@ -42,6 +42,15 @@ AI_LIMIT = os.environ.get("RATELIMIT_AI", "10 per minute")
 # one more per range button), so keep enough headroom that normal use never
 # trips it — 20/min still leaves online guessing hopeless.
 ANALYTICS_LIMIT = os.environ.get("RATELIMIT_ANALYTICS", "20 per minute")
+# FAILED TIMER_PASSWORD attempts, counted per IP across every write endpoint
+# and /api/auth/check (see auth_sso.check_timer_password). Only failures count,
+# so an FC using the right password is never throttled; once exceeded, even the
+# right password is refused until the window rolls over.
+PASSWORD_FAIL_LIMIT = os.environ.get("RATELIMIT_PASSWORD_FAIL", "10 per minute;50 per day")
+# Claiming / advancing an entosis node. Open without SSO (fleet members claim by
+# callsign), so this is what stops one client flipping every node in a loop.
+# A pilot clicks this a handful of times per op.
+ENTOSIS_PATCH_LIMIT = os.environ.get("RATELIMIT_ENTOSIS_PATCH", "30 per minute")
 # Publishing a parser snapshot. Write-auth gated already; this bounds how fast
 # an authorised session can fill the table with quarter-megabyte payloads.
 SHARE_LIMIT = os.environ.get("RATELIMIT_SHARE", "10 per minute")

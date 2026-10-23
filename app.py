@@ -14,6 +14,7 @@ Usage:
 
 import logging
 import os
+from datetime import timedelta
 
 from flask import Flask
 
@@ -33,6 +34,7 @@ from routes.intel_routes import intel_bp
 from routes.jb_routes import jb_bp
 from routes.limiter import limiter
 from routes.proxy import apply_proxy_fix, warn_on_untrusted_proxy
+from routes.security_headers import apply_security_headers
 from routes.share_routes import share_bp
 from routes.sov_routes import sov_bp
 from routes.static_routes import static_bp
@@ -62,9 +64,11 @@ def create_app():
         SESSION_COOKIE_HTTPONLY=True,
         SESSION_COOKIE_SAMESITE="Lax",
         SESSION_COOKIE_SECURE=not FLASK_DEBUG,
+        PERMANENT_SESSION_LIFETIME=timedelta(hours=config.SESSION_LIFETIME_HOURS),
     )
     # Must wrap wsgi_app before the limiter reads remote_addr per request.
     apply_proxy_fix(app)
+    apply_security_headers(app)
     warn_on_untrusted_proxy(app)
     limiter.init_app(app)
     for bp in [config_bp, sov_bp, activity_bp, zkill_bp, war_bp, history_bp, intel_bp, hostile_bp, timer_bp, annotation_bp, jb_bp, entosis_bp, auth_sso_bp, static_bp, ai_bp, analytics_bp, share_bp]:
